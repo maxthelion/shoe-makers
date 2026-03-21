@@ -23,7 +23,7 @@ If something would have made your job easier, add it:
 
 ## Troubleshooting
 
-If you hit a problem, check `.shoe-makers/known-issues.md` first — previous elves may have documented it.
+If you hit a problem, check `.shoe-makers/known-issues.md` first — previous elves may have documented it. If you solve a problem that others might hit, add it to that file.
 
 ## Rules
 
