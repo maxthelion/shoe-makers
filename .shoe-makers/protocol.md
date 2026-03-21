@@ -27,3 +27,4 @@ If something would have made your job easier, add it:
 - Read the wiki — it describes the intended design. Follow it.
 - Small, correct changes are better than large, broken ones.
 - Keep README.md and CHANGELOG.md up to date.
+- **NEVER force push.** If the branch has diverged, merge or rebase — do not overwrite other elves' work.
