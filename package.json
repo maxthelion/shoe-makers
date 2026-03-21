@@ -1,0 +1,16 @@
+{
+  "name": "shoe-makers",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "wiki": "OCTOWIKI_DIR=$PWD/wiki PORT=4570 bun run /Users/maxwilliams/dev/octowiki/src/index.ts",
+    "test": "bun test",
+    "dev": "bun run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
