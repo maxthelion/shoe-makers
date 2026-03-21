@@ -34,12 +34,10 @@ The [[behaviour-tree]] structure encodes priority — nodes higher in the tree g
 
 Install shoe-makers, run an init script (scaffolds `.shoe-makers/` in the repo), tweak the behaviour tree to your preferences, set it up as a [[scheduled-tasks|scheduled cloud job]].
 
-## Remaining
+### Multi-Round Gatekeeper (Answered)
+
+Multi-round review **emerges from the tick loop**. If the VERIFY tick rejects work (reverts), the next cycle's ASSESS tick sees the gap is still there, PRIORITISE re-ranks it, and WORK tries again. No special multi-round mechanism needed — the natural cycle handles retries.
 
 ### MCP Integration
 
-The scheduled tasks have access to MCPs. Octoclean and octowiki will probably be exposed as MCP servers — but this is an implementation detail to figure out when building.
-
-### Multi-Round Gatekeeper
-
-Octopoid allowed up to 3 rounds between implementer and gatekeeper. The [[verification]] gate is probably fed by the [[behaviour-tree]] — if verification fails, the tree sees "failing tests on the shoemakers branch" on the next tick and routes to FixAgent. So multi-round review emerges naturally from the tick loop rather than being a separate mechanism.
+Octoclean and octowiki will probably be exposed as MCP servers — but this is an implementation detail.

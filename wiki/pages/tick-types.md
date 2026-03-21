@@ -68,7 +68,7 @@ The `.shoe-makers/state/` directory on the branch is a **blackboard** — a conc
 
 This makes the system **stateful across ticks without a database**. The branch IS the state. If the branch is deleted, the state resets cleanly.
 
-## The Revised Tree
+## The Tree
 
 ```
 Root (selector)

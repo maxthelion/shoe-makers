@@ -12,6 +12,12 @@ The shoe-makers system works like NPCs in games. Every tick (5 minutes), a behav
 
 This is fundamentally different from Octopoid's approach of tracking task state through a flow/state machine. A behaviour tree re-evaluates from scratch every tick, so it **cannot get stuck**. If an agent crashes or produces garbage, the next tick just sees the same world state and tries again.
 
+## Two Levels of Priority
+
+The tree encodes **macro priority** — the order of tick types (assess before work, verify before new work). This is deterministic and cheap.
+
+Within the PRIORITISE tick, an LLM handles **micro priority** — which specific work item to tackle next, weighing impact, confidence, risk, and balance across work types. This is where judgement lives.
+
 ## The Tree
 
 The tree routes between [[tick-types]] — not every tick produces code. Some ticks assess, some prioritise, some work, some verify.
@@ -47,24 +53,9 @@ Every 5 minutes:
 6. Scheduler handles side effects (commit, push, etc.)
 7. Wait for next tick
 
-## Why No Diagnoser?
-
-A central LLM-based diagnoser would be more flexible but adds:
-- Cost (LLM call every tick just to decide what to do)
-- Unpredictability (might make different decisions with same inputs)
-- A failure point (if the diagnoser breaks, nothing works)
-
-The tree is deterministic, cheap, and debuggable. The LLM only fires when an agent actually does work — which is where you want the intelligence.
-
-If the tree turns out to be too rigid, an LLM assessment node can be added later. But start without one.
-
 ## Branch as State
 
-The shoemakers branch IS the task state. No database, no task tracker, no D1.
-
-- Unfinished work = uncommitted or partial changes on the branch
-- Completed work = clean commits ready for review/merge
-- Failed work = revert and the branch returns to its previous state
+The branch is the state — no database, no task tracker. The [[tick-types#the-blackboard|blackboard]] files (`.shoe-makers/state/`) are ephemeral caches on the branch. They're state in the sense that ticks read and write them, but they're not a separate system — delete the branch and you start clean.
 
 This eliminates the entire class of bugs that killed [[existing-projects#octopoid|Octopoid]] — tasks stuck between states, locks held by dead agents, inconsistent state between server and agents.
 
@@ -73,8 +64,8 @@ This eliminates the entire class of bugs that killed [[existing-projects#octopoi
 | Octopoid | Shoe-makers |
 |----------|------------|
 | State machine (fragile) | Behaviour tree (re-evaluates each tick) |
-| Task state tracked in D1 | Branch IS the state |
-| Semi-deterministic routing | Fully deterministic routing |
+| Task state tracked in D1 | Branch + blackboard files |
+| Semi-deterministic routing | Deterministic routing, LLM for micro-priority |
 | Autonomous execution | Autonomous execution (same) |
 | Pipeline gets stuck | Can't get stuck — re-evaluates from scratch |
 | Tasks stuck between states | No states to get stuck between |
