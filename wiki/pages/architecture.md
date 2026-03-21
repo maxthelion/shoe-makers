@@ -25,17 +25,20 @@ This can run via [[scheduled-tasks|Claude Code scheduled tasks]] (cloud) or a lo
 
 ### The Behaviour Tree
 
+The tree routes between [[tick-types]] — not every tick produces code:
+
 ```
 Root (selector — pick first applicable)
-├── Is there a failing test on the shoemakers branch? → FixAgent
-├── Is there unfinished work on the branch? → ContinueAgent
-├── Is there a code health score below threshold? → CleanAgent
-├── Is there an uncovered code path? → TestAgent
-├── Is there a stale wiki page? → DocAgent
-├── Nothing to do → Sleep
+├── Is assessment stale (>30 min)? → AssessAgent
+├── Is assessment newer than priorities? → PrioritiseAgent
+├── Is there unverified work on branch? → VerifyAgent
+├── Is there a top priority to work on? → WorkAgent
+├── Sleep
 ```
 
-Routing is **fully deterministic** — just condition checks, no LLM call. The LLM only fires when an agent actually does work.
+State is shared between ticks via files on the [[tick-types#the-blackboard|blackboard]] (`.shoe-makers/state/`). The system cycles naturally: assess → prioritise → work → verify.
+
+Routing is **mostly deterministic** — condition checks against staleness and branch state. The one exception is the PRIORITISE tick, where an LLM weighs candidates by impact, confidence, risk, and balance.
 
 ### Pure Function Agents
 

@@ -1,19 +1,59 @@
-import type { TreeNode } from "../types";
+import type { TreeNode, WorldState } from "../types";
+
+/**
+ * Check if the assessment is stale.
+ * Stale means: no assessment exists, or it's older than the threshold.
+ */
+function isAssessmentStale(state: WorldState, staleAfterMs = 30 * 60 * 1000): boolean {
+  const assessment = state.blackboard.assessment;
+  if (!assessment) return true;
+  const age = Date.now() - new Date(assessment.timestamp).getTime();
+  return age > staleAfterMs;
+}
+
+/**
+ * Check if priorities are stale.
+ * Stale means: no priorities exist, or the assessment is newer than the priorities.
+ */
+function isPrioritisationStale(state: WorldState): boolean {
+  const { assessment, priorities } = state.blackboard;
+  if (!assessment) return false; // can't prioritise without assessment
+  if (!priorities) return true;
+  return assessment.timestamp > priorities.assessedAt;
+}
+
+/**
+ * Check if there's unverified work on the branch.
+ */
+function hasUnverifiedWork(state: WorldState): boolean {
+  const { currentTask, verification } = state.blackboard;
+  if (!currentTask) return false;
+  if (currentTask.status === "in-progress") return false; // still working
+  // Task is done or failed but not yet verified
+  if (!verification) return true;
+  return new Date(currentTask.startedAt) > new Date(verification.timestamp);
+}
+
+/**
+ * Check if there's a priority item ready to work on.
+ */
+function hasWorkToDo(state: WorldState): boolean {
+  const { priorities, currentTask } = state.blackboard;
+  if (!priorities || priorities.items.length === 0) return false;
+  // Don't start new work if current task is in progress
+  if (currentTask?.status === "in-progress") return false;
+  return true;
+}
 
 /**
  * The default behaviour tree.
  *
- * Selector: try each branch in priority order, first match wins.
- * Each branch is a sequence: condition check → action.
- *
- * Priority order:
- * 1. Fix failing tests (branch health)
- * 2. Continue unfinished work (branch health)
- * 3. Close open plans (human intent)
- * 4. Implement specified-only invariants (spec → code)
- * 5. Add tests for untested invariants (code → tests)
- * 6. Document unspecified code (code → spec)
- * 7. Improve code health (quality)
+ * Routes between tick types based on staleness:
+ * 1. ASSESS if assessment is stale
+ * 2. PRIORITISE if assessment is newer than priorities
+ * 3. VERIFY if there's unverified completed work
+ * 4. WORK if there's a priority item to work on
+ * 5. Sleep
  */
 export const defaultTree: TreeNode = {
   type: "selector",
@@ -21,111 +61,62 @@ export const defaultTree: TreeNode = {
   children: [
     {
       type: "sequence",
-      name: "fix-failing-tests",
+      name: "assess",
       children: [
         {
           type: "condition",
-          name: "tests-failing",
+          name: "assessment-stale",
           condition: {
-            name: "tests-failing",
-            check: (state) => state.testsPass === false,
+            name: "assessment-stale",
+            check: (state) => isAssessmentStale(state),
           },
         },
-        { type: "action", name: "fix", skill: "fix" },
+        { type: "action", name: "assess", skill: "assess" },
       ],
     },
     {
       type: "sequence",
-      name: "continue-unfinished",
+      name: "prioritise",
       children: [
         {
           type: "condition",
-          name: "has-uncommitted-changes",
+          name: "prioritisation-stale",
           condition: {
-            name: "has-uncommitted-changes",
-            check: (state) => state.hasUncommittedChanges,
+            name: "prioritisation-stale",
+            check: (state) => isPrioritisationStale(state),
           },
         },
-        { type: "action", name: "continue", skill: "continue" },
+        { type: "action", name: "prioritise", skill: "prioritise" },
       ],
     },
     {
       type: "sequence",
-      name: "close-plans",
+      name: "verify",
       children: [
         {
           type: "condition",
-          name: "has-open-plans",
+          name: "has-unverified-work",
           condition: {
-            name: "has-open-plans",
-            check: (state) => state.openPlans.length > 0,
+            name: "has-unverified-work",
+            check: (state) => hasUnverifiedWork(state),
           },
         },
-        { type: "action", name: "implement-plan", skill: "implement-plan" },
+        { type: "action", name: "verify", skill: "verify" },
       ],
     },
     {
       type: "sequence",
-      name: "implement-spec",
+      name: "work",
       children: [
         {
           type: "condition",
-          name: "has-specified-only",
+          name: "has-work-to-do",
           condition: {
-            name: "has-specified-only",
-            check: (state) =>
-              (state.invariants?.specifiedOnly ?? 0) > 0,
+            name: "has-work-to-do",
+            check: (state) => hasWorkToDo(state),
           },
         },
-        { type: "action", name: "implement", skill: "implement" },
-      ],
-    },
-    {
-      type: "sequence",
-      name: "add-tests",
-      children: [
-        {
-          type: "condition",
-          name: "has-untested",
-          condition: {
-            name: "has-untested",
-            check: (state) =>
-              (state.invariants?.implementedUntested ?? 0) > 0,
-          },
-        },
-        { type: "action", name: "test", skill: "test-coverage" },
-      ],
-    },
-    {
-      type: "sequence",
-      name: "sync-docs",
-      children: [
-        {
-          type: "condition",
-          name: "has-unspecified",
-          condition: {
-            name: "has-unspecified",
-            check: (state) =>
-              (state.invariants?.unspecified ?? 0) > 0,
-          },
-        },
-        { type: "action", name: "doc-sync", skill: "doc-sync" },
-      ],
-    },
-    {
-      type: "sequence",
-      name: "improve-health",
-      children: [
-        {
-          type: "condition",
-          name: "health-below-threshold",
-          condition: {
-            name: "health-below-threshold",
-            check: (state) =>
-              state.healthScore !== null && state.healthScore < 70,
-          },
-        },
-        { type: "action", name: "clean", skill: "octoclean-fix" },
+        { type: "action", name: "work", skill: "work" },
       ],
     },
   ],

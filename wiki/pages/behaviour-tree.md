@@ -14,20 +14,26 @@ This is fundamentally different from Octopoid's approach of tracking task state 
 
 ## The Tree
 
+The tree routes between [[tick-types]] — not every tick produces code. Some ticks assess, some prioritise, some work, some verify.
+
 ```
 Root (selector — pick first applicable)
-├── Is there a failing test on the shoemakers branch? → FixAgent
-├── Is there unfinished work on the branch? → ContinueAgent
-├── Any specified-only invariants? → ImplementAgent
-├── Any implemented-untested invariants? → TestAgent
-├── Any unspecified invariants? → DocSyncAgent
-├── Is there a code health score below threshold? → CleanAgent
-├── Nothing to do → Sleep
+├── Is assessment stale (>30 min)? → AssessAgent
+├── Is assessment newer than priorities? → PrioritiseAgent
+├── Is there unverified work on branch? → VerifyAgent
+├── Is there a top priority to work on? → WorkAgent
+├── Sleep
 ```
 
-Nodes higher in the tree have higher priority. The tree is evaluated top-down — first matching node wins. No LLM call needed for routing, just condition checks against world state.
+The ASSESS and PRIORITISE ticks are **thinking ticks** that produce files on the [[tick-types#the-blackboard|blackboard]] (`.shoe-makers/state/`). The WORK tick reads the prioritised list and invokes the appropriate [[skills|skill]]. The VERIFY tick checks the work and commits or reverts.
 
-The [[invariants]] report is the primary world state the tree reads. The first two nodes handle immediate branch health; the next three are driven by the gap between [[wiki-as-spec|wiki spec]] and code.
+The system naturally cycles: assess → prioritise → work → verify → assess again. Staleness checks drive the pacing — no fixed schedule.
+
+### Prioritisation
+
+Prioritisation is the one place where an LLM call IS justified in the routing layer. The PrioritiseAgent reads the assessment and weighs candidates by impact, confidence, risk, balance, and dependencies. It produces a ranked list that subsequent WORK ticks consume deterministically.
+
+This solves the static-priority problem: a critical doc inconsistency can outrank a trivial feature gap because the prioritiser uses judgement, not a fixed ordering.
 
 ## The Tick
 

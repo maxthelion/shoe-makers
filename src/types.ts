@@ -23,25 +23,93 @@ export interface TreeNode {
   skill?: string;
 }
 
+/** Tick type — what kind of work this tick does */
+export type TickType = "assess" | "prioritise" | "work" | "verify";
+
+/** The blackboard — shared state written as files on the branch */
+export interface Blackboard {
+  assessment: Assessment | null;
+  priorities: PriorityList | null;
+  currentTask: CurrentTask | null;
+  verification: Verification | null;
+}
+
+/** Output of the ASSESS tick */
+export interface Assessment {
+  timestamp: string;
+  invariants: {
+    specifiedOnly: number;
+    implementedUntested: number;
+    implementedTested: number;
+    unspecified: number;
+    /** Top specified-only items by estimated impact */
+    topSpecGaps: InvariantSummary[];
+    /** Top untested items */
+    topUntested: InvariantSummary[];
+    /** Top unspecified items */
+    topUnspecified: InvariantSummary[];
+  } | null;
+  healthScore: number | null;
+  openPlans: string[];
+  testsPass: boolean | null;
+  recentGitActivity: string[];
+}
+
+export interface InvariantSummary {
+  id: string;
+  description: string;
+  group: string;
+}
+
+/** Output of the PRIORITISE tick */
+export interface PriorityList {
+  timestamp: string;
+  /** Assessment timestamp this was derived from */
+  assessedAt: string;
+  items: PriorityItem[];
+}
+
+export interface PriorityItem {
+  rank: number;
+  type: "implement" | "test" | "doc-sync" | "plan" | "fix" | "health";
+  description: string;
+  /** What to pass to the agent */
+  taskPrompt: string;
+  /** Why this was ranked here */
+  reasoning: string;
+  /** Estimated impact: low/medium/high */
+  impact: "low" | "medium" | "high";
+  /** Confidence the agent can do this well */
+  confidence: "low" | "medium" | "high";
+  /** What breaks if the agent gets it wrong */
+  risk: "low" | "medium" | "high";
+}
+
+/** State of the current work tick */
+export interface CurrentTask {
+  startedAt: string;
+  priority: PriorityItem;
+  status: "in-progress" | "done" | "failed";
+}
+
+/** Output of the VERIFY tick */
+export interface Verification {
+  timestamp: string;
+  taskDescription: string;
+  testsPass: boolean;
+  reviewPassed: boolean;
+  issues: string[];
+  action: "commit" | "revert";
+}
+
 /** The world state read at the start of each tick */
 export interface WorldState {
   /** Current branch name */
   branch: string;
   /** Whether there are uncommitted changes on the branch */
   hasUncommittedChanges: boolean;
-  /** Whether the test suite is passing */
-  testsPass: boolean | null;
-  /** Invariant counts from the wiki spec comparison */
-  invariants: {
-    specifiedOnly: number;
-    implementedUntested: number;
-    implementedTested: number;
-    unspecified: number;
-  } | null;
-  /** Code health score (0-100) from octoclean, if available */
-  healthScore: number | null;
-  /** Open plans in the wiki */
-  openPlans: string[];
+  /** The blackboard state */
+  blackboard: Blackboard;
 }
 
 /** Result of a pure-function agent execution */
@@ -57,8 +125,6 @@ export interface AgentResult {
 export interface Skill {
   name: string;
   description: string;
-  /** When this skill is applicable */
-  applicable: (state: WorldState) => boolean;
   /** The prompt/instructions for the agent */
   prompt: string;
   /** Risk level affects whether results auto-merge */
@@ -71,8 +137,8 @@ export interface Config {
   branchPrefix: string;
   /** How often the tick runs (in minutes) */
   tickInterval: number;
-  /** Which skills are enabled */
-  enabledSkills: string[];
   /** Path to the wiki directory */
   wikiDir: string;
+  /** Staleness threshold for assessment (in minutes) */
+  assessmentStaleAfter: number;
 }
