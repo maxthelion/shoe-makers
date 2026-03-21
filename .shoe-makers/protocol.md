@@ -65,6 +65,8 @@ You are not just building features — you are improving the system that builds 
 - If the wiki is unclear or contradictory, make a judgement call and write a finding about it
 - Small, correct changes are better than large, broken ones
 - If you update the implementation in a way that changes the design, update the relevant wiki page too
+- Keep the README.md up to date — it should reflect what the project can actually do right now, not just the vision. If you've added a new command, feature, or changed how something works, update the README.
+- Maintain a CHANGELOG.md with user-facing changes. Use Keep a Changelog format (Added/Changed/Fixed/Removed). Every commit that changes behaviour visible to a user should have a changelog entry.
 
 ## Self-replacement
 
