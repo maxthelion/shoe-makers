@@ -1,0 +1,85 @@
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { join } from "path";
+
+const LOG_DIR = ".shoe-makers/log";
+
+/**
+ * Get today's date in YYYY-MM-DD format.
+ */
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Format a timestamp for log entries (HH:MM UTC).
+ */
+function timeStamp(): string {
+  const now = new Date();
+  return `${now.getUTCHours().toString().padStart(2, "0")}:${now.getUTCMinutes().toString().padStart(2, "0")} UTC`;
+}
+
+/**
+ * Append an entry to today's shift log.
+ *
+ * Creates the log file with a header if it doesn't exist,
+ * then appends the entry with a timestamp.
+ */
+export async function appendToShiftLog(
+  repoRoot: string,
+  entry: string
+): Promise<void> {
+  const dir = join(repoRoot, LOG_DIR);
+  await mkdir(dir, { recursive: true });
+
+  const filename = `${today()}.md`;
+  const filepath = join(dir, filename);
+
+  let existing = "";
+  try {
+    existing = await readFile(filepath, "utf-8");
+  } catch (err: unknown) {
+    if (
+      err instanceof Error &&
+      "code" in err &&
+      (err as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      existing = `# Shift Log — ${today()}\n`;
+    } else {
+      throw err;
+    }
+  }
+
+  const logEntry = `\n## ${timeStamp()} — Tick\n\n${entry}\n`;
+  await writeFile(filepath, existing + logEntry, "utf-8");
+}
+
+/**
+ * Build a log entry from a tick result.
+ */
+export function formatTickLog(opts: {
+  branch: string;
+  tickType: string | null;
+  skill: string | null;
+  result: string | null;
+  error: string | null;
+}): string {
+  const lines: string[] = [];
+
+  lines.push(`- **Branch**: ${opts.branch}`);
+
+  if (opts.tickType) {
+    lines.push(`- **Decision**: ${opts.tickType} (skill: ${opts.skill})`);
+  } else {
+    lines.push("- **Decision**: sleep (nothing to do)");
+  }
+
+  if (opts.result) {
+    lines.push(`- **Result**: ${opts.result}`);
+  }
+
+  if (opts.error) {
+    lines.push(`- **Error**: ${opts.error}`);
+  }
+
+  return lines.join("\n");
+}

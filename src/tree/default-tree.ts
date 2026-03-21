@@ -4,11 +4,12 @@ import type { TreeNode, WorldState } from "../types";
  * Check if the assessment is stale.
  * Stale means: no assessment exists, or it's older than the threshold.
  */
-function isAssessmentStale(state: WorldState, staleAfterMs = 30 * 60 * 1000): boolean {
+function isAssessmentStale(state: WorldState): boolean {
   const assessment = state.blackboard.assessment;
   if (!assessment) return true;
+  const staleMinutes = state.config?.assessmentStaleAfter ?? 30;
   const age = Date.now() - new Date(assessment.timestamp).getTime();
-  return age > staleAfterMs;
+  return age > staleMinutes * 60 * 1000;
 }
 
 /**

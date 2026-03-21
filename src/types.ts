@@ -51,8 +51,18 @@ export interface Assessment {
   } | null;
   healthScore: number | null;
   openPlans: string[];
+  /** Findings from .shoe-makers/findings/ — persistent observations from previous elves */
+  findings: Finding[];
   testsPass: boolean | null;
   recentGitActivity: string[];
+}
+
+/** A finding from .shoe-makers/findings/ */
+export interface Finding {
+  /** Filename (without extension) */
+  id: string;
+  /** Raw markdown content */
+  content: string;
 }
 
 export interface InvariantSummary {
@@ -110,6 +120,8 @@ export interface WorldState {
   hasUncommittedChanges: boolean;
   /** The blackboard state */
   blackboard: Blackboard;
+  /** Configuration (optional — defaults used if absent) */
+  config?: Config;
 }
 
 /** Result of a pure-function agent execution */
@@ -141,4 +153,6 @@ export interface Config {
   wikiDir: string;
   /** Staleness threshold for assessment (in minutes) */
   assessmentStaleAfter: number;
+  /** Maximum ticks per shift (safety limit) */
+  maxTicksPerShift: number;
 }

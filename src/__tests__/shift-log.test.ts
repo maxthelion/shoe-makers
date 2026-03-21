@@ -1,0 +1,99 @@
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtemp, rm, readFile } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
+import { appendToShiftLog, formatTickLog } from "../log/shift-log";
+
+let tempDir: string;
+
+beforeEach(async () => {
+  tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-log-"));
+});
+
+afterEach(async () => {
+  await rm(tempDir, { recursive: true, force: true });
+});
+
+describe("appendToShiftLog", () => {
+  test("creates log file with header when it does not exist", async () => {
+    await appendToShiftLog(tempDir, "First entry.");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8"
+    );
+
+    expect(content).toContain(`# Shift Log — ${today}`);
+    expect(content).toContain("First entry.");
+  });
+
+  test("appends to existing log file", async () => {
+    await appendToShiftLog(tempDir, "First entry.");
+    await appendToShiftLog(tempDir, "Second entry.");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8"
+    );
+
+    expect(content).toContain("First entry.");
+    expect(content).toContain("Second entry.");
+  });
+
+  test("includes UTC timestamp in entry header", async () => {
+    await appendToShiftLog(tempDir, "Test entry.");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8"
+    );
+
+    expect(content).toMatch(/## \d{2}:\d{2} UTC — Tick/);
+  });
+});
+
+describe("formatTickLog", () => {
+  test("formats a successful tick", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: "assess",
+      skill: "assess",
+      result: "Assessment complete. Tests: pass.",
+      error: null,
+    });
+
+    expect(log).toContain("**Branch**: shoemakers/2026-03-21");
+    expect(log).toContain("**Decision**: assess");
+    expect(log).toContain("**Result**: Assessment complete.");
+    expect(log).not.toContain("**Error**");
+  });
+
+  test("formats a sleep tick", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: null,
+      skill: null,
+      result: null,
+      error: null,
+    });
+
+    expect(log).toContain("**Decision**: sleep (nothing to do)");
+    expect(log).not.toContain("**Result**");
+  });
+
+  test("formats an error tick", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: "work",
+      skill: "work",
+      result: null,
+      error: "No priority items to work on.",
+    });
+
+    expect(log).toContain("**Decision**: work");
+    expect(log).toContain("**Error**: No priority items to work on.");
+  });
+});
