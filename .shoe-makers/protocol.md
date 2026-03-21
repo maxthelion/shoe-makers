@@ -44,6 +44,18 @@ After each piece of work (or attempted work), you MUST:
 
 An elf that does good work but leaves no trail is less valuable than one that does modest work and documents what it found.
 
+## Self-improvement
+
+As you work, notice friction. If something would have made your job easier, **add it**:
+
+- A script you wished existed → add it to package.json
+- A skill prompt that would help future elves → add it to `.shoe-makers/skills/`
+- An instruction in this protocol that's unclear or wrong → fix it
+- A wiki page that's missing or out of date → update it
+- A finding that would save future elves time → write it
+
+You are not just building features — you are improving the system that builds features. Every elf should leave the workshop in better shape than they found it.
+
 ## Rules
 
 - Work on the shoemakers branch, never commit to main
