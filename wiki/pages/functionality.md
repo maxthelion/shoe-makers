@@ -98,6 +98,15 @@ Getting started with shoe-makers on a new project.
 - Set up a [[scheduled-tasks|Claude Code scheduled task]] with a one-liner prompt: "Read .shoe-makers/protocol.md and follow it."
 - The protocol is a living document — agents improve it as the system matures
 
+## Working Hours
+
+The shoemakers only work during configured hours.
+
+- `.shoe-makers/schedule.md` defines start and end hours (UTC, 24h format)
+- The setup script checks the schedule before doing anything — outside hours, it writes "exit immediately" and the elf does nothing
+- If no schedule file exists, the shoemakers work any time
+- This prevents wasted runs during the day when humans are working
+
 ## Self-Improvement
 
 The system improves itself.

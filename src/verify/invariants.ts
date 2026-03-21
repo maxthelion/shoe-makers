@@ -144,6 +144,57 @@ export function extractClaims(page: WikiPage): Claim[] {
 }
 
 /**
+ * Parse .shoe-makers/invariants.md and extract every bullet point as a claim.
+ * This is the AUTHORITATIVE source of claims — written by humans, not elves.
+ * Claims without a matching CLAIM_EVIDENCE entry default to "specified-only".
+ */
+export async function extractInvariantClaims(repoRoot: string): Promise<Claim[]> {
+  const invariantsPath = join(repoRoot, ".shoe-makers", "invariants.md");
+  let content: string;
+  try {
+    content = await readFile(invariantsPath, "utf-8");
+  } catch {
+    return []; // no invariants file
+  }
+
+  const claims: Claim[] = [];
+  let currentSection = "";
+  let currentSubsection = "";
+
+  for (const line of content.split("\n")) {
+    const h2 = line.match(/^## \d+\.\s+(.+)/);
+    if (h2) {
+      currentSection = h2[1].trim().toLowerCase().replace(/\s+/g, "-");
+      continue;
+    }
+    const h3 = line.match(/^### \d+\.\d+\s+(.+)/);
+    if (h3) {
+      currentSubsection = h3[1].trim().toLowerCase().replace(/\s+/g, "-");
+      continue;
+    }
+    const bullet = line.match(/^- (.+)/);
+    if (bullet && currentSection && currentSubsection) {
+      const text = bullet[1].trim();
+      // Generate a stable ID from section + subsection + simplified text
+      const textSlug = text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, "-")
+        .substring(0, 60);
+      const id = `spec.${currentSubsection}.${textSlug}`;
+      claims.push({
+        id,
+        text,
+        page: "invariants",
+        group: currentSection,
+      });
+    }
+  }
+
+  return claims;
+}
+
+/**
  * Check whether evidence groups are satisfied.
  * Each group is an array of alternative patterns — at least one must match.
  * ALL groups must be satisfied (AND-of-OR).
@@ -219,10 +270,11 @@ function findUnspecifiedDirs(sourceFiles: string[]): InvariantSummary[] {
  * and checks each one against source code and test evidence.
  */
 export async function checkInvariants(repoRoot: string, wikiDir: string = "wiki"): Promise<InvariantReport> {
-  const [pages, sourceFiles, testFiles] = await Promise.all([
+  const [pages, sourceFiles, testFiles, specClaims] = await Promise.all([
     readWikiPages(repoRoot, wikiDir),
     listSourceFiles(repoRoot),
     listTestFiles(repoRoot),
+    extractInvariantClaims(repoRoot),
   ]);
 
   const [sourceContents, testContents] = await Promise.all([
@@ -230,16 +282,16 @@ export async function checkInvariants(repoRoot: string, wikiDir: string = "wiki"
     readCodeContents(repoRoot, testFiles),
   ]);
 
-  const specPages = pages.filter(
-    (p) => p.category === "architecture" || p.category === "spec"
-  );
-
   const topSpecGaps: InvariantSummary[] = [];
   const topUntested: InvariantSummary[] = [];
   let specifiedOnly = 0;
   let implementedUntested = 0;
   let implementedTested = 0;
 
+  // Check claims from wiki pages (existing behaviour)
+  const specPages = pages.filter(
+    (p) => p.category === "architecture" || p.category === "spec"
+  );
   for (const page of specPages) {
     for (const claim of extractClaims(page)) {
       const status = classifyClaim(claim, sourceContents, testContents);
@@ -254,6 +306,23 @@ export async function checkInvariants(repoRoot: string, wikiDir: string = "wiki"
         specifiedOnly++;
         topSpecGaps.push(summary);
       }
+    }
+  }
+
+  // Check claims from .shoe-makers/invariants.md (authoritative human-written spec)
+  // These default to specified-only unless CLAIM_EVIDENCE has a matching entry
+  for (const claim of specClaims) {
+    const status = classifyClaim(claim, sourceContents, testContents);
+    const summary = { id: claim.id, description: claim.text, group: claim.group };
+
+    if (status === "implemented-tested") {
+      implementedTested++;
+    } else if (status === "implemented-untested") {
+      implementedUntested++;
+      topUntested.push(summary);
+    } else {
+      specifiedOnly++;
+      topSpecGaps.push(summary);
     }
   }
 

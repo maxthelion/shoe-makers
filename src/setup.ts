@@ -21,6 +21,18 @@ import type { WorldState, Blackboard, ActionType } from "./types";
 async function main() {
   const repoRoot = process.cwd();
 
+  // 0. Check working hours
+  if (!isWithinWorkingHours(repoRoot)) {
+    console.log("[setup] Outside working hours. Exiting.");
+    const stateDir = join(repoRoot, ".shoe-makers", "state");
+    await mkdir(stateDir, { recursive: true });
+    await writeFile(
+      join(stateDir, "next-action.md"),
+      "# Outside Working Hours\n\nThe shoemakers are sleeping. Do nothing. Exit immediately.\n"
+    );
+    return;
+  }
+
   // 1. Branch setup
   const branchName = ensureBranch(repoRoot);
 
@@ -215,6 +227,35 @@ Run \`bun run setup\` again to get your next action.
 
 The tree found no applicable action. This shouldn't happen — check the tree definition.
 `;
+}
+
+/**
+ * Check if the current time is within configured working hours.
+ * Reads .shoe-makers/schedule.md for start/end hours (24h format, UTC).
+ * If no schedule file exists, always returns true (no restriction).
+ */
+function isWithinWorkingHours(repoRoot: string): boolean {
+  try {
+    const schedulePath = join(repoRoot, ".shoe-makers", "schedule.md");
+    const content = require("fs").readFileSync(schedulePath, "utf-8");
+    const startMatch = content.match(/start:\s*(\d{1,2})/);
+    const endMatch = content.match(/end:\s*(\d{1,2})/);
+    if (!startMatch || !endMatch) return true;
+
+    const start = parseInt(startMatch[1], 10);
+    const end = parseInt(endMatch[1], 10);
+    const nowHour = new Date().getUTCHours();
+
+    if (start < end) {
+      // e.g. start: 22, end: 6 doesn't apply here
+      return nowHour >= start && nowHour < end;
+    } else {
+      // Wraps midnight: e.g. start: 22, end: 6
+      return nowHour >= start || nowHour < end;
+    }
+  } catch {
+    return true; // no schedule file = always work
+  }
 }
 
 main().catch((err) => {

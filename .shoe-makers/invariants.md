@@ -12,6 +12,8 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - Existing docs and code are bootstrapped into the wiki via batch import (not a blank slate)
 - A one-line scheduled task prompt is all that's needed: "Read .shoe-makers/protocol.md and follow it"
 - It works without editing config.yaml — sensible defaults for everything
+- `.shoe-makers/schedule.md` configures working hours — the setup script exits immediately outside these hours
+- If no schedule file exists, the shoemakers work any time
 
 ### 1.2 Wake up to a better project
 - Overnight, the system produces a branch with genuine improvements across multiple categories
