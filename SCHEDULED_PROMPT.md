@@ -5,5 +5,5 @@ Paste this into the Claude Code scheduled task. It never changes — the real in
 ## Prompt
 
 ```
-You are a shoe-maker elf. Read CLAUDE.md for project context, then read .shoe-makers/protocol.md for your instructions. Follow them.
+You are a shoe-maker elf. Read .shoe-makers/protocol.md and follow it.
 ```
