@@ -5,13 +5,9 @@ import { tmpdir } from "os";
 import {
   readBlackboard,
   writeAssessment,
-  writePriorities,
   writeCurrentTask,
-  writeVerification,
-  clearCurrentTask,
-  clearPriorities,
 } from "../state/blackboard";
-import type { Assessment, PriorityList, CurrentTask, Verification } from "../types";
+import type { Assessment, CurrentTask } from "../types";
 
 const STATE_DIR = ".shoe-makers/state";
 
@@ -41,6 +37,7 @@ describe("readBlackboard", () => {
       timestamp: "2026-03-21T01:00:00Z",
       invariants: null,
       healthScore: null,
+      worstFiles: [],
       openPlans: [],
       findings: [],
       testsPass: true,
@@ -52,63 +49,6 @@ describe("readBlackboard", () => {
     expect(bb.assessment).toEqual(assessment);
     expect(bb.priorities).toBeNull();
   });
-
-  test("reads all files when all are present", async () => {
-    const assessment: Assessment = {
-      timestamp: "2026-03-21T01:00:00Z",
-      invariants: null,
-      healthScore: 85,
-      openPlans: ["plan-a"],
-      findings: [],
-      testsPass: true,
-      recentGitActivity: [],
-    };
-
-    const priorities: PriorityList = {
-      timestamp: "2026-03-21T01:05:00Z",
-      assessedAt: "2026-03-21T01:00:00Z",
-      items: [
-        {
-          rank: 1,
-          type: "implement",
-          description: "Build world state reader",
-          taskPrompt: "Implement the world state reader",
-          reasoning: "Most foundational unbuilt piece",
-          impact: "high",
-          confidence: "high",
-          risk: "low",
-        },
-      ],
-    };
-
-    const currentTask: CurrentTask = {
-      startedAt: "2026-03-21T01:10:00Z",
-      priority: priorities.items[0],
-      status: "done",
-    };
-
-    const verification: Verification = {
-      timestamp: "2026-03-21T01:15:00Z",
-      taskDescription: "Build world state reader",
-      testsPass: true,
-      reviewPassed: true,
-      issues: [],
-      action: "commit",
-    };
-
-    await Promise.all([
-      writeAssessment(tempDir, assessment),
-      writePriorities(tempDir, priorities),
-      writeCurrentTask(tempDir, currentTask),
-      writeVerification(tempDir, verification),
-    ]);
-
-    const bb = await readBlackboard(tempDir);
-    expect(bb.assessment).toEqual(assessment);
-    expect(bb.priorities).toEqual(priorities);
-    expect(bb.currentTask).toEqual(currentTask);
-    expect(bb.verification).toEqual(verification);
-  });
 });
 
 describe("write functions", () => {
@@ -117,6 +57,7 @@ describe("write functions", () => {
       timestamp: "2026-03-21T02:00:00Z",
       invariants: null,
       healthScore: null,
+      worstFiles: [],
       openPlans: [],
       findings: [],
       testsPass: null,
@@ -135,6 +76,7 @@ describe("write functions", () => {
       timestamp: "2026-03-21T01:00:00Z",
       invariants: null,
       healthScore: 50,
+      worstFiles: [],
       openPlans: [],
       findings: [],
       testsPass: false,
@@ -144,6 +86,7 @@ describe("write functions", () => {
       timestamp: "2026-03-21T02:00:00Z",
       invariants: null,
       healthScore: 90,
+      worstFiles: [],
       openPlans: ["plan-b"],
       findings: [],
       testsPass: true,
@@ -156,10 +99,8 @@ describe("write functions", () => {
     const bb = await readBlackboard(tempDir);
     expect(bb.assessment).toEqual(second);
   });
-});
 
-describe("clearCurrentTask", () => {
-  test("removes current-task.json", async () => {
+  test("writeCurrentTask writes task for CLI usage", async () => {
     const task: CurrentTask = {
       startedAt: "2026-03-21T01:00:00Z",
       priority: {
@@ -172,42 +113,11 @@ describe("clearCurrentTask", () => {
         confidence: "high",
         risk: "low",
       },
-      status: "done",
+      status: "in-progress",
     };
 
     await writeCurrentTask(tempDir, task);
-    let bb = await readBlackboard(tempDir);
-    expect(bb.currentTask).not.toBeNull();
-
-    await clearCurrentTask(tempDir);
-    bb = await readBlackboard(tempDir);
-    expect(bb.currentTask).toBeNull();
-  });
-
-  test("does not throw when file does not exist", async () => {
-    // Should not throw
-    await clearCurrentTask(tempDir);
-  });
-});
-
-describe("clearPriorities", () => {
-  test("removes priorities.json", async () => {
-    const priorities: PriorityList = {
-      timestamp: "2026-03-21T01:00:00Z",
-      assessedAt: "2026-03-21T01:00:00Z",
-      items: [],
-    };
-
-    await writePriorities(tempDir, priorities);
-    let bb = await readBlackboard(tempDir);
-    expect(bb.priorities).not.toBeNull();
-
-    await clearPriorities(tempDir);
-    bb = await readBlackboard(tempDir);
-    expect(bb.priorities).toBeNull();
-  });
-
-  test("does not throw when file does not exist", async () => {
-    await clearPriorities(tempDir);
+    const bb = await readBlackboard(tempDir);
+    expect(bb.currentTask).toEqual(task);
   });
 });

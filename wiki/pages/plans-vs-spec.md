@@ -42,6 +42,11 @@ Idea → Plan → Implementation → Spec
 
 A plan that's been fully implemented but still exists as a plan is a smell — it means the spec hasn't been updated.
 
+Plans can have a `status` field in frontmatter:
+- No status (default) → open, generates work candidates
+- `status: blocked` → plan exists but remaining work is blocked (e.g., needs external dependency). Excluded from open plans.
+- `status: done` → plan is complete. Should be archived to spec or deleted. Excluded from open plans.
+
 ## How Agents Use This
 
 The [[behaviour-tree]] treats plans and spec differently:

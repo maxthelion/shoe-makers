@@ -1,39 +1,48 @@
-import type { TickType } from "../types";
+import type { ActionType } from "../types";
 import { assess } from "../skills/assess";
-import { prioritise } from "../skills/prioritise";
-import { work } from "../skills/work";
-import { verify } from "../skills/verify";
 
 /**
- * Invoke the skill for a given tick type.
+ * Invoke the skill for a given action type.
  * Returns a human-readable log of what happened.
  *
- * Skills that aren't yet implemented return a "not implemented" message
- * rather than failing — this lets the system run with partial skill coverage.
+ * Most actions produce a prompt for the elf — only "explore" runs
+ * programmatic assessment. The elf IS the intelligence for everything else.
  */
 export async function runSkill(
   repoRoot: string,
-  tickType: TickType
+  action: string
 ): Promise<string> {
-  switch (tickType) {
-    case "assess": {
+  switch (action as ActionType) {
+    case "explore": {
       const result = await assess(repoRoot);
-      return `Assessment complete. Tests: ${result.testsPass ? "pass" : "FAIL"}. Plans: ${result.openPlans.length}. Git activity: ${result.recentGitActivity.length} recent commits.`;
+      return `Explore complete. Tests: ${result.testsPass ? "pass" : "FAIL"}. Plans: ${result.openPlans.length}. Invariants: ${result.invariants?.specifiedOnly ?? "?"} specified-only, ${result.invariants?.implementedUntested ?? "?"} untested.`;
     }
 
-    case "prioritise": {
-      const priorities = await prioritise(repoRoot);
-      return `Prioritisation complete. ${priorities.items.length} candidate(s) ranked. Top: ${priorities.items[0]?.description ?? "none"}.`;
-    }
+    case "fix-tests":
+      return "Action: fix-tests — elf should run tests and fix failures.";
 
-    case "work": {
-      const workResult = await work(repoRoot);
-      return `Work started: "${workResult.task.priority.description}" (${workResult.task.priority.type}, rank ${workResult.task.priority.rank}).`;
-    }
+    case "review":
+      return "Action: review — elf should review uncommitted changes adversarially.";
 
-    case "verify": {
-      const verification = await verify(repoRoot);
-      return `Verification: tests ${verification.testsPass ? "pass" : "FAIL"}, review ${verification.reviewPassed ? "passed" : "FAILED"}. Action: ${verification.action}. ${verification.issues.length > 0 ? "Issues: " + verification.issues.join("; ") : ""}`;
-    }
+    case "inbox":
+      return "Action: inbox — elf should read and act on inbox messages.";
+
+    case "implement-plan":
+      return "Action: implement-plan — elf should read open plans and implement the most important one.";
+
+    case "implement-spec":
+      return "Action: implement-spec — elf should implement the most impactful specified-only invariant.";
+
+    case "write-tests":
+      return "Action: write-tests — elf should add tests for untested code.";
+
+    case "document":
+      return "Action: document — elf should update the wiki for undocumented code.";
+
+    case "improve-health":
+      return "Action: improve-health — elf should improve the worst code health file.";
+
+    default:
+      return `Unknown action: ${action}`;
   }
 }

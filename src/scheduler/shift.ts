@@ -1,9 +1,8 @@
-import type { TickType, WorldState } from "../types";
+import type { WorldState } from "../types";
 import { readWorldState } from "../state/world";
 import { tick, type TickResult } from "./tick";
 import { runSkill } from "./run-skill";
 import { appendToShiftLog, formatTickLog } from "../log/shift-log";
-import { readBlackboard } from "../state/blackboard";
 
 /** Result of a single step within a shift */
 export interface ShiftStep {
@@ -16,8 +15,8 @@ export interface ShiftStep {
 export interface ShiftResult {
   steps: ShiftStep[];
   /** Why the shift stopped */
-  outcome: "sleep" | "work" | "max-ticks" | "error";
-  /** If outcome is "work", the instructions for the caller */
+  outcome: "sleep" | "action" | "max-ticks" | "error";
+  /** @deprecated Use outcome instead */
   workInstructions: string | null;
 }
 
@@ -30,7 +29,7 @@ export interface ShiftOptions {
   /** Override how world state is read (for testing) */
   readState?: (repoRoot: string) => Promise<WorldState>;
   /** Override how skills are run (for testing) */
-  runSkill?: (repoRoot: string, tickType: TickType) => Promise<string>;
+  runSkill?: (repoRoot: string, tickType: string) => Promise<string>;
   /** Override shift log writing (for testing) */
   writeLog?: (repoRoot: string, entry: string) => Promise<void>;
 }
@@ -38,17 +37,10 @@ export interface ShiftOptions {
 /**
  * Run a full shift: execute ticks in sequence until done.
  *
- * The shift runner loops through ticks, re-reading world state each time.
- * It stops when:
- * - The tree says "sleep" (nothing to do) → outcome: "sleep"
- * - The tree says "work" (caller must act on instructions) → outcome: "work"
- * - Max ticks reached (safety limit) → outcome: "max-ticks"
- * - An unrecoverable error occurs → outcome: "error"
- *
- * The idea: assess and prioritise are housekeeping — the shift runner handles
- * them automatically. Work requires the caller (elf/agent) to act, so the
- * shift pauses and returns instructions. Verify is also automatic (runs tests,
- * decides commit/revert).
+ * With the game-style tree, most actions produce a prompt for the elf.
+ * Only "explore" runs programmatically (refreshes assessment).
+ * The shift runner loops explore ticks automatically and stops when
+ * a non-explore action is selected (the elf must act).
  */
 export async function shift(
   repoRoot: string,
@@ -61,15 +53,14 @@ export async function shift(
   const steps: ShiftStep[] = [];
 
   for (let i = 0; i < maxTicks; i++) {
-    // Re-read world state each tick (skills mutate blackboard)
     const state = await getState(repoRoot);
     const result = tick(state);
 
     let skillResult: string | null = null;
     let error: string | null = null;
 
-    if (!result.tickType) {
-      // Tree says sleep — we're done
+    if (!result.action) {
+      // Tree says sleep — nothing to do (shouldn't happen with explore at bottom)
       const step: ShiftStep = { tick: result, skillResult: null, error: null };
       steps.push(step);
       options.onTick?.(step);
@@ -77,36 +68,9 @@ export async function shift(
       return { steps, outcome: "sleep", workInstructions: null };
     }
 
-    if (result.tickType === "work") {
-      // Work requires the caller to act — run the skill to get instructions,
-      // then pause the shift and return them
-      try {
-        skillResult = await execSkill(repoRoot, result.tickType);
-      } catch (err) {
-        error = err instanceof Error ? err.message : String(err);
-      }
-
-      const step: ShiftStep = { tick: result, skillResult, error };
-      steps.push(step);
-      options.onTick?.(step);
-      await writeLog(repoRoot, formatEntry(state.branch, result, skillResult, error));
-
-      if (error) {
-        return { steps, outcome: "error", workInstructions: null };
-      }
-
-      // Read back the current-task instructions
-      const blackboard = await readBlackboard(repoRoot);
-      const instructions = blackboard.currentTask
-        ? buildWorkSummary(blackboard.currentTask.priority.description, skillResult)
-        : null;
-
-      return { steps, outcome: "work", workInstructions: instructions };
-    }
-
-    // Housekeeping tick (assess, prioritise, verify) — run and continue
+    // Run the action
     try {
-      skillResult = await execSkill(repoRoot, result.tickType);
+      skillResult = await execSkill(repoRoot, result.action);
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     }
@@ -118,6 +82,12 @@ export async function shift(
 
     if (error) {
       return { steps, outcome: "error", workInstructions: null };
+    }
+
+    // Explore runs programmatically — loop to re-evaluate tree.
+    // All other actions need the elf, so return.
+    if (result.action !== "explore") {
+      return { steps, outcome: "action", workInstructions: skillResult };
     }
   }
 
@@ -138,24 +108,9 @@ function formatEntry(
 ): string {
   return formatTickLog({
     branch,
-    tickType: result.tickType,
+    tickType: result.action,
     skill: result.skill,
     result: skillResult,
     error,
   });
-}
-
-/** Build a summary of work instructions for the caller */
-function buildWorkSummary(description: string, skillResult: string | null): string {
-  const lines = [
-    `The shift runner has set up a work task:`,
-    "",
-    `**Task**: ${description}`,
-    "",
-    skillResult ?? "",
-    "",
-    "Run `bun run task:status` for full task details.",
-    "When done, run `bun run task:done` (or `bun run task:fail`), then run `bun run shift` again to verify.",
-  ];
-  return lines.join("\n");
 }

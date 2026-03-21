@@ -5,6 +5,7 @@ import type { Assessment, Finding } from "../types";
 import { writeAssessment } from "../state/blackboard";
 import { checkInvariants } from "../verify/invariants";
 import { loadConfig } from "../config/load-config";
+import { getHealthResult } from "./health-scan";
 
 /**
  * Gather recent git activity (last 10 commits, one-line).
@@ -88,25 +89,27 @@ async function readFindings(repoRoot: string): Promise<Finding[]> {
 /**
  * The assess skill: gather world information and write assessment.json.
  *
- * This is a minimal bootstrap version. It does not yet run the invariants
- * pipeline or octoclean — those will be added as they're built.
+ * Gathers: test results, git activity, open plans, invariants pipeline,
+ * findings, and octoclean health score — all in parallel.
  */
 export async function assess(repoRoot: string): Promise<Assessment> {
   const config = await loadConfig(repoRoot);
   const wikiDir = config.wikiDir;
 
-  const [testsPass, recentGitActivity, openPlans, invariants, findings] = await Promise.all([
+  const [testsPass, recentGitActivity, openPlans, invariants, findings, healthResult] = await Promise.all([
     runTests(repoRoot),
     getRecentGitActivity(repoRoot),
     findOpenPlans(repoRoot, wikiDir),
     checkInvariants(repoRoot, wikiDir),
     readFindings(repoRoot),
+    getHealthResult(repoRoot),
   ]);
 
   const assessment: Assessment = {
     timestamp: new Date().toISOString(),
     invariants,
-    healthScore: null, // needs octoclean integration
+    healthScore: healthResult?.score ?? null,
+    worstFiles: healthResult?.worstFiles ?? [],
     openPlans,
     findings,
     testsPass,

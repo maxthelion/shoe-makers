@@ -14,18 +14,29 @@ A skill is a self-contained unit of work that the [[architecture|behaviour tree]
 - Takes a context (repo state, wiki, health scan) and produces a branch with changes
 - Has its own verification criteria
 
-Skills are defined as markdown files in `.shoe-makers/skills/` — they're prompts, not code.
+Skills are defined as markdown files in `.shoe-makers/skills/` — they're prompts, not code. The skill registry (`src/skills/registry.ts`) loads these files, parses their frontmatter, and makes them available to the work skill. Each skill's `maps-to` field links it to a [[tick-types|priority item type]], so when the work skill picks a task, it automatically includes the matching skill's full instructions.
 
-## Planned Skills
+## Implemented Skills
 
-### octoclean-fix
-Improve code health scores. Uses [[existing-projects#octoclean|Octoclean]] to identify the worst files, then applies permitted actions: extract helpers, consolidate duplicates, update JSDoc, split large functions, rename symbols, remove dead exports.
+### fix-tests
+Fix failing tests. Maps to priority type `fix`. Risk: low.
+
+### implement
+Implement a feature specified in the wiki but not yet built. Maps to priority type `implement`. Risk: medium.
 
 ### test-coverage
-Add tests for uncovered code paths. Reads coverage reports to find gaps, writes tests that exercise the uncovered paths.
+Add tests for implemented but untested code paths. Maps to priority type `test`. Risk: low.
 
 ### doc-sync
-Sync wiki pages with code changes. Reads recent git history, identifies pages that may be stale, updates them.
+Sync wiki pages with code changes. Maps to priority type `doc-sync`. Risk: low.
+
+### health
+Improve code health scores by reducing complexity and duplication. Maps to priority type `health`. Risk: low.
+
+## Planned Skills (not yet implemented)
+
+### octoclean-fix
+Improve code health scores using [[existing-projects#octoclean|Octoclean]] to identify the worst files. Would replace the generic `health` skill with Octoclean-specific guidance.
 
 ### bug-fix
 Attempt fixes for open issues. Reads issue tracker, picks issues tagged as bugs, attempts a fix, runs tests.

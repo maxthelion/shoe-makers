@@ -23,7 +23,21 @@ export interface TreeNode {
   skill?: string;
 }
 
-/** Tick type — what kind of work this tick does */
+/** Action type — what the tree decided the elf should do */
+export type ActionType =
+  | "fix-tests"
+  | "fix-critique"
+  | "critique"
+  | "review"
+  | "inbox"
+  | "implement-plan"
+  | "implement-spec"
+  | "write-tests"
+  | "document"
+  | "improve-health"
+  | "explore";
+
+/** @deprecated Use ActionType instead. Kept for backward compatibility. */
 export type TickType = "assess" | "prioritise" | "work" | "verify";
 
 /** The blackboard — shared state written as files on the branch */
@@ -50,6 +64,8 @@ export interface Assessment {
     topUnspecified: InvariantSummary[];
   } | null;
   healthScore: number | null;
+  /** Worst files by health score (from octoclean) */
+  worstFiles: { path: string; score: number }[];
   openPlans: string[];
   /** Findings from .shoe-makers/findings/ — persistent observations from previous elves */
   findings: Finding[];
@@ -120,6 +136,12 @@ export interface WorldState {
   hasUncommittedChanges: boolean;
   /** The blackboard state */
   blackboard: Blackboard;
+  /** Number of unread inbox messages */
+  inboxCount: number;
+  /** Whether there are commits since last-reviewed-commit that need adversarial review */
+  hasUnreviewedCommits: boolean;
+  /** Number of unresolved critique findings */
+  unresolvedCritiqueCount: number;
   /** Configuration (optional — defaults used if absent) */
   config?: Config;
 }

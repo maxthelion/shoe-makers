@@ -16,5 +16,12 @@ describe("readWorldState", () => {
     expect(state.blackboard).toHaveProperty("priorities");
     expect(state.blackboard).toHaveProperty("currentTask");
     expect(state.blackboard).toHaveProperty("verification");
+
+    // Inbox count should be a number
+    expect(typeof state.inboxCount).toBe("number");
+
+    // Gatekeeping fields should exist
+    expect(typeof state.hasUnreviewedCommits).toBe("boolean");
+    expect(typeof state.unresolvedCritiqueCount).toBe("number");
   });
 });

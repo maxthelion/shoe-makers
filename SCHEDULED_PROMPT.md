@@ -1,16 +1,10 @@
 # Scheduled Task Configuration
 
-## Setup script (bash, runs before Claude Code starts)
+## Setup script
 
 ```bash
 #!/bin/bash
-BRANCH="shoemakers/$(date -u +%Y-%m-%d)"
-git fetch origin
-if git rev-parse --verify "origin/$BRANCH" >/dev/null 2>&1; then
-  git checkout -b "$BRANCH" "origin/$BRANCH" 2>/dev/null || git checkout "$BRANCH" && git pull
-else
-  git checkout -b "$BRANCH"
-fi
+npm install -g bun 2>/dev/null || true
 bun install
 bun run setup
 ```

@@ -1,95 +1,56 @@
 ---
 title: Tick Types
 category: architecture
-tags: [tick, map-reduce, assessment, prioritisation, blackboard, statefulness]
-summary: Not every tick produces code. Some ticks assess, some prioritise, some work, some verify. Files on the branch are the shared state between ticks.
-last-modified-by: user
+tags: [tick, behaviour-tree, assessment, blackboard]
+summary: Each tick evaluates the behaviour tree and produces a focused action prompt. The elf does that one thing, then the tree re-evaluates.
+last-modified-by: elf
 ---
 
-## The Problem with Static Priority
+## The Game-Style Model
 
-A flat priority list (features > tests > docs > health) is too rigid:
-
-- A critical doc inconsistency that causes agents to build the wrong thing should outrank a trivial feature gap
-- There's no sense of magnitude — a huge spec gap and a tiny one look the same
-- No way to balance different types of work over time (e.g. "we've been doing features for 3 nights, consolidate tests")
-
-## Map-Reduce Across Ticks
-
-Not every tick produces code. Some ticks are **thinking ticks** that produce inputs for future ticks. This is a map-reduce pattern spread across time:
-
-### ASSESS (map)
-
-Gather raw data about the state of things:
-- Run [[invariants]] pipeline (or read cached results)
-- Run octoclean scan
-- Check git log for recent activity
-- Read open [[plans-vs-spec|plans]]
-- Check test results
-
-Produces: `.shoe-makers/state/assessment.json`
-
-### PRIORITISE (reduce)
-
-Read the assessment, weigh candidates, produce a ranked list. This is where an LLM call **is** justified — it needs judgement to weigh "critical doc inconsistency" against "minor feature gap". But it only runs when the assessment changes, not every tick.
-
-The prioritiser considers:
-- **Impact**: how much does this matter to the project?
-- **Confidence**: how likely is an agent to get this right?
-- **Risk**: what breaks if the agent gets it wrong?
-- **Balance**: have we been doing too much of one type of work?
-- **Dependencies**: does this unblock other work?
-
-Produces: `.shoe-makers/state/priorities.json`
-
-### WORK
-
-Read the priority list, pick the top item, do the work. This is the [[pure-function-agents|pure-function agent]] invocation. The agent writes code, tests, or docs to the branch.
-
-Produces: file changes on the branch + `.shoe-makers/state/current-task.json`
-
-### VERIFY
-
-Check the work from the last WORK tick. Run tests, adversarial review, invariant re-check. Commit if it passes, revert if it doesn't.
-
-Produces: `.shoe-makers/state/verification.json`, commit or revert
-
-## The Blackboard
-
-The `.shoe-makers/state/` directory on the branch is a **blackboard** — a concept from game AI where different systems read and write to shared memory. Each tick type reads what previous ticks wrote and produces new state for future ticks.
+Each tick evaluates the [[behaviour-tree]] against cached world state. The first matching condition determines the action. The elf gets a focused prompt and does that one thing.
 
 ```
-.shoe-makers/state/
-  assessment.json      ← written by ASSESS, read by PRIORITISE
-  priorities.json      ← written by PRIORITISE, read by WORK
-  current-task.json    ← written by WORK, read by VERIFY
-  verification.json    ← written by VERIFY, read by ASSESS (next cycle)
+Selector
+├── [tests failing?] → Fix them
+├── [unverified work?] → Review adversarially
+├── [inbox messages?] → Read and act
+├── [open plans?] → Implement the most important one
+├── [specified-only invariants?] → Implement the most impactful one
+├── [untested code?] → Write tests
+├── [undocumented code?] → Update the wiki
+├── [health below threshold?] → Fix the worst file
+├── [nothing?] → Explore deeper
 ```
 
-This makes the system **stateful across ticks without a database**. The branch IS the state. If the branch is deleted, the state resets cleanly.
+Priority is encoded in the tree order (macro) and the elf's judgement within each action (micro). No separate prioritisation phase needed.
 
-## The Tree
+## The Assessment Cache
+
+Conditions read a cached assessment:
 
 ```
-Root (selector)
-├── Is assessment stale (>30 min)? → AssessAgent
-├── Is assessment newer than priorities? → PrioritiseAgent
-├── Is there unverified work on branch? → VerifyAgent
-├── Is there a top priority to work on? → WorkAgent
-├── Sleep
+.shoe-makers/state/assessment.json
 ```
 
-The system naturally cycles: assess → prioritise → work → verify → assess again. Each tick does one thing. The sequence across ticks produces the full loop.
+This is the only blackboard file needed. It's written by the "explore" action and read by all tree conditions. When nothing else matches, the explore action refreshes the assessment to surface new work.
 
-## Staleness, Not Scheduling
+## How It Works
 
-Ticks don't follow a fixed schedule like "assess at 1am, work at 1:05am". Instead, each tick checks what's stale:
+1. Code evaluates the tree — cheap, deterministic
+2. Tree produces an **action + context** — a focused prompt
+3. The elf performs the action — this is where intelligence lives
+4. The elf commits the result
+5. The tree re-evaluates — the condition may no longer match
+6. Falls through to the next applicable action
+7. Repeat until time runs out
 
-- Assessment is stale if it's older than 30 minutes (or if code has changed since last assessment)
-- Priorities are stale if the assessment is newer than the priorities
-- Work is stale if there's a priority item with no work started
-- Verification is needed if there are uncommitted changes
+## The Elf IS the LLM
 
-This means the system self-balances. After a burst of work ticks, the assessment gets stale and triggers a re-assessment. After a re-assessment, priorities get recalculated. Natural pacing without explicit scheduling.
+The elf doesn't need to call an API — it IS the intelligence. LLM-based prioritisation happens when the elf picks which invariant to tackle. Adversarial review happens when the elf reviews the diff. The tree provides structure; the elf provides judgement.
+
+## Branch as State
+
+The branch IS the state. The assessment cache is an ephemeral file on the branch. Delete the branch and start clean. No database, no task tracker.
 
 See also: [[behaviour-tree]], [[pure-function-agents]], [[invariants]], [[branching-strategy]]

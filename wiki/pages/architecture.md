@@ -2,73 +2,78 @@
 title: Architecture
 category: architecture
 tags: [architecture, core, behaviour-tree, scheduled-tasks]
-summary: The core architecture — a behaviour tree protocol that runs via Claude Code scheduled tasks.
+summary: The core architecture — a reactive behaviour tree that evaluates conditions and takes action until they're resolved.
 last-modified-by: user
 ---
 
 ## Core Insight
 
-The system works like NPCs in games. A [[behaviour-tree]] is evaluated every 5 minutes against the current world state. The path through the tree determines which [[pure-function-agents|pure-function agent]] to invoke. No central diagnoser needed — the tree structure encodes priority.
+The system works like NPCs in games. A [[behaviour-tree]] is evaluated every tick against cached world state. The first matching condition determines what the agent does. The agent works on that action until the condition is resolved, then the tree falls through to the next thing.
 
-This can run via [[scheduled-tasks|Claude Code scheduled tasks]] (cloud) or a local cron. The execution layer is separate from the intelligence layer.
+This is reactive, not planned. No central scheduler, no task queue, no state machine. Just: look at the world, do the most important thing, repeat.
 
-## Architecture
+## The Tick Loop
 
-### The Tick (every 5 minutes)
+1. Code evaluates the [[behaviour-tree]] against cached world state — cheap, deterministic
+2. First matching condition → produce a **focused prompt** for the agent (e.g. "fix these failing tests", "review this diff")
+3. The elf performs the action — this is where intelligence lives
+4. The elf commits the result
+5. Code re-evaluates the tree — the condition may no longer match
+6. Falls through to the next applicable action
+7. Repeat until time runs out or nothing matches
 
-1. Read world state (branch status, test results, code health, git log)
-2. Walk the [[behaviour-tree]]
-3. First matching condition → invoke the corresponding agent
-4. Agent writes files to the shoemakers branch
-5. Agent exits
-6. Scheduler handles side effects (commit, push, test, merge/revert)
-
-### The Behaviour Tree
-
-The tree routes between [[tick-types]] — not every tick produces code:
+### The Tree
 
 ```
-Root (selector — pick first applicable)
-├── Is assessment stale (>30 min)? → AssessAgent
-├── Is assessment newer than priorities? → PrioritiseAgent
-├── Is there unverified work on branch? → VerifyAgent
-├── Is there a top priority to work on? → WorkAgent
-├── Sleep
+Selector
+├── [tests failing?] → Fix them
+├── [unverified work on branch?] → Review adversarially
+├── [inbox messages?] → Read and act on them
+├── [open plans?] → Implement the most important one
+├── [specified-only invariants?] → Implement the most impactful one
+├── [untested code?] → Write tests
+├── [undocumented code?] → Update the wiki
+├── [code health below threshold?] → Fix the worst file
+├── [nothing?] → Explore deeper to surface new work
 ```
 
-State is shared between ticks via files on the [[tick-types#the-blackboard|blackboard]] (`.shoe-makers/state/`). The system cycles naturally: assess → prioritise → work → verify.
-
-Routing is **mostly deterministic** — condition checks against staleness and branch state. The one exception is the PRIORITISE tick, where an LLM weighs candidates by impact, confidence, risk, and balance.
+Conditions read a cached assessment (`.shoe-makers/state/assessment.json`). The "explore" action at the bottom refreshes the cache when it's stale — this prevents sleeping by surfacing work for conditions above.
 
 ### Pure Function Agents
 
 Agents are [[pure-function-agents|pure functions]] (the best idea from Octopoid):
-- Receive: read-only repo snapshot + job description
+- Receive: a focused prompt scoped to one action + relevant context
 - Produce: file changes on the shoemakers branch
-- Side effects: **none** — the scheduler handles commits, pushes, PRs
+- Side effects: **none** — the tick loop handles commits
 
-### The Shoemakers Branch
+The elf gets a narrow prompt for each action. A verify action gives reviewer instructions. A work action gives implementation instructions with the relevant [[skills|skill]]. The elf doesn't need to understand the whole system.
+
+### Priority
+
+- **Tree order** (macro): tests > verification > inbox > plans > features > tests > docs > health. Deterministic.
+- **Agent judgement** (micro): within each action, the elf chooses WHICH invariant, WHICH plan, WHICH file. This is where the LLM thinks.
+
+No separate prioritisation phase needed.
+
+### The Branch
 
 The branch IS the state. No database, no task tracker.
-- Unfinished work = partial changes on the branch
-- Completed work = clean commits ready for review
-- Failed work = revert, branch returns to previous state
+- Cached assessment is an ephemeral file, not a database
+- Delete the branch and start clean
+- The system can be interrupted at any point and resume correctly
 
 ### What Lives in the Repo
 
 ```
 .shoe-makers/
-  tree.yaml            # the behaviour tree definition
-  skills/
-    octoclean-fix.md   # skill: improve code health scores
-    test-coverage.md   # skill: add tests for uncovered paths
-    doc-sync.md        # skill: sync wiki with code
-    bug-fix.md         # skill: attempt fixes for open issues
-  contracts/
-    architecture.md    # what the agent must not violate
-    style.md           # what "good" looks like
-  verify.md            # adversarial verification instructions
-  config.yaml          # which skills are enabled, risk tolerance
+  protocol.md         # instructions for the elf
+  config.yaml         # overridable settings
+  invariants.md       # hierarchical spec claims
+  skills/             # markdown skill prompts
+  state/              # cached assessment (ephemeral)
+  log/                # shift logs (per day)
+  findings/           # persistent observations
+  inbox/              # messages from humans
 ```
 
-See also: [[behaviour-tree]], [[pure-function-agents]], [[existing-projects]], [[skills]], [[verification]], [[scheduled-tasks]]
+See also: [[behaviour-tree]], [[pure-function-agents]], [[skills]], [[verification]], [[invariants]]

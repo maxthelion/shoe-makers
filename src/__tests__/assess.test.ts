@@ -113,12 +113,18 @@ describe("assess skill", () => {
     expect(result.openPlans).not.toContain("done-plan");
   });
 
-  test("invariants are populated, healthScore is null (not yet implemented)", async () => {
+  test("invariants are populated", async () => {
     const result = await assess(tempDir);
     expect(result.invariants).not.toBeNull();
     expect(typeof result.invariants!.specifiedOnly).toBe("number");
     expect(typeof result.invariants!.implementedTested).toBe("number");
+  });
+
+  test("healthScore is null when octoclean is not available in temp dir", async () => {
+    const result = await assess(tempDir);
+    // octoclean scan fails in bare temp dirs (no package.json, no node_modules)
     expect(result.healthScore).toBeNull();
+    expect(result.worstFiles).toEqual([]);
   });
 });
 

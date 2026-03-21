@@ -43,6 +43,10 @@ async function writeJsonFile<T>(repoRoot: string, filename: string, data: T): Pr
 
 /**
  * Read the full blackboard state from `.shoe-makers/state/`.
+ *
+ * The primary state file is assessment.json (written by explore action).
+ * Priorities, currentTask, and verification are legacy files from the
+ * old tick-type model — they're still read for backward compatibility.
  */
 export async function readBlackboard(repoRoot: string): Promise<Blackboard> {
   const [assessment, priorities, currentTask, verification] = await Promise.all([
@@ -56,43 +60,16 @@ export async function readBlackboard(repoRoot: string): Promise<Blackboard> {
 }
 
 /**
- * Write an individual blackboard entry.
+ * Write the assessment to the blackboard.
+ * This is the primary state file — written by the explore action.
  */
 export async function writeAssessment(repoRoot: string, data: Assessment): Promise<void> {
   await writeJsonFile(repoRoot, FILES.assessment, data);
 }
 
-export async function writePriorities(repoRoot: string, data: PriorityList): Promise<void> {
-  await writeJsonFile(repoRoot, FILES.priorities, data);
-}
-
+/**
+ * Write current task (used by the task lifecycle CLI).
+ */
 export async function writeCurrentTask(repoRoot: string, data: CurrentTask): Promise<void> {
   await writeJsonFile(repoRoot, FILES.currentTask, data);
-}
-
-export async function writeVerification(repoRoot: string, data: Verification): Promise<void> {
-  await writeJsonFile(repoRoot, FILES.verification, data);
-}
-
-/**
- * Clear a blackboard entry by deleting the file.
- */
-async function clearFile(repoRoot: string, filename: string): Promise<void> {
-  const { unlink } = await import("fs/promises");
-  try {
-    await unlink(join(repoRoot, STATE_DIR, filename));
-  } catch (err: unknown) {
-    if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-      return; // already gone
-    }
-    throw err;
-  }
-}
-
-export async function clearCurrentTask(repoRoot: string): Promise<void> {
-  await clearFile(repoRoot, FILES.currentTask);
-}
-
-export async function clearPriorities(repoRoot: string): Promise<void> {
-  await clearFile(repoRoot, FILES.priorities);
 }

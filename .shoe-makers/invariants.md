@@ -39,12 +39,19 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 
 ### 1.5 Trust the quality
 - Every change on the branch has passing tests — no exceptions
-- Adversarial verification has reviewed each piece of work looking for problems
-- Verification checks intent alignment: does this change actually serve the project's goals?
+- A different elf adversarially reviews each piece of work — not self-review
+- The reviewer knows what rules the previous elf was given and checks compliance
+- Verification checks: scope violation, test quality, invariant gaming, spec alignment, regressions
 - Code health doesn't regress — octoclean scores are checked before and after
-- If verification fails, changes are reverted before the human ever sees them
-- Critiques from verification become findings that future elves action — quality improves over time
-- Agents can run fuzz tests, screenshot comparisons, and other thorough checks because they have time
+- If verification finds blocking issues, they must be fixed before new work starts
+- Critiques become findings that future elves action — quality improves over time
+- Elves cannot modify invariants — only humans maintain `.shoe-makers/invariants.md`
+
+### 1.6 TDD enforcement
+- Implementing a feature starts with writing tests, not code
+- The elf writing tests cannot write implementation in the same tick
+- The elf making tests pass cannot modify the tests
+- This is enforced by the permission model: each tick's role determines what files are writable
 
 ### 1.6 Maintain a living spec
 - The wiki describes what the system is and does — it is the source of truth, not the code
@@ -123,15 +130,20 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - Planned: octoclean-fix (octoclean-specific), bug-fix (from issues), dependency-update, dead-code removal
 - Humans and elves can both add new skills — they're just files
 
-### 3.3 Verification
-- "Unverified work on branch?" is a tree condition — when it matches, the elf gets a review prompt
-- The reviewer examines the diff adversarially: problems, bugs, spec misalignment, architectural violations
-- All tests must pass — no exceptions
-- Code health must not regress (octoclean diff)
-- If verification fails, changes are reverted — bad work never stays on the branch
-- Critiques become findings for future elves
-- Multi-round review emerges from the tree: verify rejects → tree re-evaluates → condition still matches → work retries
-- Linting and type checking pass
+### 3.3 Role-based permissions
+- Each action has a role that determines which files the elf can write
+- Reviewers can only write findings — they cannot modify code
+- Implementers must write tests first (TDD) — they cannot touch tests and implementation in the same tick
+- Invariants are never writable by elves — only humans maintain the spec claims
+- The permissions are stated in the action prompt and verified by the reviewer
+
+### 3.4 Cross-elf gatekeeping
+- `last-reviewed-commit` tracks which commits have been reviewed
+- "Unreviewed commits?" checks if HEAD is ahead of the last review marker
+- The reviewer gets: the diff, the rules the previous elf was given (`last-action.md`), and adversarial instructions
+- Critiques are written as findings with severity (blocking or advisory)
+- "Unresolved critiques?" sits near the top of the tree — blocking critiques prevent new work
+- Multi-round review emerges from the tree: critique → fix → review the fix
 
 ### 3.4 Observability
 - Every tick appends to `.shoe-makers/log/YYYY-MM-DD.md`: timestamp, decision, outcome

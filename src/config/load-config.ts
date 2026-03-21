@@ -54,17 +54,14 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
     throw err;
   }
 
+  const intOrDefault = (key: string, fallback: number) =>
+    raw[key] ? parseInt(raw[key], 10) : fallback;
+
   return {
     branchPrefix: raw["branch-prefix"] ?? DEFAULTS.branchPrefix,
-    tickInterval: raw["tick-interval"]
-      ? parseInt(raw["tick-interval"], 10)
-      : DEFAULTS.tickInterval,
+    tickInterval: intOrDefault("tick-interval", DEFAULTS.tickInterval),
     wikiDir: raw["wiki-dir"] ?? DEFAULTS.wikiDir,
-    assessmentStaleAfter: raw["assessment-stale-after"]
-      ? parseInt(raw["assessment-stale-after"], 10)
-      : DEFAULTS.assessmentStaleAfter,
-    maxTicksPerShift: raw["max-ticks-per-shift"]
-      ? parseInt(raw["max-ticks-per-shift"], 10)
-      : DEFAULTS.maxTicksPerShift,
+    assessmentStaleAfter: intOrDefault("assessment-stale-after", DEFAULTS.assessmentStaleAfter),
+    maxTicksPerShift: intOrDefault("max-ticks-per-shift", DEFAULTS.maxTicksPerShift),
   };
 }

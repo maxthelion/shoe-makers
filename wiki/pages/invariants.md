@@ -22,19 +22,20 @@ Each invariant has:
 
 ## The Pipeline
 
-Four stages, each with context isolation (one source can't bias the other):
+The invariants pipeline extracts falsifiable claims and checks them against code:
 
-### Stage 0: Synthesise Code
-Bundle source code by subsystem, use Sonnet to produce a holistic system description. This grounds extraction in actual behaviour.
+### Claim Extraction
+Claims are identified from wiki pages — each is a falsifiable statement about system behaviour (e.g. "the tree evaluates selector nodes by trying each child in order").
 
-### Stage 1: Extract Invariants
-Feed the code-derived description + wiki pages to Sonnet. Extract falsifiable invariants organised in a hierarchy.
+### Evidence Matching
+For each claim, source code and test files are searched for evidence patterns. Each claim has AND-of-OR evidence groups — all groups must have at least one match.
 
-### Stage 2: Find Evidence
-For each invariant group, search source code and tests for evidence. Produces implementation locations and test coverage data. Also discovers **unspecified** behaviour — things the code does that the wiki doesn't mention.
-
-### Stage 3: Compare
-Deterministic merge of the invariant tree and evidence. Assigns statuses, calculates coverage per group. Renders markdown pages.
+### Status Assignment
+Each claim gets one of four statuses based on evidence found:
+- **specified-only**: wiki describes it but no code evidence
+- **implemented-untested**: code exists but no test evidence
+- **implemented-tested**: both code and test evidence found
+- **unspecified**: code exists but wiki doesn't describe it
 
 ## How Shoe-Makers Uses This
 
@@ -46,7 +47,16 @@ The report also feeds [[verification]] — after an agent makes changes, re-run 
 
 The invariants check must be granular enough to find real gaps. Mapping a wiki page to a source directory and saying "code exists" is not enough. A wiki page may describe 10 distinct behaviours — if only 3 are implemented, the other 7 should show as `specified-only`.
 
-The bootstrap version uses coarse topic-to-directory mapping. This must evolve toward extracting **specific falsifiable claims** from wiki text and checking each one individually. This is the path to the system always finding useful work — the richer the invariants, the more the behaviour tree has to act on.
+### Current Implementation: Per-Claim Evidence Matching
+
+The current implementation extracts **50 individual claims** from wiki pages and checks each one against source code and test evidence. Each claim has:
+
+- **Source evidence**: AND-of-OR groups of patterns to find in source files (comments stripped)
+- **Test evidence**: AND-of-OR groups of patterns to find in test files
+
+Each group is a set of alternatives (OR) — any match suffices. All groups must match (AND). This gives precise control: `[["case \"selector\""], ["children"]]` means the code must contain both a selector case and children handling.
+
+The claim-to-evidence mapping is manually curated in `src/verify/invariants.ts`. As the system evolves, claims and evidence patterns are updated to match the current architecture.
 
 ## The Virtuous Cycle
 

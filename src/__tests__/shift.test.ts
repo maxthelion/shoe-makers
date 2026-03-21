@@ -1,10 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
+import { mkdtemp, rm, mkdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { shift } from "../scheduler/shift";
-import type { WorldState, Blackboard, Assessment, PriorityList, PriorityItem, TickType } from "../types";
-import { writePriorities, writeCurrentTask } from "../state/blackboard";
+import type { WorldState, Blackboard, Assessment } from "../types";
 
 let tempDir: string;
 
@@ -21,34 +20,25 @@ function emptyBlackboard(): Blackboard {
 
 const freshAssessment: Assessment = {
   timestamp: now,
-  invariants: null,
-  healthScore: null,
+  invariants: {
+    specifiedOnly: 0,
+    implementedUntested: 0,
+    implementedTested: 50,
+    unspecified: 0,
+    topSpecGaps: [],
+    topUntested: [],
+    topUnspecified: [],
+  },
+  healthScore: 80,
+  worstFiles: [],
   openPlans: [],
   findings: [],
   testsPass: true,
   recentGitActivity: [],
 };
 
-const sampleItem: PriorityItem = {
-  rank: 1,
-  type: "implement",
-  description: "Build the scheduler",
-  taskPrompt: "Implement the tick scheduler.",
-  reasoning: "Foundational piece.",
-  impact: "high",
-  confidence: "high",
-  risk: "low",
-};
-
-const samplePriorities: PriorityList = {
-  timestamp: now,
-  assessedAt: now,
-  items: [sampleItem],
-};
-
 beforeEach(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-shift-"));
-  // Create state directory for blackboard writes
   await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
 });
 
@@ -56,10 +46,6 @@ afterEach(async () => {
   await rm(tempDir, { recursive: true, force: true });
 });
 
-/**
- * Helper: create a mock readState that returns a sequence of states.
- * Each call returns the next state in the sequence. If exhausted, repeats the last.
- */
 function mockStateSequence(states: WorldState[]) {
   let index = 0;
   return async (_repoRoot: string): Promise<WorldState> => {
@@ -69,148 +55,123 @@ function mockStateSequence(states: WorldState[]) {
   };
 }
 
-/** No-op log writer for tests */
 async function noopLog(_repoRoot: string, _entry: string): Promise<void> {}
 
 describe("shift runner", () => {
-  test("stops immediately on sleep (nothing to do)", async () => {
-    // State where everything is current → tree says sleep
+  test("returns action for non-explore actions", async () => {
+    // Tests failing → fix-tests action → shift stops for elf
     const state: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
       blackboard: {
         ...emptyBlackboard(),
-        assessment: freshAssessment,
-        priorities: { timestamp: now, assessedAt: now, items: [] },
+        assessment: { ...freshAssessment, testsPass: false },
       },
     };
 
     const result = await shift(tempDir, {
       readState: mockStateSequence([state]),
+      runSkill: async (_root, action) => `${action} done`,
       writeLog: noopLog,
     });
 
-    expect(result.outcome).toBe("sleep");
+    expect(result.outcome).toBe("action");
     expect(result.steps).toHaveLength(1);
-    expect(result.steps[0].tick.tickType).toBeNull();
-    expect(result.workInstructions).toBeNull();
+    expect(result.steps[0].tick.action).toBe("fix-tests");
+    expect(result.workInstructions).toContain("fix-tests");
   });
 
-  test("runs assess then prioritise then sleep", async () => {
-    const skillLog: TickType[] = [];
+  test("loops through explore and then stops on next action", async () => {
+    const skillLog: string[] = [];
 
-    // Tick 1: no assessment → assess
+    // Tick 1: nothing to do → explore
     const state1: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
-      blackboard: emptyBlackboard(),
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: freshAssessment,
+      },
     };
 
-    // Tick 2: fresh assessment, no priorities → prioritise
+    // Tick 2: after explore refreshed assessment, spec gaps found → implement-spec
     const state2: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
       blackboard: {
         ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
-    };
-
-    // Tick 3: assessment + empty priorities → sleep
-    const state3: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-        priorities: { timestamp: now, assessedAt: now, items: [] },
+        assessment: {
+          ...freshAssessment,
+          invariants: {
+            ...freshAssessment.invariants!,
+            specifiedOnly: 3,
+            topSpecGaps: [{ id: "foo", description: "gap", group: "core" }],
+          },
+        },
       },
     };
 
     const result = await shift(tempDir, {
-      readState: mockStateSequence([state1, state2, state3]),
-      runSkill: async (_root, tickType) => {
-        skillLog.push(tickType);
-        return `${tickType} done`;
+      readState: mockStateSequence([state1, state2]),
+      runSkill: async (_root, action) => {
+        skillLog.push(action);
+        return `${action} done`;
       },
       writeLog: noopLog,
     });
 
-    expect(result.outcome).toBe("sleep");
-    expect(result.steps).toHaveLength(3);
-    expect(skillLog).toEqual(["assess", "prioritise"]);
-    expect(result.steps[0].tick.tickType).toBe("assess");
-    expect(result.steps[1].tick.tickType).toBe("prioritise");
-    expect(result.steps[2].tick.tickType).toBeNull(); // sleep
-  });
-
-  test("stops on work and returns instructions", async () => {
-    // State where priorities exist → tree says work
-    const state: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-        priorities: samplePriorities,
-      },
-    };
-
-    // Pre-write priorities so the work skill can read them
-    await writePriorities(tempDir, samplePriorities);
-
-    const result = await shift(tempDir, {
-      readState: mockStateSequence([state]),
-      runSkill: async (root, tickType) => {
-        // Simulate the work skill writing current-task
-        await writeCurrentTask(root, {
-          startedAt: now,
-          priority: sampleItem,
-          status: "in-progress",
-        });
-        return `Work started: "${sampleItem.description}"`;
-      },
-      writeLog: noopLog,
-    });
-
-    expect(result.outcome).toBe("work");
-    expect(result.steps).toHaveLength(1);
-    expect(result.steps[0].tick.tickType).toBe("work");
-    expect(result.workInstructions).toContain("Build the scheduler");
-    expect(result.workInstructions).toContain("task:status");
+    expect(result.outcome).toBe("action");
+    expect(skillLog).toEqual(["explore", "implement-spec"]);
+    expect(result.steps).toHaveLength(2);
   });
 
   test("stops on error", async () => {
     const state: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
+      inboxCount: 0,
       blackboard: emptyBlackboard(),
     };
 
     const result = await shift(tempDir, {
       readState: mockStateSequence([state]),
       runSkill: async () => {
-        throw new Error("assess exploded");
+        throw new Error("skill exploded");
       },
       writeLog: noopLog,
     });
 
     expect(result.outcome).toBe("error");
     expect(result.steps).toHaveLength(1);
-    expect(result.steps[0].error).toBe("assess exploded");
+    expect(result.steps[0].error).toBe("skill exploded");
   });
 
   test("respects maxTicks limit", async () => {
-    // State that always triggers assess (stale assessment)
-    const staleState: WorldState = {
+    // State that always triggers explore (always falls through)
+    const state: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
-      blackboard: emptyBlackboard(),
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: freshAssessment,
+      },
     };
 
     const result = await shift(tempDir, {
       maxTicks: 3,
-      readState: mockStateSequence([staleState]), // always returns stale state
+      readState: mockStateSequence([state]),
       runSkill: async () => "done",
       writeLog: noopLog,
     });
@@ -222,97 +183,75 @@ describe("shift runner", () => {
   test("calls onTick for each step", async () => {
     const ticks: string[] = [];
 
-    const state1: WorldState = {
+    const state: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
-      blackboard: emptyBlackboard(),
-    };
-    const state2: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
       blackboard: {
         ...emptyBlackboard(),
-        assessment: freshAssessment,
-        priorities: { timestamp: now, assessedAt: now, items: [] },
+        assessment: { ...freshAssessment, testsPass: false },
       },
     };
 
     await shift(tempDir, {
-      readState: mockStateSequence([state1, state2]),
+      maxTicks: 1,
+      readState: mockStateSequence([state]),
       runSkill: async () => "done",
       writeLog: noopLog,
       onTick(step) {
-        ticks.push(step.tick.tickType ?? "sleep");
+        ticks.push(step.tick.action ?? "sleep");
       },
     });
 
-    expect(ticks).toEqual(["assess", "sleep"]);
+    expect(ticks).toEqual(["fix-tests"]);
   });
 
-  test("runs verify automatically as housekeeping", async () => {
-    const skillLog: TickType[] = [];
-
-    // Task done, needs verification
-    const state1: WorldState = {
+  test("handles inbox action", async () => {
+    const state: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
+      inboxCount: 2,
       blackboard: {
         ...emptyBlackboard(),
         assessment: freshAssessment,
-        priorities: samplePriorities,
-        currentTask: {
-          startedAt: now,
-          priority: sampleItem,
-          status: "done",
-        },
-      },
-    };
-
-    // After verify clears state → sleep
-    const state2: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-        priorities: { timestamp: now, assessedAt: now, items: [] },
       },
     };
 
     const result = await shift(tempDir, {
-      readState: mockStateSequence([state1, state2]),
-      runSkill: async (_root, tickType) => {
-        skillLog.push(tickType);
-        return `${tickType} done`;
-      },
+      readState: mockStateSequence([state]),
+      runSkill: async (_root, action) => `${action} done`,
       writeLog: noopLog,
     });
 
-    expect(skillLog).toContain("verify");
-    expect(result.steps[0].tick.tickType).toBe("verify");
+    expect(result.outcome).toBe("action");
+    expect(result.steps[0].tick.action).toBe("inbox");
   });
 
   test("writes to log by default when using real shift log", async () => {
     const state: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
       blackboard: {
         ...emptyBlackboard(),
         assessment: freshAssessment,
-        priorities: { timestamp: now, assessedAt: now, items: [] },
       },
     };
 
-    // Use default writeLog (real shift log) but mock readState/runSkill
     await shift(tempDir, {
+      maxTicks: 1,
       readState: mockStateSequence([state]),
+      runSkill: async () => "done",
     });
 
-    // Check that a log file was created
     const { readFile } = await import("fs/promises");
     const logDir = join(tempDir, ".shoe-makers", "log");
     const today = new Date().toISOString().slice(0, 10);
     const logContent = await readFile(join(logDir, `${today}.md`), "utf-8");
-    expect(logContent).toContain("sleep");
+    expect(logContent).toContain("explore");
   });
 });

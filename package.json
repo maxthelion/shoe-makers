@@ -18,5 +18,8 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "octoclean": "github:maxthelion/octoclean"
   }
 }

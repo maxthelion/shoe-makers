@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { tick } from "../scheduler/tick";
-import type { WorldState, Blackboard } from "../types";
+import type { WorldState, Blackboard, Assessment } from "../types";
 
 function emptyBlackboard(): Blackboard {
   return {
@@ -11,146 +11,94 @@ function emptyBlackboard(): Blackboard {
   };
 }
 
-function makeState(overrides: Partial<Blackboard> = {}): WorldState {
+const freshAssessment: Assessment = {
+  timestamp: new Date().toISOString(),
+  invariants: {
+    specifiedOnly: 0,
+    implementedUntested: 0,
+    implementedTested: 50,
+    unspecified: 0,
+    topSpecGaps: [],
+    topUntested: [],
+    topUnspecified: [],
+  },
+  healthScore: 80,
+  worstFiles: [],
+  openPlans: [],
+  findings: [],
+  testsPass: true,
+  recentGitActivity: [],
+};
+
+function makeState(overrides: Partial<WorldState> = {}): WorldState {
   return {
     branch: "shoemakers/2026-03-21",
     hasUncommittedChanges: false,
-    blackboard: { ...emptyBlackboard(), ...overrides },
+    inboxCount: 0,
+    hasUnreviewedCommits: false,
+    unresolvedCritiqueCount: 0,
+    blackboard: {
+      ...emptyBlackboard(),
+      assessment: freshAssessment,
+    },
+    ...overrides,
   };
 }
 
 describe("tick", () => {
-  test("returns assess when no assessment exists", () => {
-    const result = tick(makeState());
-    expect(result.skill).toBe("assess");
-    expect(result.tickType).toBe("assess");
+  test("returns fix-tests when tests are failing", () => {
+    const result = tick(
+      makeState({
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: { ...freshAssessment, testsPass: false },
+        },
+      })
+    );
+    expect(result.action).toBe("fix-tests");
+    expect(result.skill).toBe("fix-tests");
     expect(result.branch).toBe("shoemakers/2026-03-21");
   });
 
-  test("returns prioritise when assessment is fresh but no priorities", () => {
+  test("returns inbox when there are messages", () => {
+    const result = tick(makeState({ inboxCount: 1 }));
+    expect(result.action).toBe("inbox");
+  });
+
+  test("returns implement-plan when plans exist", () => {
     const result = tick(
       makeState({
-        assessment: {
-          timestamp: new Date().toISOString(),
-          invariants: null,
-          healthScore: null,
-          openPlans: [],
-          findings: [],
-          testsPass: true,
-          recentGitActivity: [],
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: { ...freshAssessment, openPlans: ["my-plan"] },
         },
       })
     );
-    expect(result.skill).toBe("prioritise");
-    expect(result.tickType).toBe("prioritise");
+    expect(result.action).toBe("implement-plan");
   });
 
-  test("returns work when priorities exist", () => {
-    const now = new Date().toISOString();
+  test("returns implement-spec when spec gaps exist", () => {
     const result = tick(
       makeState({
-        assessment: {
-          timestamp: now,
-          invariants: null,
-          healthScore: null,
-          openPlans: [],
-          findings: [],
-          testsPass: true,
-          recentGitActivity: [],
-        },
-        priorities: {
-          timestamp: now,
-          assessedAt: now,
-          items: [
-            {
-              rank: 1,
-              type: "implement",
-              description: "Build scheduler",
-              taskPrompt: "Build the scheduler",
-              reasoning: "Next foundational piece",
-              impact: "high",
-              confidence: "high",
-              risk: "low",
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: {
+            ...freshAssessment,
+            invariants: {
+              ...freshAssessment.invariants!,
+              specifiedOnly: 2,
             },
-          ],
-        },
-      })
-    );
-    expect(result.skill).toBe("work");
-    expect(result.tickType).toBe("work");
-  });
-
-  test("returns verify when task is done but not verified", () => {
-    const now = new Date().toISOString();
-    const result = tick(
-      makeState({
-        assessment: {
-          timestamp: now,
-          invariants: null,
-          healthScore: null,
-          openPlans: [],
-          findings: [],
-          testsPass: true,
-          recentGitActivity: [],
-        },
-        priorities: {
-          timestamp: now,
-          assessedAt: now,
-          items: [
-            {
-              rank: 1,
-              type: "implement",
-              description: "Build scheduler",
-              taskPrompt: "Build the scheduler",
-              reasoning: "Next foundational piece",
-              impact: "high",
-              confidence: "high",
-              risk: "low",
-            },
-          ],
-        },
-        currentTask: {
-          startedAt: now,
-          priority: {
-            rank: 1,
-            type: "implement",
-            description: "Build scheduler",
-            taskPrompt: "Build the scheduler",
-            reasoning: "Next foundational piece",
-            impact: "high",
-            confidence: "high",
-            risk: "low",
           },
-          status: "done",
         },
       })
     );
-    expect(result.skill).toBe("verify");
-    expect(result.tickType).toBe("verify");
+    expect(result.action).toBe("implement-spec");
   });
 
-  test("returns null when everything is current", () => {
-    const now = new Date().toISOString();
-    const result = tick(
-      makeState({
-        assessment: {
-          timestamp: now,
-          invariants: null,
-          healthScore: null,
-          openPlans: [],
-          findings: [],
-          testsPass: true,
-          recentGitActivity: [],
-        },
-        priorities: {
-          timestamp: now,
-          assessedAt: now,
-          items: [],
-        },
-      })
-    );
-    expect(result.skill).toBeNull();
-    expect(result.tickType).toBeNull();
+  test("returns explore when everything is current", () => {
+    const result = tick(makeState());
+    expect(result.action).toBe("explore");
+    expect(result.skill).toBe("explore");
   });
 
   test("always includes timestamp and branch", () => {
