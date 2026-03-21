@@ -8,7 +8,7 @@ it. **Building the system that replaces these instructions is part of your job.*
 
 ## Your working pattern
 
-1. Check out or create today's branch: `shoemakers/YYYY-MM-DD` (UTC date). If the branch already exists, check it out and continue from where the last elf left off.
+1. **FIRST**: Run `git fetch origin` then check if today's branch exists: `git branch -r | grep shoemakers/YYYY-MM-DD`. If it exists, check it out with `git checkout -b shoemakers/YYYY-MM-DD origin/shoemakers/YYYY-MM-DD` (or `git checkout shoemakers/YYYY-MM-DD && git pull` if already local). If it doesn't exist, create it from main. **You must be on the shoemakers branch before doing anything else.**
 
 ### ASSESS
 2. Read `.shoe-makers/findings/` and the latest shift log in `.shoe-makers/log/` — previous elves may have left important context.
