@@ -38,15 +38,15 @@ Deterministic merge of the invariant tree and evidence. Assigns statuses, calcul
 
 ## How Shoe-Makers Uses This
 
-The invariants report is the primary **world state** for the [[behaviour-tree]]. Instead of ad-hoc checks, the tree queries the report:
-
-```
-├── Any specified-only invariants? → ImplementAgent
-├── Any implemented-untested invariants? → TestAgent
-├── Any unspecified invariants? → DocSyncAgent
-```
+The invariants report is the primary **world state** for the [[behaviour-tree]]. The ASSESS tick runs the invariants check, the PRIORITISE tick uses the results to rank work. If the invariants check finds gaps, there is always work to do. **The system should never sleep while there are specified-only or implemented-untested invariants.**
 
 The report also feeds [[verification]] — after an agent makes changes, re-run the invariants pipeline to confirm the change actually moved the right invariant from one status to another.
+
+## Granularity Matters
+
+The invariants check must be granular enough to find real gaps. Mapping a wiki page to a source directory and saying "code exists" is not enough. A wiki page may describe 10 distinct behaviours — if only 3 are implemented, the other 7 should show as `specified-only`.
+
+The bootstrap version uses coarse topic-to-directory mapping. This must evolve toward extracting **specific falsifiable claims** from wiki text and checking each one individually. This is the path to the system always finding useful work — the richer the invariants, the more the behaviour tree has to act on.
 
 ## The Virtuous Cycle
 

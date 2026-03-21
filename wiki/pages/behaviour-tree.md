@@ -35,6 +35,8 @@ The ASSESS and PRIORITISE ticks are **thinking ticks** that produce files on the
 
 The system naturally cycles: assess → prioritise → work → verify → assess again. Staleness checks drive the pacing — no fixed schedule.
 
+**The system should almost never sleep.** If the [[invariants]] check is granular enough, there is always work to do: unimplemented spec claims, untested code, stale docs, code health issues. If the system is sleeping, the assessment is too shallow — the invariants need to be more granular, not the work list empty.
+
 ### Prioritisation
 
 Prioritisation is the one place where an LLM call IS justified in the routing layer. The PrioritiseAgent reads the assessment and weighs candidates by impact, confidence, risk, balance, and dependencies. It produces a ranked list that subsequent WORK ticks consume deterministically.
