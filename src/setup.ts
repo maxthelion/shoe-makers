@@ -67,8 +67,8 @@ async function main() {
 }
 
 function ensureBranch(repoRoot: string): string {
-  const today = new Date().toISOString().split("T")[0];
-  const branchName = `shoemakers/${today}`;
+  const shiftDate = getShiftDate(repoRoot);
+  const branchName = `shoemakers/${shiftDate}`;
 
   try {
     execSync("git fetch origin", { cwd: repoRoot, stdio: "pipe" });
@@ -227,6 +227,37 @@ Run \`bun run setup\` again to get your next action.
 
 The tree found no applicable action. This shouldn't happen — check the tree definition.
 `;
+}
+
+/**
+ * Get the shift date — the date the shift started, not the current date.
+ * If we're past midnight but before the shift end hour, use yesterday's date.
+ * This ensures the whole shift uses one branch name.
+ */
+function getShiftDate(repoRoot: string): string {
+  const now = new Date();
+  const nowHour = now.getUTCHours();
+
+  try {
+    const schedulePath = join(repoRoot, ".shoe-makers", "schedule.md");
+    const content = require("fs").readFileSync(schedulePath, "utf-8");
+    const startMatch = content.match(/start:\s*(\d{1,2})/);
+    const endMatch = content.match(/end:\s*(\d{1,2})/);
+
+    if (startMatch && endMatch) {
+      const start = parseInt(startMatch[1], 10);
+      const end = parseInt(endMatch[1], 10);
+
+      // If shift wraps midnight (e.g. 22-06) and we're in the early morning part
+      if (start > end && nowHour < end) {
+        const yesterday = new Date(now);
+        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+        return yesterday.toISOString().split("T")[0];
+      }
+    }
+  } catch {}
+
+  return now.toISOString().split("T")[0];
 }
 
 /**
