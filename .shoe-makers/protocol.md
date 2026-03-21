@@ -21,6 +21,10 @@ If something would have made your job easier, add it:
 - A wiki update → `wiki/pages/`
 - A finding → `.shoe-makers/findings/`
 
+## Troubleshooting
+
+If you hit a problem, check `.shoe-makers/known-issues.md` first — previous elves may have documented it.
+
 ## Rules
 
 - Every change must have tests. Run `bun test` before committing.
