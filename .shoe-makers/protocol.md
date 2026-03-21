@@ -10,8 +10,11 @@ it. **Building the system that replaces these instructions is part of your job.*
 
 1. **FIRST**: Run `git fetch origin` then check if today's branch exists: `git branch -r | grep shoemakers/YYYY-MM-DD`. If it exists, check it out with `git checkout -b shoemakers/YYYY-MM-DD origin/shoemakers/YYYY-MM-DD` (or `git checkout shoemakers/YYYY-MM-DD && git pull` if already local). If it doesn't exist, create it from main. **You must be on the shoemakers branch before doing anything else.**
 
+### INBOX
+2. Read `.shoe-makers/inbox/`. If there are any files, these are messages from the human. Read them, act on them (they take priority over other work), then delete them once addressed. Note what you did in the shift log.
+
 ### ASSESS
-2. Read `.shoe-makers/findings/` and the latest shift log in `.shoe-makers/log/` — previous elves may have left important context.
+3. Read `.shoe-makers/findings/` and the latest shift log in `.shoe-makers/log/` — previous elves may have left important context.
 3. Read every page in `wiki/pages/` — this is the specification.
 4. Read the code in `src/` — this is what's built so far.
 5. Note: what's specified but not implemented? What's implemented but not tested? What did previous elves flag?
