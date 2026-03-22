@@ -65,6 +65,7 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - Invariants continuously compare spec against code and surface gaps as work
 - When wiki and code diverge, the NEWER change wins — if the wiki changed more recently, change the code to match, never revert the wiki
 - `.shoe-makers/invariants.md` is always authoritative regardless of what the code does
+- When new code exists without a corresponding invariant, elves should suggest new invariants via findings — the prioritise elf can decide whether to add them to `invariants.md`
 
 ---
 
