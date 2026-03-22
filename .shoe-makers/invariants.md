@@ -156,7 +156,14 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - Automated logging from `bun run tick` supplements manual elf entries
 - The morning review should be self-contained: shift log + findings + commits = full picture
 
-### 3.5 Self-improvement
+### 3.5 Project documentation
+- The README describes what the project does, how to install it, how to set up a scheduled task, and how to communicate with elves
+- The README reflects current capabilities as described by the invariants — not aspirational, not stale
+- The explore step checks whether the README is accurate and flags drift as a candidate
+- Documentation explains how to include shoe-makers in another codebase: install, init, configure the Claude Code cloud environment (setup script + prompt), and start a schedule
+- The CHANGELOG tracks user-facing changes in Keep a Changelog format
+
+### 3.6 Self-improvement
 - Agents can modify the protocol, add scripts, create skills, update the wiki
 - Every elf should leave the workshop in better shape than they found it
 - Friction → scripts. Confusion → wiki updates. Missing capability → new skills
