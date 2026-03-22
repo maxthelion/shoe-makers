@@ -21,14 +21,9 @@ If something would have made your job easier, add it:
 - A wiki update → `wiki/pages/`
 - A finding → `.shoe-makers/findings/`
 
-## Troubleshooting
-
-If you hit a problem, check `.shoe-makers/known-issues.md` first — previous elves may have documented it. If you solve a problem that others might hit, add it to that file.
-
 ## Rules
 
 - Every change must have tests. Run `bun test` before committing.
 - Read the wiki — it describes the intended design. Follow it.
 - Small, correct changes are better than large, broken ones.
 - Keep README.md and CHANGELOG.md up to date.
-- **NEVER force push.** If the branch has diverged, merge or rebase — do not overwrite other elves' work.

@@ -23,6 +23,7 @@ describe("loadConfig", () => {
       wikiDir: "wiki",
       assessmentStaleAfter: 30,
       maxTicksPerShift: 10,
+      enabledSkills: null,
     });
   });
 
@@ -46,6 +47,7 @@ describe("loadConfig", () => {
       wikiDir: "docs/wiki",
       assessmentStaleAfter: 60,
       maxTicksPerShift: 10,
+      enabledSkills: null,
     });
   });
 
@@ -61,6 +63,24 @@ describe("loadConfig", () => {
     expect(config.branchPrefix).toBe("shoemakers");
     expect(config.tickInterval).toBe(5);
     expect(config.wikiDir).toBe("wiki");
+  });
+
+  test("reads enabled-skills as array", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      [
+        "enabled-skills: fix-tests, implement, write-tests",
+      ].join("\n")
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toEqual(["fix-tests", "implement", "write-tests"]);
+  });
+
+  test("defaults enabled-skills to null (all skills enabled)", async () => {
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toBeNull();
   });
 
   test("ignores comments and blank lines", async () => {

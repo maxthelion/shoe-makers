@@ -98,7 +98,7 @@ describe("checkPermissionViolations", () => {
   test("returns empty array when all files are allowed", () => {
     const violations = checkPermissionViolations("implement-spec", [
       "src/types.ts",
-      "src/__tests__/types.test.ts",
+      "src/verify/permissions.ts",
     ]);
     expect(violations).toEqual([]);
   });

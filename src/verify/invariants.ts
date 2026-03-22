@@ -1,7 +1,118 @@
 import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import type { InvariantSummary } from "../types";
-import { CLAIM_EVIDENCE } from "./claim-evidence";
+
+/**
+ * Evidence rule for a claim.
+ */
+export interface EvidenceRule {
+  sourceEvidence: string[][];
+  testEvidence: string[][];
+}
+
+const EVIDENCE_PATH = ".shoe-makers/claim-evidence.yaml";
+
+/**
+ * Parse the claim-evidence YAML file into a Record<string, EvidenceRule>.
+ *
+ * Format:
+ *   claim-id:
+ *     source:
+ *       - [pattern1, pattern2]
+ *     test:
+ *       - [pattern1]
+ */
+export function parseClaimEvidenceYaml(content: string): Record<string, EvidenceRule> {
+  const result: Record<string, EvidenceRule> = {};
+  let currentClaim: string | null = null;
+  let currentField: "source" | "test" | null = null;
+
+  for (const line of content.split("\n")) {
+    // Skip empty lines and comments
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+
+    // Top-level claim ID (no leading whitespace, ends with colon)
+    const claimMatch = line.match(/^([a-z][\w.()-]+):$/);
+    if (claimMatch) {
+      currentClaim = claimMatch[1];
+      result[currentClaim] = { sourceEvidence: [], testEvidence: [] };
+      currentField = null;
+      continue;
+    }
+
+    // source: or test: field
+    const fieldMatch = line.match(/^\s+(source|test):$/);
+    if (fieldMatch && currentClaim) {
+      currentField = fieldMatch[1] as "source" | "test";
+      continue;
+    }
+
+    // Array item: - [pattern1, pattern2]
+    const arrayMatch = line.match(/^\s+-\s*\[(.+)\]$/);
+    if (arrayMatch && currentClaim && currentField) {
+      const patterns = parsePatternList(arrayMatch[1]);
+      const key = currentField === "source" ? "sourceEvidence" : "testEvidence";
+      result[currentClaim][key].push(patterns);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Parse a comma-separated list of patterns from inside YAML brackets.
+ * Handles quoted strings (single or double) and unquoted values.
+ */
+function parsePatternList(raw: string): string[] {
+  const patterns: string[] = [];
+  let i = 0;
+  while (i < raw.length) {
+    // Skip whitespace and commas
+    while (i < raw.length && (raw[i] === " " || raw[i] === ",")) i++;
+    if (i >= raw.length) break;
+
+    if (raw[i] === '"' || raw[i] === "'") {
+      const quote = raw[i];
+      i++;
+      let value = "";
+      while (i < raw.length && raw[i] !== quote) {
+        if (raw[i] === "\\" && i + 1 < raw.length) {
+          i++;
+          value += raw[i];
+        } else {
+          value += raw[i];
+        }
+        i++;
+      }
+      i++; // skip closing quote
+      patterns.push(value);
+    } else {
+      let value = "";
+      while (i < raw.length && raw[i] !== "," && raw[i] !== "]") {
+        value += raw[i];
+        i++;
+      }
+      patterns.push(value.trim());
+    }
+  }
+  return patterns;
+}
+
+/**
+ * Load claim evidence from YAML file. Falls back to empty if file not found.
+ */
+async function loadClaimEvidence(repoRoot: string): Promise<Record<string, EvidenceRule>> {
+  // Try repoRoot first, then fall back to cwd (for tests using temp dirs)
+  for (const base of [repoRoot, process.cwd()]) {
+    try {
+      const content = await readFile(join(base, EVIDENCE_PATH), "utf-8");
+      return parseClaimEvidenceYaml(content);
+    } catch {
+      continue;
+    }
+  }
+  return {};
+}
 
 export interface InvariantReport {
   specifiedOnly: number;
@@ -109,9 +220,6 @@ async function readCodeContents(repoRoot: string, files: string[]): Promise<Map<
       let content = await readFile(join(repoRoot, "src", file), "utf-8");
       content = content.replace(/\/\/.*$/gm, "");
       content = content.replace(/\/\*[\s\S]*?\*\//g, "");
-      if (file === "verify/claim-evidence.ts") {
-        content = content.replace(/export const CLAIM_EVIDENCE[\s\S]*?^};/m, "");
-      }
       contents.set(file, content);
     } catch {
       // file may have been deleted
@@ -124,10 +232,10 @@ async function readCodeContents(repoRoot: string, files: string[]): Promise<Map<
  * Extract falsifiable claims from a wiki page.
  * Returns claims that have evidence rules defined for this page.
  */
-export function extractClaims(page: WikiPage): Claim[] {
+export function extractClaims(page: WikiPage, claimEvidence: Record<string, EvidenceRule> = {}): Claim[] {
   const claims: Claim[] = [];
 
-  for (const claimId of Object.keys(CLAIM_EVIDENCE)) {
+  for (const claimId of Object.keys(claimEvidence)) {
     const [pageSlug] = claimId.split(".");
     if (pageSlug === page.filename) {
       const claimSlug = claimId.substring(pageSlug.length + 1);
@@ -216,9 +324,10 @@ function checkEvidence(groups: string[][], contents: Map<string, string>): boole
 function classifyClaim(
   claim: Claim,
   sourceContents: Map<string, string>,
-  testContents: Map<string, string>
+  testContents: Map<string, string>,
+  claimEvidence: Record<string, EvidenceRule>
 ): "implemented-tested" | "implemented-untested" | "specified-only" {
-  const rule = CLAIM_EVIDENCE[claim.id];
+  const rule = claimEvidence[claim.id];
   if (!rule) return "specified-only";
 
   const hasSource = checkEvidence(rule.sourceEvidence, sourceContents);
@@ -232,19 +341,20 @@ function classifyClaim(
 /** Top-level files excluded from unspecified-directory detection. */
 const EXCLUDED_TOP_LEVEL = new Set([
   "types.ts", "index.ts", "tick.ts", "shift.ts", "task.ts", "setup.ts", "prompts.ts",
+  "init.ts", "run-init.ts", "schedule.ts",
 ]);
 
 /**
  * Find source directories that have no corresponding spec claims.
  */
-function findUnspecifiedDirs(sourceFiles: string[]): InvariantSummary[] {
+function findUnspecifiedDirs(sourceFiles: string[], claimEvidence: Record<string, EvidenceRule>): InvariantSummary[] {
   const codeDirs = new Set(
     sourceFiles.map((f) => f.split("/")[0]).filter((d) => !EXCLUDED_TOP_LEVEL.has(d))
   );
 
   const mappedDirs = new Set<string>();
   for (const dir of codeDirs) {
-    const hasEvidence = Object.values(CLAIM_EVIDENCE).some((rule) =>
+    const hasEvidence = Object.values(claimEvidence).some((rule) =>
       rule.sourceEvidence.some((group) =>
         group.some((p) => p.toLowerCase().includes(dir.toLowerCase()))
       )
@@ -270,11 +380,12 @@ function findUnspecifiedDirs(sourceFiles: string[]): InvariantSummary[] {
  * and checks each one against source code and test evidence.
  */
 export async function checkInvariants(repoRoot: string, wikiDir: string = "wiki"): Promise<InvariantReport> {
-  const [pages, sourceFiles, testFiles, specClaims] = await Promise.all([
+  const [pages, sourceFiles, testFiles, specClaims, claimEvidence] = await Promise.all([
     readWikiPages(repoRoot, wikiDir),
     listSourceFiles(repoRoot),
     listTestFiles(repoRoot),
     extractInvariantClaims(repoRoot),
+    loadClaimEvidence(repoRoot),
   ]);
 
   const [sourceContents, testContents] = await Promise.all([
@@ -293,8 +404,8 @@ export async function checkInvariants(repoRoot: string, wikiDir: string = "wiki"
     (p) => p.category === "architecture" || p.category === "spec"
   );
   for (const page of specPages) {
-    for (const claim of extractClaims(page)) {
-      const status = classifyClaim(claim, sourceContents, testContents);
+    for (const claim of extractClaims(page, claimEvidence)) {
+      const status = classifyClaim(claim, sourceContents, testContents, claimEvidence);
       const summary = { id: claim.id, description: claim.text, group: claim.group };
 
       if (status === "implemented-tested") {
@@ -312,7 +423,7 @@ export async function checkInvariants(repoRoot: string, wikiDir: string = "wiki"
   // Check claims from .shoe-makers/invariants.md (authoritative human-written spec)
   // These default to specified-only unless CLAIM_EVIDENCE has a matching entry
   for (const claim of specClaims) {
-    const status = classifyClaim(claim, sourceContents, testContents);
+    const status = classifyClaim(claim, sourceContents, testContents, claimEvidence);
     const summary = { id: claim.id, description: claim.text, group: claim.group };
 
     if (status === "implemented-tested") {
@@ -326,7 +437,7 @@ export async function checkInvariants(repoRoot: string, wikiDir: string = "wiki"
     }
   }
 
-  const topUnspecified = findUnspecifiedDirs(sourceFiles);
+  const topUnspecified = findUnspecifiedDirs(sourceFiles, claimEvidence);
 
   return {
     specifiedOnly,

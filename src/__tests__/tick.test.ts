@@ -95,6 +95,37 @@ describe("tick", () => {
     expect(result.action).toBe("implement-spec");
   });
 
+  test("returns fix-critique when there are unresolved critiques", () => {
+    const result = tick(makeState({ unresolvedCritiqueCount: 2 }));
+    expect(result.action).toBe("fix-critique");
+    expect(result.skill).toBe("fix-critique");
+  });
+
+  test("returns critique when there are unreviewed commits", () => {
+    const result = tick(makeState({ hasUnreviewedCommits: true }));
+    expect(result.action).toBe("critique");
+    expect(result.skill).toBe("critique");
+  });
+
+  test("fix-critique takes priority over critique", () => {
+    const result = tick(makeState({
+      unresolvedCritiqueCount: 1,
+      hasUnreviewedCommits: true,
+    }));
+    expect(result.action).toBe("fix-critique");
+  });
+
+  test("fix-tests takes priority over fix-critique", () => {
+    const result = tick(makeState({
+      unresolvedCritiqueCount: 1,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: { ...freshAssessment, testsPass: false },
+      },
+    }));
+    expect(result.action).toBe("fix-tests");
+  });
+
   test("returns explore when everything is current", () => {
     const result = tick(makeState());
     expect(result.action).toBe("explore");

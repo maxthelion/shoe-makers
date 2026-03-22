@@ -7,11 +7,13 @@
     "test": "bun test",
     "dev": "bun run src/index.ts",
     "tick": "bun run src/index.ts",
+    "init": "bun run src/run-init.ts",
     "setup": "bun run src/setup.ts",
     "shift": "bun run src/shift.ts",
     "task:status": "bun run src/task.ts status",
     "task:done": "bun run src/task.ts done",
-    "task:fail": "bun run src/task.ts fail"
+    "task:fail": "bun run src/task.ts fail",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest"

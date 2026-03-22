@@ -1,4 +1,5 @@
 import type { ActionType, WorldState } from "./types";
+import type { SkillDefinition } from "./skills/registry";
 
 /** Off-limits notice appended to all non-critique prompts */
 const OFF_LIMITS = `
@@ -7,14 +8,56 @@ const OFF_LIMITS = `
 - \`.shoe-makers/invariants.md\` — only humans maintain the spec claims
 - \`.shoe-makers/state/\` — managed by the scheduler, not agents`;
 
+/** Maps action types to skill mapsTo values for work actions */
+export const ACTION_TO_SKILL_TYPE: Partial<Record<ActionType, string>> = {
+  "fix-tests": "fix",
+  "implement-spec": "implement",
+  "implement-plan": "implement",
+  "write-tests": "test",
+  "improve-health": "health",
+  "document": "doc-sync",
+};
+
+/**
+ * Find the skill that matches a given action type.
+ */
+function findSkillForAction(
+  action: ActionType,
+  skills?: Map<string, SkillDefinition>,
+): SkillDefinition | undefined {
+  if (!skills || skills.size === 0) return undefined;
+  const skillType = ACTION_TO_SKILL_TYPE[action];
+  if (!skillType) return undefined;
+  for (const skill of skills.values()) {
+    if (skill.mapsTo === skillType) return skill;
+  }
+  return undefined;
+}
+
+/**
+ * Format skill content as a clearly marked section to append to prompts.
+ */
+function formatSkillSection(skill: SkillDefinition): string {
+  return `\n\n## Skill: ${skill.name}\n\n${skill.body}`;
+}
+
 /**
  * Generate a focused prompt for the elf based on the tree's decision.
  *
  * Each action produces a scoped prompt telling the elf exactly what to do.
  * This is the interface between the deterministic tree and the elf's intelligence.
+ *
+ * When skills are provided, work actions include the matching skill's instructions,
+ * verification criteria, and off-limits from `.shoe-makers/skills/`.
  */
-export function generatePrompt(action: ActionType, state: WorldState): string {
+export function generatePrompt(
+  action: ActionType,
+  state: WorldState,
+  skills?: Map<string, SkillDefinition>,
+): string {
   const assessment = state.blackboard.assessment;
+  const skill = findSkillForAction(action, skills);
+  const skillSection = skill ? formatSkillSection(skill) : "";
 
   switch (action) {
     case "fix-tests":
@@ -22,7 +65,7 @@ export function generatePrompt(action: ActionType, state: WorldState): string {
 
 Tests are failing. This is the highest priority — fix them before doing anything else.
 
-Run \`bun test\` to see the failures. Fix them. Run \`bun test\` again to confirm. Commit.${OFF_LIMITS}`;
+Run \`bun test\` to see the failures. Fix them. Run \`bun test\` again to confirm. Commit.${skillSection}${OFF_LIMITS}`;
 
     case "fix-critique":
       return `# Fix Unresolved Critiques
@@ -43,19 +86,20 @@ Do NOT delete the critique files — mark them as resolved so the review trail i
 
 There are commits since the last review that need adversarial scrutiny. You are the reviewer, not the author.
 
-1. Read \`.shoe-makers/state/last-reviewed-commit\` to find the last reviewed commit hash
-2. Run \`git log <last-reviewed-commit>..HEAD --oneline\` to see what was done
-3. Run \`git diff <last-reviewed-commit>..HEAD\` to see the actual changes
-4. Review adversarially — look for:
+1. Read \`.shoe-makers/state/last-action.md\` to understand what rules the previous elf was given
+2. Read \`.shoe-makers/state/last-reviewed-commit\` to find the last reviewed commit hash
+3. Run \`git log <last-reviewed-commit>..HEAD --oneline\` to see what was done
+4. Run \`git diff <last-reviewed-commit>..HEAD\` to see the actual changes
+5. Review adversarially — check compliance with the rules in last-action.md, and look for:
    - Bugs, logic errors, off-by-ones
    - Tests that don't actually test what they claim
    - Evidence patterns that are too loose (e.g. checking a word exists rather than verifying behaviour)
    - Spec misalignment — does the code match the wiki?
    - Architectural violations — pure function agents doing side effects, etc.
    - Cheating — writing tests/evidence designed to pass rather than to verify
-5. Write your critique to \`.shoe-makers/findings/critique-{YYYY-MM-DD}-{NNN}.md\` where NNN is a sequence number
-6. Update \`.shoe-makers/state/last-reviewed-commit\` to the current HEAD commit hash
-7. Commit your critique and the updated marker
+6. Write your critique to \`.shoe-makers/findings/critique-{YYYY-MM-DD}-{NNN}.md\` where NNN is a sequence number
+7. Commit your critique
+8. Update \`.shoe-makers/state/last-reviewed-commit\` to the current HEAD commit hash (this file is gitignored — just write it to disk, don't try to commit it)
 
 Be honest and thorough. If the work is good, say so briefly. If there are problems, describe them clearly.
 
@@ -92,7 +136,7 @@ ${planFiles.join("\n")}
 
 Pick the most impactful thing and implement it. Write tests. Run \`bun test\`. Commit.
 
-If you complete all items in a plan, update its frontmatter to \`status: done\`.${OFF_LIMITS}`;
+If you complete all items in a plan, update its frontmatter to \`status: done\`.${skillSection}${OFF_LIMITS}`;
     }
 
     case "implement-spec": {
@@ -112,7 +156,7 @@ ${gapList}
 2. Write tests that verify the desired behaviour (they should fail — the feature doesn't exist yet)
 3. Implement the feature to make the tests pass
 4. Run \`bun test\` to confirm all tests pass
-5. Commit both tests and implementation together${OFF_LIMITS}`;
+5. Commit both tests and implementation together${skillSection}${OFF_LIMITS}`;
     }
 
     case "write-tests": {
@@ -126,7 +170,7 @@ There are ${assessment?.invariants?.implementedUntested ?? 0} implemented but un
 
 ${list}
 
-Write tests that verify this behaviour. Run \`bun test\`. Commit.${OFF_LIMITS}`;
+Write tests that verify this behaviour. Run \`bun test\`. Commit.${skillSection}${OFF_LIMITS}`;
     }
 
     case "document": {
@@ -140,7 +184,7 @@ There are ${assessment?.invariants?.unspecified ?? 0} thing(s) in the code not d
 
 ${list}
 
-Update or create wiki pages to document this behaviour. Commit.${OFF_LIMITS}`;
+Update or create wiki pages to document this behaviour. Commit.${skillSection}${OFF_LIMITS}`;
     }
 
     case "improve-health": {
@@ -152,7 +196,7 @@ Update or create wiki pages to document this behaviour. Commit.${OFF_LIMITS}`;
 
 Code health score is ${assessment?.healthScore ?? "unknown"}/100 (below threshold of 70).${worstList}
 
-Pick the worst file and improve it: reduce complexity, extract helpers, remove duplication. Run \`bun test\`. Commit.${OFF_LIMITS}`;
+Pick the worst file and improve it: reduce complexity, extract helpers, remove duplication. Run \`bun test\`. Commit.${skillSection}${OFF_LIMITS}`;
     }
 
     case "explore":

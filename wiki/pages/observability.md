@@ -25,11 +25,12 @@ Each agent invocation starts cold. Without observability:
 ```
 
 Each entry records:
-- Timestamp
-- Which tick type ran (assess / prioritise / work / verify)
-- What was attempted
-- What the outcome was (committed, reverted, deferred)
-- How long it took
+- Timestamp (HH:MM UTC)
+- Which action the tree selected (e.g. fix-tests, implement-spec, explore, critique)
+- The result of running the action (if any)
+- Errors (if any)
+
+The shift log is automated by `appendToShiftLog()` in `src/log/shift-log.ts` and the setup script. Entries are appended as markdown sections. The shift runner (`src/scheduler/shift.ts`) also produces a `ShiftSummary` that categorises actions into improvement types (fix, feature, test, docs, health, review) and tracks whether improvements are balanced.
 
 This is factual and terse. It's for the human reviewing the branch in the morning and for debugging when something goes wrong.
 
@@ -75,16 +76,13 @@ This is part of the agent protocol, not optional. An agent that does good work b
 
 ## How Agents Read These
 
-During the ASSESS tick:
-- Read all findings — they're part of the world state
+During the **explore** action:
+- Read all findings — they're part of the assessment (world state)
 - Read the most recent shift log entries — recent context matters
 
-During the PRIORITISE tick:
-- Factor findings and suggestions into ranking
-- A finding that says "X is blocked by Y" should boost Y's priority
-
-During the WORK tick:
+During **implementation** actions (implement-spec, implement-plan):
 - Read findings related to the current task — previous agents may have tried this before
+- Factor suggestions into selecting which item to work on
 
 ## The Morning Review
 
@@ -100,7 +98,7 @@ The shift log is the primary interface between the elves and the human.
 
 | Type | Purpose | Lifetime | Reader |
 |------|---------|----------|--------|
-| [[tick-types#the-blackboard\|Blackboard]] | Machine-readable tick state | Reset each cycle | Tree evaluator |
+| Blackboard (`.shoe-makers/state/`) | Machine-readable cached state (assessment, task) | Persists until refreshed by explore | Tree evaluator |
 | [[wiki-as-spec\|Wiki]] | The specification | Permanent | Everyone |
 | Shift log | What happened tonight | Per branch/shift | Human + agents |
 | Findings | Persistent observations | Until resolved | Agents + human |

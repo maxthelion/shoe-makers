@@ -2,65 +2,76 @@
 title: Architecture
 category: architecture
 tags: [architecture, core, behaviour-tree, scheduled-tasks]
-summary: The core architecture — a reactive behaviour tree that evaluates conditions and takes action until they're resolved.
+summary: The core architecture — one invocation, one action, one exit. Reactive conditions plus three-phase orchestration.
 last-modified-by: user
 ---
 
 ## Core Insight
 
-The system works like NPCs in games. A [[behaviour-tree]] is evaluated every tick against cached world state. The first matching condition determines what the agent does. The agent works on that action until the condition is resolved, then the tree falls through to the next thing.
+Each scheduled invocation does ONE thing and exits. The behaviour tree evaluates, picks an action, the elf does it, exits. The next invocation evaluates again. The schedule provides the loop — the elf never loops internally.
 
-This is reactive, not planned. No central scheduler, no task queue, no state machine. Just: look at the world, do the most important thing, repeat.
+## The Invocation
 
-## The Tick Loop
+1. Setup script evaluates the [[behaviour-tree]] against cached world state
+2. Tree picks the first matching condition
+3. The elf gets a **focused prompt** for that one action
+4. The elf does the work, commits, exits
+5. Next invocation: tree evaluates again from scratch
 
-1. Code evaluates the [[behaviour-tree]] against cached world state — cheap, deterministic
-2. First matching condition → produce a **focused prompt** for the agent (e.g. "fix these failing tests", "review this diff")
-3. The elf performs the action — this is where intelligence lives
-4. The elf commits the result
-5. Code re-evaluates the tree — the condition may no longer match
-6. Falls through to the next applicable action
-7. Repeat until time runs out or nothing matches
+## The Tree
 
-### The Tree
+Two zones: reactive (urgent, direct prompt) and orchestrated (proactive, three-phase).
 
 ```
 Selector
-├── [tests failing?] → Fix them
-├── [unverified work on branch?] → Review adversarially
-├── [inbox messages?] → Read and act on them
-├── [open plans?] → Implement the most important one
-├── [specified-only invariants?] → Implement the most impactful one
-├── [untested code?] → Write tests
-├── [undocumented code?] → Update the wiki
-├── [code health below threshold?] → Fix the worst file
-├── [nothing?] → Explore deeper to surface new work
+├── [tests failing?] → Fix tests (direct)
+├── [unresolved critiques?] → Fix critiques (direct)
+├── [unreviewed commits?] → Review adversarially (direct)
+├── [inbox messages?] → Handle inbox (direct)
+├── [work-item.md exists?] → Execute the work item
+├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
+├── [neither?] → Explore: write candidates.md
 ```
 
-Conditions read a cached assessment (`.shoe-makers/state/assessment.json`). The "explore" action at the bottom refreshes the cache when it's stale — this prevents sleeping by surfacing work for conditions above.
+### Reactive zone
+
+Tests, critiques, reviews, and inbox messages fire immediately. The prompt is generated directly — no orchestration needed.
+
+### Three-phase orchestration
+
+Proactive work goes through explore → prioritise → execute across three separate invocations:
+
+1. **Explore**: read everything (wiki, code, invariants, health, findings), write `candidates.md`
+2. **Prioritise**: read candidates + relevant code/wiki, pick one, write a detailed `work-item.md`
+3. **Execute**: read `work-item.md`, do the work, optionally write a follow-up work-item for the next elf
+
+The prioritise step IS the orchestrator — its job is to write a really good, specific prompt for the executor. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."
 
 ### Pure Function Agents
 
-Agents are [[pure-function-agents|pure functions]] (the best idea from Octopoid):
-- Receive: a focused prompt scoped to one action + relevant context
+Agents are [[pure-function-agents|pure functions]]:
+- Receive: a focused prompt scoped to one action
 - Produce: file changes on the shoemakers branch
-- Side effects: **none** — the tick loop handles commits
-
-The elf gets a narrow prompt for each action. A verify action gives reviewer instructions. A work action gives implementation instructions with the relevant [[skills|skill]]. The elf doesn't need to understand the whole system.
+- Side effects: **none** — the setup script handles commits
 
 ### Priority
 
-- **Tree order** (macro): tests > verification > inbox > plans > features > tests > docs > health. Deterministic.
-- **Agent judgement** (micro): within each action, the elf chooses WHICH invariant, WHICH plan, WHICH file. This is where the LLM thinks.
+- **Reactive conditions** have fixed priority in tree order (tests > critiques > reviews > inbox)
+- **Proactive work** is prioritised by the prioritise elf using LLM judgement — no hardcoded ordering between features/tests/docs/health
 
-No separate prioritisation phase needed.
+### State Files
+
+```
+.shoe-makers/state/
+  assessment.json   ← cached world state
+  candidates.md     ← written by explore, consumed by prioritise
+  work-item.md      ← written by prioritise/executor, consumed by executor
+  last-action.md    ← previous action's prompt, read by reviewer
+```
 
 ### The Branch
 
-The branch IS the state. No database, no task tracker.
-- Cached assessment is an ephemeral file, not a database
-- Delete the branch and start clean
-- The system can be interrupted at any point and resume correctly
+The branch IS the state. Delete it and start clean. No database, no server, no persistent process.
 
 ### What Lives in the Repo
 
@@ -68,12 +79,14 @@ The branch IS the state. No database, no task tracker.
 .shoe-makers/
   protocol.md         # instructions for the elf
   config.yaml         # overridable settings
-  invariants.md       # hierarchical spec claims
+  invariants.md       # hierarchical spec claims (human-maintained)
+  schedule.md         # working hours
   skills/             # markdown skill prompts
-  state/              # cached assessment (ephemeral)
-  log/                # shift logs (per day)
+  state/              # ephemeral state files
+  log/                # shift logs
   findings/           # persistent observations
   inbox/              # messages from humans
+  known-issues.md     # troubleshooting for elves
 ```
 
 See also: [[behaviour-tree]], [[pure-function-agents]], [[skills]], [[verification]], [[invariants]]

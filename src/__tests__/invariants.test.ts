@@ -2,7 +2,8 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { checkInvariants, extractClaims } from "../verify/invariants";
+import { checkInvariants, extractClaims, parseClaimEvidenceYaml, type EvidenceRule } from "../verify/invariants";
+import { readFile as readFileAsync } from "fs/promises";
 import type { AgentResult } from "../types";
 
 let tempDir: string;
@@ -64,6 +65,96 @@ describe("AgentResult type contract", () => {
   });
 });
 
+describe("parseClaimEvidenceYaml", () => {
+  test("parses basic claim with source and test evidence", () => {
+    const yaml = "my-claim:\n  source:\n    - [pattern1, pattern2]\n  test:\n    - [test1]\n";
+    const result = parseClaimEvidenceYaml(yaml);
+    expect(result["my-claim"]).toBeDefined();
+    expect(result["my-claim"].sourceEvidence).toEqual([["pattern1", "pattern2"]]);
+    expect(result["my-claim"].testEvidence).toEqual([["test1"]]);
+  });
+
+  test("parses multiple claims", () => {
+    const yaml = "claim-a:\n  source:\n    - [a]\n  test:\n    - [b]\n\nclaim-b:\n  source:\n    - [c]\n  test:\n    - [d]\n";
+    const result = parseClaimEvidenceYaml(yaml);
+    expect(Object.keys(result)).toHaveLength(2);
+    expect(result["claim-a"]).toBeDefined();
+    expect(result["claim-b"]).toBeDefined();
+  });
+
+  test("parses multiple evidence groups (AND-of-OR)", () => {
+    const yaml = "my-claim:\n  source:\n    - [a, b]\n    - [c]\n  test:\n    - [x]\n";
+    const result = parseClaimEvidenceYaml(yaml);
+    expect(result["my-claim"].sourceEvidence).toEqual([["a", "b"], ["c"]]);
+  });
+
+  test("handles quoted strings with commas", () => {
+    const yaml = 'my-claim:\n  source:\n    - ["hello, world"]\n  test:\n    - [x]\n';
+    const result = parseClaimEvidenceYaml(yaml);
+    expect(result["my-claim"].sourceEvidence).toEqual([["hello, world"]]);
+  });
+
+  test("handles dotted claim IDs", () => {
+    const yaml = "spec.set-up-and-go.my-feature:\n  source:\n    - [pattern]\n  test:\n    - [test]\n";
+    const result = parseClaimEvidenceYaml(yaml);
+    expect(result["spec.set-up-and-go.my-feature"]).toBeDefined();
+  });
+
+  test("skips comment lines", () => {
+    const yaml = "# This is a comment\nmy-claim:\n  source:\n    - [a]\n  test:\n    - [b]\n";
+    const result = parseClaimEvidenceYaml(yaml);
+    expect(Object.keys(result)).toHaveLength(1);
+  });
+
+  test("returns empty object for empty input", () => {
+    const result = parseClaimEvidenceYaml("");
+    expect(Object.keys(result)).toHaveLength(0);
+  });
+
+  test("handles claim with parentheses in ID", () => {
+    const yaml = "spec.tree-conditions-(priority).test-claim:\n  source:\n    - [a]\n  test:\n    - [b]\n";
+    const result = parseClaimEvidenceYaml(yaml);
+    expect(result["spec.tree-conditions-(priority).test-claim"]).toBeDefined();
+  });
+});
+
+describe("extractInvariantClaims", () => {
+  test("extracts claims from real invariants.md", async () => {
+    const { extractInvariantClaims } = await import("../verify/invariants");
+    const claims = await extractInvariantClaims(process.cwd());
+    // Should find 100+ claims in the real invariants.md
+    expect(claims.length).toBeGreaterThanOrEqual(100);
+  });
+
+  test("each claim has a unique ID", async () => {
+    const { extractInvariantClaims } = await import("../verify/invariants");
+    const claims = await extractInvariantClaims(process.cwd());
+    const ids = new Set(claims.map((c) => c.id));
+    expect(ids.size).toBe(claims.length);
+  });
+
+  test("all claims belong to a known group", async () => {
+    const { extractInvariantClaims } = await import("../verify/invariants");
+    const claims = await extractInvariantClaims(process.cwd());
+    const validGroups = new Set([
+      "what-a-user-can-do",
+      "how-it-decides-what-to-do",
+      "how-it-does-the-work",
+      "architectural-guarantees",
+      "data-contracts",
+    ]);
+    for (const claim of claims) {
+      expect(validGroups.has(claim.group)).toBe(true);
+    }
+  });
+
+  test("returns empty array when no invariants file exists", async () => {
+    const { extractInvariantClaims } = await import("../verify/invariants");
+    const claims = await extractInvariantClaims("/tmp/nonexistent-repo");
+    expect(claims).toEqual([]);
+  });
+});
+
 describe("CLAIM_EVIDENCE and checkEvidence coverage", () => {
   test("checkInvariants uses CLAIM_EVIDENCE to match claims against code", async () => {
     // The invariants system uses CLAIM_EVIDENCE mapping and checkEvidence function
@@ -77,6 +168,17 @@ describe("CLAIM_EVIDENCE and checkEvidence coverage", () => {
 });
 
 describe("extractClaims", () => {
+  let evidence: Record<string, EvidenceRule>;
+
+  // Load evidence once for all extractClaims tests
+  beforeEach(async () => {
+    const content = await readFileAsync(
+      join(process.cwd(), ".shoe-makers", "claim-evidence.yaml"),
+      "utf-8"
+    );
+    evidence = parseClaimEvidenceYaml(content);
+  });
+
   test("extracts claims for a page with known evidence rules", () => {
     const page = {
       filename: "behaviour-tree",
@@ -84,7 +186,7 @@ describe("extractClaims", () => {
       category: "architecture",
       content: "# Behaviour Tree\nSome content",
     };
-    const claims = extractClaims(page);
+    const claims = extractClaims(page, evidence);
     expect(claims.length).toBeGreaterThan(3);
     expect(claims.every((c) => c.page === "behaviour-tree")).toBe(true);
     expect(claims.every((c) => c.id.startsWith("behaviour-tree."))).toBe(true);
@@ -97,7 +199,7 @@ describe("extractClaims", () => {
       category: "architecture",
       content: "# Unknown\nSome content",
     };
-    const claims = extractClaims(page);
+    const claims = extractClaims(page, evidence);
     expect(claims.length).toBe(0);
   });
 
@@ -108,7 +210,7 @@ describe("extractClaims", () => {
       category: "architecture",
       content: "# Tick Types\nContent",
     };
-    const claims = extractClaims(page);
+    const claims = extractClaims(page, evidence);
     for (const claim of claims) {
       expect(claim.id).toBeTruthy();
       expect(claim.text).toBeTruthy();

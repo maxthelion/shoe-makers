@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { evaluate } from "../tree/evaluate";
 import { defaultTree } from "../tree/default-tree";
-import type { WorldState, Blackboard, Assessment } from "../types";
+import type { WorldState, Blackboard, Assessment, Config } from "../types";
 
 function emptyBlackboard(): Blackboard {
   return {
@@ -45,6 +45,64 @@ function makeState(overrides: Partial<WorldState> = {}): WorldState {
     ...overrides,
   };
 }
+
+describe("evaluate edge cases", () => {
+  test("selector with no successful children returns failure", () => {
+    const result = evaluate(
+      {
+        type: "selector",
+        name: "test-selector",
+        children: [
+          {
+            type: "condition",
+            name: "always-false",
+            condition: { name: "always-false", check: () => false },
+          },
+        ],
+      },
+      makeState()
+    );
+    expect(result.status).toBe("failure");
+    expect(result.skill).toBeNull();
+  });
+
+  test("sequence with only conditions (no actions) returns success with null skill", () => {
+    const result = evaluate(
+      {
+        type: "sequence",
+        name: "test-sequence",
+        children: [
+          {
+            type: "condition",
+            name: "always-true",
+            condition: { name: "always-true", check: () => true },
+          },
+        ],
+      },
+      makeState()
+    );
+    expect(result.status).toBe("success");
+    expect(result.skill).toBeNull();
+  });
+
+  test("condition node with missing condition returns failure", () => {
+    const result = evaluate(
+      { type: "condition", name: "no-condition" },
+      makeState()
+    );
+    expect(result.status).toBe("failure");
+    expect(result.skill).toBeNull();
+  });
+
+  test("action node with no skill returns success with null skill", () => {
+    const result = evaluate(
+      { type: "action", name: "no-skill" },
+      makeState()
+    );
+    expect(result.status).toBe("success");
+    expect(result.skill).toBeNull();
+  });
+});
 
 describe("selector and sequence evaluation", () => {
   test("selector tries children in order and returns first success", () => {
@@ -330,6 +388,140 @@ describe("game-style behaviour tree", () => {
       })
     );
     // Without assessment, no conditions match except explore (always true)
+    expect(result.skill).toBe("explore");
+  });
+});
+
+describe("assessment staleness", () => {
+  function makeStaleAssessment(minutesAgo: number): Assessment {
+    const staleTime = new Date(Date.now() - minutesAgo * 60 * 1000);
+    return {
+      ...freshAssessment,
+      timestamp: staleTime.toISOString(),
+    };
+  }
+
+  const defaultConfig: Config = {
+    branchPrefix: "shoemakers",
+    tickInterval: 5,
+    wikiDir: "wiki",
+    assessmentStaleAfter: 30,
+    maxTicksPerShift: 10,
+    enabledSkills: null,
+  };
+
+  test("stale assessment triggers explore even when other conditions match", () => {
+    // Assessment is 45 minutes old, threshold is 30
+    // There are open plans, but staleness takes priority
+    const result = evaluate(
+      defaultTree,
+      makeState({
+        config: defaultConfig,
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: {
+            ...makeStaleAssessment(45),
+            openPlans: ["some-plan"],
+          },
+        },
+      })
+    );
+    expect(result.skill).toBe("explore");
+  });
+
+  test("fresh assessment does not trigger staleness explore", () => {
+    // Assessment is 5 minutes old, threshold is 30
+    // Open plans should match instead
+    const result = evaluate(
+      defaultTree,
+      makeState({
+        config: defaultConfig,
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: {
+            ...makeStaleAssessment(5),
+            openPlans: ["some-plan"],
+          },
+        },
+      })
+    );
+    expect(result.skill).toBe("implement-plan");
+  });
+
+  test("fix-tests still takes priority over stale assessment", () => {
+    // Tests failing takes priority over everything, even stale assessment
+    const result = evaluate(
+      defaultTree,
+      makeState({
+        config: defaultConfig,
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: {
+            ...makeStaleAssessment(60),
+            testsPass: false,
+          },
+        },
+      })
+    );
+    expect(result.skill).toBe("fix-tests");
+  });
+
+  test("unresolved critiques take priority over stale assessment", () => {
+    const result = evaluate(
+      defaultTree,
+      makeState({
+        config: defaultConfig,
+        unresolvedCritiqueCount: 1,
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: makeStaleAssessment(60),
+        },
+      })
+    );
+    expect(result.skill).toBe("fix-critique");
+  });
+
+  test("stale assessment takes priority over inbox messages", () => {
+    const result = evaluate(
+      defaultTree,
+      makeState({
+        config: defaultConfig,
+        inboxCount: 3,
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: makeStaleAssessment(45),
+        },
+      })
+    );
+    expect(result.skill).toBe("explore");
+  });
+
+  test("without config, no staleness check (backward compatible)", () => {
+    // No config → no staleness threshold → falls through normally
+    const result = evaluate(
+      defaultTree,
+      makeState({
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: {
+            ...makeStaleAssessment(120),
+            openPlans: ["some-plan"],
+          },
+        },
+      })
+    );
+    expect(result.skill).toBe("implement-plan");
+  });
+
+  test("null assessment timestamp treated as stale when config present", () => {
+    const result = evaluate(
+      defaultTree,
+      makeState({
+        config: defaultConfig,
+        blackboard: emptyBlackboard(),
+      })
+    );
+    // No assessment at all → explore (same as current behavior, but now via staleness)
     expect(result.skill).toBe("explore");
   });
 });

@@ -70,22 +70,21 @@ Continuous quality monitoring and improvement.
 
 Work is reviewed before it lands.
 
-- The VERIFY tick runs adversarial review on completed work
+- A different elf adversarially reviews each piece of work (the critique action in the tree)
 - All tests must pass after every change — no exceptions
-- If verification fails, changes are reverted — bad work never stays on the branch
-- Verification checks intent alignment: does this change serve the project's goals as described in the wiki?
-- Verification critiques become findings that future elves can action
-- Multi-round review emerges naturally from the tick loop: if verify rejects, the next cycle's assess sees the gap and work tries again
+- Unreviewed commits trigger adversarial critique — the reviewer checks compliance, bugs, and spec alignment
+- Critiques are written as findings with severity (blocking or advisory)
+- Blocking critiques prevent new work — the tree routes to fix-critique first
+- Multi-round review emerges from the tree: critique → fix → review the fix
 
 ## Behaviour Tree
 
 How the system decides what to do — described fully in [[behaviour-tree]].
 
 - Evaluated every tick, re-evaluates from scratch — cannot get stuck
-- Four [[tick-types]]: ASSESS → PRIORITISE → WORK → VERIFY, cycling naturally
-- Staleness-driven pacing — no fixed schedule, the system self-balances
-- Two levels of priority: macro (tree structure, deterministic) and micro (LLM judgement in PRIORITISE)
-- The prioritiser balances across work types: too many features without tests should shift priority to testing
+- A selector with priority-ordered conditions: tests failing → critiques → stale assessment → inbox → plans → spec gaps → untested code → undocumented code → health → explore
+- Two levels of priority: macro (tree structure, deterministic) and micro (LLM judgement within each action)
+- The explore action at the bottom surfaces work by refreshing the assessment cache — the system almost never sleeps
 
 ## Installation and Setup
 

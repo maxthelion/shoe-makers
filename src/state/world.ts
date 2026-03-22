@@ -18,7 +18,7 @@ function getCurrentBranch(repoRoot: string): string {
 /**
  * Check if the working tree has uncommitted changes (staged or unstaged).
  */
-function hasUncommittedChanges(repoRoot: string): boolean {
+export function hasUncommittedChanges(repoRoot: string): boolean {
   const status = execSync("git status --porcelain", {
     cwd: repoRoot,
     encoding: "utf-8",
@@ -40,11 +40,27 @@ async function countInboxMessages(repoRoot: string): Promise<number> {
 
 /**
  * Check if there are commits since the last reviewed commit.
+ * If no marker file exists, all commits are considered unreviewed.
  */
-async function checkUnreviewedCommits(repoRoot: string): Promise<boolean> {
+export async function checkUnreviewedCommits(repoRoot: string): Promise<boolean> {
+  const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
+  let lastReviewed: string;
   try {
-    const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
-    const lastReviewed = (await readFile(markerPath, "utf-8")).trim();
+    lastReviewed = (await readFile(markerPath, "utf-8")).trim();
+  } catch {
+    // No marker file — check if the branch has any commits at all
+    try {
+      const log = execSync("git log --oneline -1", {
+        cwd: repoRoot,
+        encoding: "utf-8",
+      }).trim();
+      return log.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  try {
     const log = execSync(`git log ${lastReviewed}..HEAD --oneline`, {
       cwd: repoRoot,
       encoding: "utf-8",
@@ -58,7 +74,7 @@ async function checkUnreviewedCommits(repoRoot: string): Promise<boolean> {
 /**
  * Count unresolved critique findings.
  */
-async function countUnresolvedCritiques(repoRoot: string): Promise<number> {
+export async function countUnresolvedCritiques(repoRoot: string): Promise<number> {
   const findingsDir = join(repoRoot, ".shoe-makers", "findings");
   let count = 0;
   try {

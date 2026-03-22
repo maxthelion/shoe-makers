@@ -16,6 +16,8 @@ export interface TickResult {
 /** Map skill names to action types */
 const SKILL_TO_ACTION: Record<string, ActionType> = {
   "fix-tests": "fix-tests",
+  "fix-critique": "fix-critique",
+  critique: "critique",
   review: "review",
   inbox: "inbox",
   "implement-plan": "implement-plan",

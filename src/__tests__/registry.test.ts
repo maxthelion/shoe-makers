@@ -111,12 +111,104 @@ Build it.`,
 
     await rm(tmpDir, { recursive: true });
   });
+
+  test("filters by enabledSkills when provided", async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "registry-test-"));
+    const skillsDir = join(tmpDir, ".shoe-makers", "skills");
+    await mkdir(skillsDir, { recursive: true });
+
+    await writeFile(
+      join(skillsDir, "fix-tests.md"),
+      `---\nname: fix-tests\ndescription: Fix tests.\nmaps-to: fix\nrisk: low\n---\nFix.`,
+    );
+    await writeFile(
+      join(skillsDir, "implement.md"),
+      `---\nname: implement\ndescription: Implement.\nmaps-to: implement\nrisk: medium\n---\nBuild.`,
+    );
+    await writeFile(
+      join(skillsDir, "health.md"),
+      `---\nname: health\ndescription: Health.\nmaps-to: health\nrisk: low\n---\nImprove.`,
+    );
+
+    // Only enable fix-tests and health
+    const skills = await loadSkills(tmpDir, ["fix-tests", "health"]);
+    expect(skills.size).toBe(2);
+    expect(skills.has("fix-tests")).toBe(true);
+    expect(skills.has("health")).toBe(true);
+    expect(skills.has("implement")).toBe(false);
+
+    await rm(tmpDir, { recursive: true });
+  });
+
+  test("loads all skills when enabledSkills is null", async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "registry-test-"));
+    const skillsDir = join(tmpDir, ".shoe-makers", "skills");
+    await mkdir(skillsDir, { recursive: true });
+
+    await writeFile(
+      join(skillsDir, "fix-tests.md"),
+      `---\nname: fix-tests\ndescription: Fix tests.\nmaps-to: fix\nrisk: low\n---\nFix.`,
+    );
+    await writeFile(
+      join(skillsDir, "implement.md"),
+      `---\nname: implement\ndescription: Implement.\nmaps-to: implement\nrisk: medium\n---\nBuild.`,
+    );
+
+    const skills = await loadSkills(tmpDir, null);
+    expect(skills.size).toBe(2);
+
+    await rm(tmpDir, { recursive: true });
+  });
+});
+
+describe("parseOffLimits", () => {
+  test("extracts off-limits items from skill body", () => {
+    const content = `---
+name: implement
+description: Implement a feature.
+maps-to: implement
+risk: medium
+---
+
+## Instructions
+
+Build things.
+
+## Off-limits
+
+- Do not change the behaviour tree routing logic without updating the wiki
+- Do not modify unrelated modules
+- Do not add external dependencies without justification`;
+
+    const skill = parseSkillFile(content);
+    expect(skill.offLimits).toEqual([
+      "Do not change the behaviour tree routing logic without updating the wiki",
+      "Do not modify unrelated modules",
+      "Do not add external dependencies without justification",
+    ]);
+  });
+
+  test("returns empty array when no off-limits section", () => {
+    const content = `---
+name: fix-tests
+description: Fix tests
+maps-to: fix
+risk: low
+---
+
+## Instructions
+
+Fix things.`;
+
+    const skill = parseSkillFile(content);
+    expect(skill.offLimits).toEqual([]);
+  });
 });
 
 describe("findSkillForType", () => {
   const skills = new Map<string, SkillDefinition>([
-    ["fix-tests", { name: "fix-tests", description: "Fix tests", prompt: "", risk: "low", mapsTo: "fix", body: "" }],
-    ["implement", { name: "implement", description: "Implement", prompt: "", risk: "medium", mapsTo: "implement", body: "" }],
+    ["fix-tests", { name: "fix-tests", description: "Fix tests", prompt: "", risk: "low", mapsTo: "fix", body: "", offLimits: [] }],
+    ["implement", { name: "implement", description: "Implement", prompt: "", risk: "medium", mapsTo: "implement", body: "", offLimits: [] }],
   ]);
 
   test("finds skill by priority type", () => {

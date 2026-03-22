@@ -62,6 +62,7 @@ export function formatTickLog(opts: {
   skill: string | null;
   result: string | null;
   error: string | null;
+  suggestions?: string[];
 }): string {
   const lines: string[] = [];
 
@@ -79,6 +80,13 @@ export function formatTickLog(opts: {
 
   if (opts.error) {
     lines.push(`- **Error**: ${opts.error}`);
+  }
+
+  if (opts.suggestions && opts.suggestions.length > 0) {
+    lines.push(`- **Suggestions**:`);
+    for (const suggestion of opts.suggestions) {
+      lines.push(`  - ${suggestion}`);
+    }
   }
 
   return lines.join("\n");

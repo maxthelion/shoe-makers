@@ -21,6 +21,12 @@ export async function runSkill(
     case "fix-tests":
       return "Action: fix-tests — elf should run tests and fix failures.";
 
+    case "fix-critique":
+      return "Action: fix-critique — elf should read unresolved critique findings and fix the issues.";
+
+    case "critique":
+      return "Action: critique — elf should adversarially review unreviewed commits.";
+
     case "review":
       return "Action: review — elf should review uncommitted changes adversarially.";
 

@@ -3,6 +3,7 @@ import { readWorldState } from "../state/world";
 import { tick, type TickResult } from "./tick";
 import { runSkill } from "./run-skill";
 import { appendToShiftLog, formatTickLog } from "../log/shift-log";
+import { summarizeShift, type ShiftSummary } from "../log/shift-summary";
 
 /** Result of a single step within a shift */
 export interface ShiftStep {
@@ -16,6 +17,8 @@ export interface ShiftResult {
   steps: ShiftStep[];
   /** Why the shift stopped */
   outcome: "sleep" | "action" | "max-ticks" | "error";
+  /** Summary of improvement categories covered */
+  summary: ShiftSummary;
   /** @deprecated Use outcome instead */
   workInstructions: string | null;
 }
@@ -64,8 +67,8 @@ export async function shift(
       const step: ShiftStep = { tick: result, skillResult: null, error: null };
       steps.push(step);
       options.onTick?.(step);
-      await writeLog(repoRoot, formatEntry(state.branch, result, null, null));
-      return { steps, outcome: "sleep", workInstructions: null };
+      await writeLog(repoRoot, formatEntry(state.branch, result, null, null, state));
+      return { steps, outcome: "sleep", summary: summarizeShift(steps), workInstructions: null };
     }
 
     // Run the action
@@ -78,20 +81,20 @@ export async function shift(
     const step: ShiftStep = { tick: result, skillResult, error };
     steps.push(step);
     options.onTick?.(step);
-    await writeLog(repoRoot, formatEntry(state.branch, result, skillResult, error));
+    await writeLog(repoRoot, formatEntry(state.branch, result, skillResult, error, state));
 
     if (error) {
-      return { steps, outcome: "error", workInstructions: null };
+      return { steps, outcome: "error", summary: summarizeShift(steps), workInstructions: null };
     }
 
     // Explore runs programmatically — loop to re-evaluate tree.
     // All other actions need the elf, so return.
     if (result.action !== "explore") {
-      return { steps, outcome: "action", workInstructions: skillResult };
+      return { steps, outcome: "action", summary: summarizeShift(steps), workInstructions: skillResult };
     }
   }
 
-  return { steps, outcome: "max-ticks", workInstructions: null };
+  return { steps, outcome: "max-ticks", summary: summarizeShift(steps), workInstructions: null };
 }
 
 /** Default log writer — appends to the shift log */
@@ -99,12 +102,29 @@ async function defaultWriteLog(repoRoot: string, entry: string): Promise<void> {
   await appendToShiftLog(repoRoot, entry);
 }
 
+/** Build suggestions from assessment for the shift log */
+function buildSuggestions(state: WorldState): string[] {
+  const suggestions: string[] = [];
+  const assessment = state.blackboard.assessment;
+  if (assessment) {
+    if (assessment.invariants) {
+      const { specifiedOnly, implementedUntested } = assessment.invariants;
+      if (specifiedOnly > 0) suggestions.push(`${specifiedOnly} specified-only invariants need implementation`);
+      if (implementedUntested > 0) suggestions.push(`${implementedUntested} implemented features need tests`);
+    }
+    if (assessment.openPlans.length > 0) suggestions.push(`${assessment.openPlans.length} open plan(s) to work on`);
+    if (assessment.findings.length > 0) suggestions.push(`${assessment.findings.length} finding(s) to review`);
+  }
+  return suggestions;
+}
+
 /** Format a log entry */
 function formatEntry(
   branch: string,
   result: TickResult,
   skillResult: string | null,
-  error: string | null
+  error: string | null,
+  state: WorldState
 ): string {
   return formatTickLog({
     branch,
@@ -112,5 +132,6 @@ function formatEntry(
     skill: result.skill,
     result: skillResult,
     error,
+    suggestions: buildSuggestions(state),
   });
 }

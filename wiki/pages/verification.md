@@ -16,16 +16,17 @@ Each action from the [[behaviour-tree]] has a **role** that determines what the 
 
 | Tree condition | Role | Can write | Cannot write |
 |---|---|---|---|
-| Unresolved critiques? | **Fixer** | `src/` (scoped to flagged files) | tests, invariants, wiki |
-| Unreviewed commits? | **Reviewer** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
-| Tests failing? | **Test fixer** | `src/` (scoped to failing tests) | invariants, wiki |
-| Specified-only invariant? | **Implementer** | tests first, then `src/` | invariants, wiki |
-| Untested code? | **Test writer** | `src/__tests__/` only | `src/` (non-test), invariants |
-| Undocumented code? | **Doc writer** | `wiki/pages/` only | `src/`, tests, invariants |
-| Code health? | **Refactorer** | `src/` (scoped to worst files) | tests, invariants, wiki |
-| Explore? | **Assessor** | `.shoe-makers/state/`, findings | `src/`, tests, wiki |
-| Open plans? | **Plan implementer** | tests first, then `src/`, wiki | invariants |
-| Inbox? | **Inbox handler** | varies by message | — |
+| Tests failing? | **test-fixer** | `src/` | invariants, wiki |
+| Unresolved critiques? | **critique-fixer** | `src/`, `.shoe-makers/findings/` | invariants, wiki |
+| Unreviewed commits? | **reviewer** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
+| Uncommitted work? | **reviewer** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
+| Inbox? | **inbox-handler** | `src/`, `wiki/`, `.shoe-makers/` | invariants |
+| Open plans? | **plan-implementer** | `src/`, `wiki/` | `src/__tests__/`, invariants |
+| Specified-only invariant? | **implementer** | `src/` | `src/__tests__/`, wiki, invariants |
+| Untested code? | **test-writer** | `src/__tests__/` only | `src/` (non-test), invariants, wiki |
+| Undocumented code? | **doc-writer** | `wiki/` only | `src/`, tests, invariants |
+| Code health? | **refactorer** | `src/` | `src/__tests__/`, wiki, invariants |
+| Explore? | **assessor** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
 
 Key constraints:
 - **Invariants are never writable by elves.** Only humans maintain `.shoe-makers/invariants.md`. This prevents the cheating problem where elves tailor claims to match their code.
@@ -34,15 +35,15 @@ Key constraints:
 
 ## TDD Enforcement
 
-The permission model naturally enforces test-driven development:
+The permission model enforces separation of concerns:
 
-1. "Specified-only invariant?" fires → elf gets **test writer** instructions: "write tests for this spec claim, but do NOT implement it yet"
-2. Elf writes tests, they fail, commits
-3. Next tick: "tests failing?" fires → elf gets **test fixer** instructions: "make these tests pass by implementing the feature"
-4. Elf implements, tests pass, commits
-5. Next tick: "unreviewed commits?" fires → different elf reviews the work
+- **Implementers** (`implement-spec`, `implement-plan`) cannot write test files (`src/__tests__/` is forbidden)
+- **Test writers** (`write-tests`) cannot write non-test source files
+- **Test fixers** (`fix-tests`) can write both source and tests (fixing requires both)
 
-Each step is a different tick with a different prompt and different permissions. The elf writing the implementation can't change the tests it's trying to satisfy.
+In practice, the current `implement-spec` prompt instructs the elf to "write failing tests first, then implement" within a single session, but the permission model prevents implementers from modifying existing test files. The `write-tests` action (for untested code) produces test-only changes.
+
+The ideal two-tick TDD cycle — where one elf writes failing tests and a different elf implements — is supported by the permission model but not strictly enforced by the tree routing.
 
 ## Cross-Elf Gatekeeping
 
@@ -106,10 +107,12 @@ You may ONLY write to .shoe-makers/findings/. Do not modify any code.
 Selector
 ├── [tests failing?] → Fix them
 ├── [unresolved critiques?] → Fix the flagged issues
-├── [unreviewed commits?] → Review adversarially
+├── [unreviewed commits?] → Review adversarially (critique)
+├── [assessment stale?] → Explore / refresh assessment
+├── [uncommitted work?] → Review before committing (review)
 ├── [inbox messages?] → Read and act
-├── [open plans?] → Write tests first, then implement
-├── [specified-only invariants?] → Write tests first, then implement
+├── [open plans?] → Implement (src + wiki, no tests)
+├── [specified-only invariants?] → Implement (src only, no tests)
 ├── [untested code?] → Write tests only
 ├── [undocumented code?] → Update wiki only
 ├── [code health below threshold?] → Refactor scoped files
@@ -117,5 +120,7 @@ Selector
 ```
 
 Critiques sit above unreviewed work — you fix problems before reviewing new work. Unreviewed work sits above new work — you review before starting something new.
+
+Note: The `review` node (uncommitted work) is separate from `critique` (unreviewed commits). Both use the reviewer role but trigger at different points.
 
 See also: [[behaviour-tree]], [[observability]], [[invariants]], [[pure-function-agents]]

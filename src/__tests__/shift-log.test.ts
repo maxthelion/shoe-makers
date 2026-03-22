@@ -84,6 +84,46 @@ describe("formatTickLog", () => {
     expect(log).not.toContain("**Result**");
   });
 
+  test("formats suggestions for next priorities", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: "implement-spec",
+      skill: "implement-spec",
+      result: "Implemented init command",
+      error: null,
+      suggestions: ["Fix the plan detection bug next", "Add more test coverage for invariants"],
+    });
+
+    expect(log).toContain("**Suggestions**");
+    expect(log).toContain("Fix the plan detection bug next");
+    expect(log).toContain("Add more test coverage for invariants");
+  });
+
+  test("omits suggestions when empty", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: "assess",
+      skill: "assess",
+      result: "Done",
+      error: null,
+      suggestions: [],
+    });
+
+    expect(log).not.toContain("Suggestions");
+  });
+
+  test("omits suggestions when not provided", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: "assess",
+      skill: "assess",
+      result: "Done",
+      error: null,
+    });
+
+    expect(log).not.toContain("Suggestions");
+  });
+
   test("formats an error tick", () => {
     const log = formatTickLog({
       branch: "shoemakers/2026-03-21",

@@ -33,9 +33,25 @@ Available at: https://claude.ai/code/scheduled or via the Claude desktop app.
 This is the **execution layer**. Shoe-makers doesn't need to build:
 - Cron scheduling
 - Cloud execution environment
-- Git worktree management
 - Agent process management
 
 Instead, shoe-makers provides the **intelligence layer** — the [[architecture|behaviour tree protocol]] that tells the scheduled task *what* to do and *how* to verify it.
 
 The scheduled task's prompt points at `.shoe-makers/protocol.md` in the repo, which contains the full decision-making logic.
+
+## Working Hours
+
+Shoe-makers supports an optional working-hours schedule (`src/schedule.ts`):
+
+- **`.shoe-makers/schedule.md`** configures start/end hours in UTC 24h format
+- If outside working hours, the setup script exits immediately
+- If no schedule file exists, the shoemakers work any time
+- Overnight shifts that cross midnight (e.g. start: 22, end: 6) are supported
+
+## Branch Management
+
+The setup script (`src/setup.ts`) handles branch lifecycle:
+
+- Creates or checks out a branch named `{branchPrefix}/{shift-date}` (e.g. `shoemakers/2026-03-22`)
+- Fetches from origin and pulls if the branch exists remotely
+- The shift date uses yesterday's date if we're past midnight but before the shift end hour (midnight-wrap support)

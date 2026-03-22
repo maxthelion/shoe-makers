@@ -22,6 +22,7 @@ function makeAssessment(overrides: Partial<Assessment> = {}): Assessment {
     timestamp: new Date().toISOString(),
     invariants: null,
     healthScore: null,
+    worstFiles: [],
     openPlans: [],
     findings: [],
     testsPass: true,

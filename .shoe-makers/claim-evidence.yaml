@@ -1,0 +1,1452 @@
+# === behaviour-tree.md ===
+behaviour-tree.tree-evaluator:
+  source:
+    - [export function evaluate]
+  test:
+    - ["evaluate("]
+
+behaviour-tree.selector-tries-children:
+  source:
+    - ["\"selector\""]
+    - [children]
+  test:
+    - [selector]
+
+behaviour-tree.sequence-runs-in-order:
+  source:
+    - ["\"sequence\""]
+    - [children]
+  test:
+    - [sequence]
+
+behaviour-tree.re-evaluates-from-scratch:
+  source:
+    - ["evaluate(defaultTree", "evaluate(node"]
+  test:
+    - ["evaluate("]
+
+behaviour-tree.tree-order-priority:
+  source:
+    - [makeConditionAction]
+    - [defaultTree]
+  test:
+    - [priority]
+
+behaviour-tree.macro-micro-priority:
+  source:
+    - [makeConditionAction]
+    - [generatePrompt, implement-spec]
+  test:
+    - [priority, implement-spec]
+
+behaviour-tree.elf-is-prioritiser:
+  source:
+    - [generatePrompt]
+    - [Pick the most]
+  test:
+    - [implement-spec, implement-plan]
+
+behaviour-tree.should-never-sleep:
+  source:
+    - [alwaysTrue]
+    - [explore]
+  test:
+    - [returns explore when nothing else matches, explore]
+
+behaviour-tree.blackboard-pattern:
+  source:
+    - [readBlackboard]
+    - [writeAssessment]
+  test:
+    - [blackboard]
+
+behaviour-tree.game-style-selector:
+  source:
+    - [makeConditionAction]
+    - ["\"selector\""]
+  test:
+    - [fix-tests]
+    - [explore]
+
+# === architecture.md ===
+architecture.tick-every-5-minutes:
+  source:
+    - [tickInterval]
+  test:
+    - [tickInterval]
+
+architecture.tree-routes-to-actions:
+  source:
+    - [ActionType]
+    - ["evaluate("]
+  test:
+    - [action]
+
+architecture.blackboard-state-files:
+  source:
+    - [shoe-makers/state]
+    - [assessment.json]
+  test:
+    - [assessment.json]
+
+architecture.agents-pure-functions:
+  source:
+    - [AgentResult]
+    - [filesChanged]
+  test:
+    - [AgentResult]
+    - [filesChanged]
+
+architecture.config-in-shoe-makers:
+  source:
+    - [loadConfig]
+    - [config.yaml]
+  test:
+    - [loadConfig]
+
+architecture.branch-is-state:
+  source:
+    - [getCurrentBranch]
+  test:
+    - [branch]
+
+# === pure-function-agents.md ===
+pure-function-agents.agent-interface:
+  source:
+    - [AgentResult]
+  test:
+    - [AgentResult]
+
+pure-function-agents.scheduler-handles-side-effects:
+  source:
+    - [runSkill]
+  test:
+    - [runSkill]
+
+pure-function-agents.scheduler-module:
+  source:
+    - [scheduler/tick, scheduler/shift]
+  test:
+    - [scheduler/tick, shift]
+
+pure-function-agents.partial-work-status:
+  source:
+    - ["\"partial\""]
+  test:
+    - [partial]
+
+# === tick-types.md ===
+tick-types.assess-writes-assessment:
+  source:
+    - [writeAssessment]
+  test:
+    - [assessment]
+
+tick-types.explore-writes-assessment:
+  source:
+    - [writeAssessment]
+    - [assess]
+  test:
+    - [assessment]
+
+tick-types.tree-conditions-drive-actions:
+  source:
+    - [testsFailing]
+    - [hasSpecGaps]
+  test:
+    - [fix-tests]
+    - [implement-spec]
+
+tick-types.assess-gathers-invariants:
+  source:
+    - [checkInvariants]
+  test:
+    - [invariants]
+
+tick-types.assess-gathers-test-results:
+  source:
+    - [runTests, testsPass]
+  test:
+    - [testsPass]
+
+tick-types.assess-gathers-git-activity:
+  source:
+    - [getRecentGitActivity, recentGitActivity]
+  test:
+    - [recentGitActivity, gitActivity]
+
+tick-types.assess-gathers-plans:
+  source:
+    - [findOpenPlans, openPlans]
+  test:
+    - [openPlans, plans]
+
+# === invariants.md ===
+invariants.four-statuses:
+  source:
+    - [specifiedOnly]
+    - [implementedUntested]
+    - [implementedTested]
+  test:
+    - [specifiedOnly, implementedTested]
+
+invariants.extract-falsifiable-claims:
+  source:
+    - [export function extractClaims]
+  test:
+    - [extractClaims]
+
+invariants.claim-evidence-pipeline:
+  source:
+    - [claim-evidence.yaml, parseClaimEvidenceYaml]
+    - [checkEvidence]
+  test:
+    - [CLAIM_EVIDENCE, checkEvidence, checkInvariants]
+
+invariants.report-drives-behaviour-tree:
+  source:
+    - [checkInvariants]
+    - [specifiedOnly]
+  test:
+    - [checkInvariants]
+
+invariants.granularity-per-claim:
+  source:
+    - [export function extractClaims]
+    - [checkEvidence]
+  test:
+    - [extractClaims]
+
+# === verification.md ===
+verification.tests-must-pass:
+  source:
+    - [testsPass]
+  test:
+    - [testsPass]
+
+verification.commit-or-revert:
+  source:
+    - ["\"commit\""]
+    - ["\"revert\""]
+  test:
+    - [commit]
+    - [revert]
+
+verification.adversarial-review:
+  source:
+    - [hasUnreviewedCommits]
+    - [critique]
+    - [last-reviewed-commit]
+  test:
+    - [critique]
+    - [unreviewed]
+
+verification.review-checks-diff:
+  source:
+    - [Adversarial Review]
+    - [git diff]
+    - [critique]
+  test:
+    - [critique]
+
+verification.critiques-become-findings:
+  source:
+    - [critique-]
+    - [findings]
+    - [fix-critique]
+  test:
+    - [critique]
+    - [fix-critique]
+
+verification.verify-module:
+  source:
+    - [verify/invariants]
+  test:
+    - [verify/invariants, checkInvariants]
+
+verification.role-based-permissions:
+  source:
+    - [canWrite, permittedFiles, allowedPaths]
+    - [role]
+  test:
+    - [permission]
+    - [role]
+
+verification.tdd-enforcement:
+  source:
+    - [TDD, Write Tests First, Write tests first]
+    - [test-writer]
+  test:
+    - [TDD, test-first, Write Tests First]
+    - [test-writer]
+
+verification.invariants-human-only:
+  source:
+    - [invariants.md]
+    - [cannotWrite, off-limits, forbidden]
+  test:
+    - [invariants.md]
+    - [forbidden, off-limits, cannotWrite]
+
+# === skills.md ===
+skills.markdown-skill-files:
+  source:
+    - [loadSkills]
+    - [parseSkillFile]
+  test:
+    - [loadSkills, parseSkillFile]
+
+skills.registry-matches-types:
+  source:
+    - [findSkillForType]
+  test:
+    - [findSkillForType]
+
+skills.frontmatter-interface:
+  source:
+    - [maps-to, mapsTo]
+  test:
+    - [maps-to, mapsTo]
+
+# === observability.md ===
+observability.shift-log-per-day:
+  source:
+    - [appendToShiftLog]
+  test:
+    - [appendToShiftLog, shiftLog]
+
+observability.findings-directory:
+  source:
+    - ["readFindings(", "loadFindings(", shoe-makers/findings]
+  test:
+    - [findings]
+
+observability.timestamped-entries:
+  source:
+    - [timeStamp, timestamp]
+  test:
+    - [timestamp]
+
+# === wiki-as-spec.md ===
+wiki-as-spec.four-statuses:
+  source:
+    - [specifiedOnly]
+    - [implementedUntested]
+    - [implementedTested]
+    - [unspecified]
+  test:
+    - [specifiedOnly]
+
+wiki-as-spec.three-questions-drive-work:
+  source:
+    - [specifiedOnly]
+    - [implementedUntested]
+  test:
+    - [specifiedOnly]
+
+wiki-as-spec.agents-route-by-status:
+  source:
+    - ["\"implement\""]
+    - ["\"test\""]
+    - ["\"doc-sync\""]
+  test:
+    - [implement]
+
+# === branching-strategy.md ===
+branching-strategy.one-branch-per-shift:
+  source:
+    - [branchPrefix]
+  test:
+    - [branch]
+
+branching-strategy.branch-is-state:
+  source:
+    - [getCurrentBranch]
+    - [hasUncommittedChanges]
+  test:
+    - [branch]
+
+# === functionality.md ===
+functionality.inbox-reads-messages:
+  source:
+    - [shoe-makers/inbox, .shoe-makers/inbox]
+  test:
+    - [inbox]
+
+functionality.findings-persist-across-shifts:
+  source:
+    - ["readFindings(", shoe-makers/findings]
+  test:
+    - [findings]
+
+functionality.shift-log-narrative:
+  source:
+    - [appendToShiftLog]
+    - [formatTickLog]
+  test:
+    - [appendToShiftLog, formatTickLog]
+
+functionality.config-yaml:
+  source:
+    - [config.yaml]
+    - [tickInterval]
+    - [assessmentStaleAfter]
+    - [branchPrefix]
+  test:
+    - [config]
+
+functionality.plan-status-lifecycle:
+  source:
+    - [findOpenPlans]
+    - ["status:\\s*(blocked|done)", "status: blocked", "status: done"]
+  test:
+    - [plan]
+
+functionality.skills-as-markdown:
+  source:
+    - [loadSkills]
+    - [parseSkillFile]
+  test:
+    - [loadSkills, parseSkillFile]
+
+functionality.multi-tick-shift:
+  source:
+    - [export async function shift]
+  test:
+    - ["shift("]
+
+functionality.task-lifecycle-cli:
+  source:
+    - ["task:status", "\"status\""]
+    - ["task:done", "\"done\""]
+    - ["task:fail", "\"fail\""]
+  test:
+    - [task]
+
+# === plans-vs-spec.md ===
+plans-vs-spec.plan-category-in-frontmatter:
+  source:
+    - [findOpenPlans]
+    - [category]
+  test:
+    - [plan]
+
+plans-vs-spec.plans-feed-prioritiser:
+  source:
+    - [openPlans]
+    - ["Implement plan", "type: \"plan\""]
+  test:
+    - [openPlans, plan]
+
+# === invariants.md (spec claims) ===
+
+spec.set-up-and-go.an-init-command-scaffolds-shoemakers-with-protocol-config-sk:
+  source:
+    - [export async function init]
+    - [protocol.md]
+    - [config.yaml]
+    - [skills]
+  test:
+    - [init]
+    - [scaffolds, creates]
+
+spec.set-up-and-go.a-user-can-install-shoemakers-in-any-repo-and-have-it-start-:
+  source:
+    - [export async function init]
+    - ["bun run"]
+  test:
+    - [init]
+
+spec.set-up-and-go.existing-docs-and-code-are-bootstrapped-into-the-wiki-via-ba:
+  source:
+    - [bootstrapWiki]
+    - [README.md]
+  test:
+    - [bootstrapWiki, bootstrap]
+    - [README]
+
+spec.set-up-and-go.a-oneline-scheduled-task-prompt-is-all-thats-needed-read-sho:
+  source:
+    - [protocol.md]
+    - [next-action.md]
+  test:
+    - [protocol, next-action]
+
+spec.set-up-and-go.shoemakersschedulemd-configures-working-hours-the-setup-scri:
+  source:
+    - [schedule.md]
+    - [isWithinWorkingHours]
+  test:
+    - [schedule]
+
+spec.set-up-and-go.if-no-schedule-file-exists-the-shoemakers-work-any-time:
+  source:
+    - [isWithinWorkingHours]
+    - ["return true"]
+  test:
+    - [schedule]
+
+spec.set-up-and-go.it-works-without-editing-configyaml-sensible-defaults-for-ev:
+  source:
+    - [DEFAULTS]
+    - [loadConfig]
+  test:
+    - [defaults, loadConfig]
+
+spec.the-reactive-tree.the-behaviour-tree-is-evaluated-every-tick-reevaluates-from-:
+  source:
+    - ["evaluate(defaultTree", "evaluate(node"]
+  test:
+    - ["evaluate("]
+
+spec.the-reactive-tree.its-reactive-not-planned-look-at-the-world-do-the-most-impor:
+  source:
+    - [evaluate]
+    - [readWorldState]
+  test:
+    - [evaluate, tick]
+
+spec.the-reactive-tree.the-first-matching-condition-determines-the-action-priority-:
+  source:
+    - ["\"selector\""]
+    - [makeConditionAction]
+  test:
+    - [priority, "first success"]
+
+spec.the-reactive-tree.when-the-condition-is-resolved-tests-pass-plan-implemented-t:
+  source:
+    - ["\"selector\""]
+    - [testsFailing, hasOpenPlans]
+  test:
+    - ["falls through"]
+
+spec.the-reactive-tree.the-system-almost-never-sleeps-an-explore-action-at-the-bott:
+  source:
+    - [alwaysTrue]
+    - [explore]
+  test:
+    - ["returns explore when nothing else matches", explore]
+
+spec.the-reactive-tree.if-an-agent-crashes-the-next-tick-sees-the-same-world-and-re:
+  source:
+    - [readWorldState]
+    - ["evaluate(defaultTree"]
+  test:
+    - [error, "stops on error"]
+
+spec.the-tree-conditions-(in-priority-order).tests-failing-fix-them-always-highest-priority:
+  source:
+    - [testsFailing]
+    - [fix-tests]
+  test:
+    - [fix-tests]
+
+spec.the-tree-conditions-(in-priority-order).unverified-work-on-branch-review-the-diff-adversarially:
+  source:
+    - [hasUnreviewedCommits]
+    - [critique]
+  test:
+    - [critique, unreviewed]
+
+spec.the-tree-conditions-(in-priority-order).inbox-messages-read-and-act-on-them:
+  source:
+    - [hasInboxMessages]
+    - [inbox]
+  test:
+    - [inbox]
+
+spec.the-tree-conditions-(in-priority-order).open-plans-implement-the-most-important-one:
+  source:
+    - [hasOpenPlans]
+    - [implement-plan]
+  test:
+    - [implement-plan, plan]
+
+spec.the-tree-conditions-(in-priority-order).specifiedonly-invariants-implement-the-most-impactful-one:
+  source:
+    - [hasSpecGaps]
+    - [implement-spec]
+  test:
+    - [implement-spec]
+
+spec.the-tree-conditions-(in-priority-order).untested-code-write-tests-for-the-riskiest-one:
+  source:
+    - [hasUntestedCode]
+    - [write-tests]
+  test:
+    - [write-tests]
+
+spec.the-tree-conditions-(in-priority-order).undocumented-code-update-the-wiki:
+  source:
+    - [hasUndocumentedCode]
+    - [document]
+  test:
+    - [document]
+
+spec.the-tree-conditions-(in-priority-order).code-health-below-threshold-fix-the-worst-file:
+  source:
+    - [healthBelowThreshold]
+    - [improve-health]
+  test:
+    - [improve-health, health]
+
+spec.the-tree-conditions-(in-priority-order).nothing-explore-deeper-to-surface-new-work:
+  source:
+    - [alwaysTrue]
+    - [explore]
+  test:
+    - [explore]
+
+spec.narrow-scoped-actions.each-tick-the-tree-produces-a-focused-prompt-scoped-to-one-a:
+  source:
+    - [generatePrompt]
+    - [ActionType]
+  test:
+    - [generatePrompt]
+
+spec.narrow-scoped-actions.a-verify-action-gives-reviewer-instructions-the-elf-only-rev:
+  source:
+    - [Adversarial Review]
+    - [critique]
+  test:
+    - [critique]
+
+spec.narrow-scoped-actions.a-work-action-gives-implementation-instructions-with-the-rel:
+  source:
+    - [generatePrompt]
+    - [implement-spec, implement-plan]
+    - [findSkillForAction]
+    - [formatSkillSection]
+  test:
+    - [implement-spec, implement-plan]
+    - ["skill content", "Skill:"]
+
+spec.assessment-and-exploration.tree-conditions-read-a-cached-assessment-shoemakersstateasse:
+  source:
+    - [readBlackboard]
+    - [assessment.json]
+  test:
+    - [assessment.json, readBlackboard]
+
+spec.assessment-and-exploration.assessment-contains-invariant-gaps-test-results-health-score:
+  source:
+    - [specifiedOnly]
+    - [testsPass]
+    - [healthScore]
+    - [openPlans]
+    - [findings]
+    - [recentGitActivity]
+  test:
+    - [specifiedOnly]
+    - [testsPass]
+
+spec.assessment-and-exploration.the-explore-action-refreshes-the-cache-when-stale-or-when-no:
+  source:
+    - [isAssessmentStale]
+    - [assessmentStaleAfter]
+    - [explore]
+  test:
+    - [stale, explore]
+
+spec.assessment-and-exploration.findings-from-previous-elves-are-part-of-the-assessment-cont:
+  source:
+    - [readFindings]
+    - [findings]
+  test:
+    - [findings]
+
+spec.priority.macro-priority-tree-order-is-deterministic-built-into-the-tr:
+  source:
+    - [makeConditionAction]
+    - [defaultTree]
+  test:
+    - [priority]
+
+spec.priority.micro-priority-which-specific-item-uses-the-elfs-judgement-t:
+  source:
+    - [generatePrompt]
+    - ["Pick the most"]
+  test:
+    - [implement-spec, implement-plan]
+
+spec.priority.no-separate-prioritisation-phase-tree-handles-routing-elf-ha:
+  source:
+    - [evaluate]
+    - [defaultTree]
+    - [generatePrompt]
+  test:
+    - [evaluate, generatePrompt]
+
+spec.the-wiki-drives-work.invariants-surface-three-types-of-gap-specifiedonly-implemen:
+  source:
+    - [specifiedOnly]
+    - [implementedUntested]
+    - [unspecified]
+  test:
+    - [specifiedOnly]
+    - [implementedUntested, unspecified]
+
+spec.pure-function-agents.an-agent-receives-a-scoped-job-description-and-produces-file:
+  source:
+    - [AgentResult]
+    - [filesChanged]
+  test:
+    - [AgentResult]
+    - [filesChanged]
+
+spec.pure-function-agents.agents-dont-push-create-prs-or-call-external-services-the-sc:
+  source:
+    - [runSkill]
+  test:
+    - [runSkill]
+
+spec.pure-function-agents.if-an-agent-crashes-nothing-is-inconsistent-theres-nothing-t:
+  source:
+    - [readWorldState]
+    - ["evaluate("]
+  test:
+    - [error, "stops on error"]
+
+spec.pure-function-agents.partial-work-is-fine-agent-writes-what-it-has-exits-next-tic:
+  source:
+    - ["\"partial\""]
+  test:
+    - [partial]
+
+spec.skills.defined-as-markdown-files-in-shoemakersskills-prompts-not-co:
+  source:
+    - [loadSkills]
+    - [shoe-makers/skills]
+  test:
+    - [loadSkills]
+
+spec.skills.each-skill-has-description-whentoapply-instructions-verifica:
+  source:
+    - [parseSkillFile]
+    - [description]
+    - [mapsTo, maps-to]
+    - [risk]
+  test:
+    - [parseSkillFile]
+
+spec.skills.registry-matches-priority-type-to-skill-definition:
+  source:
+    - [findSkillForType]
+  test:
+    - [findSkillForType]
+
+spec.skills.humans-and-elves-can-both-add-new-skills-theyre-just-files:
+  source:
+    - [loadSkills]
+    - [shoe-makers/skills]
+  test:
+    - [loadSkills]
+
+spec.role-based-permissions.each-action-has-a-role-that-determines-which-files-the-elf-c:
+  source:
+    - [getPermissions]
+    - [canWrite]
+    - [role]
+  test:
+    - [getPermissions]
+    - [role]
+
+spec.role-based-permissions.reviewers-can-only-write-findings-they-cannot-modify-code:
+  source:
+    - ["role: \"reviewer\""]
+    - [".shoe-makers/findings/"]
+    - ["cannotWrite"]
+  test:
+    - [reviewer, findings]
+    - ["cannot write source", "cannot write wiki"]
+
+spec.role-based-permissions.invariants-are-never-writable-by-elves-only-humans-maintain-:
+  source:
+    - [ALWAYS_FORBIDDEN]
+    - [invariants.md]
+  test:
+    - [invariants.md]
+    - ["no action can write"]
+
+spec.role-based-permissions.the-permissions-are-stated-in-the-action-prompt-and-verified:
+  source:
+    - [Off-limits]
+    - [invariants.md]
+  test:
+    - [Off-limits]
+
+spec.cross-elf-gatekeeping.lastreviewedcommit-tracks-which-commits-have-been-reviewed:
+  source:
+    - [last-reviewed-commit]
+  test:
+    - [last-reviewed-commit, unreviewed]
+
+spec.cross-elf-gatekeeping.unreviewed-commits-checks-if-head-is-ahead-of-the-last-revie:
+  source:
+    - [checkUnreviewedCommits, hasUnreviewedCommits]
+    - [last-reviewed-commit]
+  test:
+    - [unreviewed]
+
+spec.cross-elf-gatekeeping.the-reviewer-gets-the-diff-the-rules-the-previous-elf-was-gi:
+  source:
+    - [Adversarial Review]
+    - [git diff]
+  test:
+    - [critique]
+
+spec.cross-elf-gatekeeping.critiques-are-written-as-findings-with-severity-blocking-or-:
+  source:
+    - [critique-]
+    - [findings]
+  test:
+    - [critique]
+
+spec.cross-elf-gatekeeping.unresolved-critiques-sits-near-the-top-of-the-tree-blocking-:
+  source:
+    - [hasUnresolvedCritiques]
+    - [fix-critique]
+  test:
+    - [fix-critique, "priority over"]
+
+spec.cross-elf-gatekeeping.multiround-review-emerges-from-the-tree-critique-fix-review-:
+  source:
+    - [fix-critique]
+    - [critique]
+    - [hasUnresolvedCritiques]
+  test:
+    - [fix-critique, critique]
+
+spec.observability.every-tick-appends-to-shoemakerslogyyyymmddmd-timestamp-deci:
+  source:
+    - [appendToShiftLog]
+    - [LOG_DIR]
+  test:
+    - [appendToShiftLog]
+    - [timestamp]
+
+spec.observability.the-shift-log-tells-a-narrative-not-just-facts-tried-x-becau:
+  source:
+    - [formatTickLog]
+    - [Decision]
+    - [Result]
+  test:
+    - [formatTickLog]
+    - [Decision]
+
+spec.observability.findings-persist-in-shoemakersfindings-until-resolved-contex:
+  source:
+    - [readFindings, shoe-makers/findings]
+  test:
+    - [findings]
+
+spec.statelessness-and-resilience.the-branch-is-the-only-state-no-database-no-server-no-persis:
+  source:
+    - [getCurrentBranch]
+    - [readBlackboard]
+  test:
+    - [branch]
+
+spec.statelessness-and-resilience.blackboard-files-shoemakersstate-are-ephemeral-caches-not-a-:
+  source:
+    - [shoe-makers/state]
+    - [readBlackboard]
+  test:
+    - [blackboard]
+
+spec.statelessness-and-resilience.the-system-can-be-interrupted-at-any-point-and-resume-correc:
+  source:
+    - [readWorldState]
+    - ["evaluate(defaultTree"]
+  test:
+    - [readWorldState]
+
+spec.statelessness-and-resilience.the-behaviour-tree-reevaluates-from-scratch-no-state-machine:
+  source:
+    - ["evaluate(defaultTree", "evaluate(node"]
+  test:
+    - ["evaluate("]
+
+spec.separation-of-concerns.routing-behaviour-tree-conditions-is-deterministic-no-llm-ne:
+  source:
+    - [makeConditionAction]
+    - ["\"selector\""]
+  test:
+    - [selector, evaluate]
+
+spec.separation-of-concerns.side-effects-commit-push-merge-live-in-the-tick-loop-never-i:
+  source:
+    - [runSkill]
+    - [shift]
+  test:
+    - [runSkill, shift]
+
+spec.separation-of-concerns.the-assessment-cache-is-the-interface-between-explore-and-tr:
+  source:
+    - [writeAssessment]
+    - [readBlackboard]
+    - [assessment.json]
+  test:
+    - [assessment.json, writeAssessment]
+
+spec.branch-isolation.one-branch-per-shift-created-from-main:
+  source:
+    - [branchPrefix]
+    - [ensureBranch, checkoutOrCreateBranch]
+  test:
+    - [branch]
+
+spec.branch-isolation.the-branch-lifecycle-is-create-work-review-mergediscard:
+  source:
+    - [ensureBranch, checkoutOrCreateBranch]
+    - [shift]
+  test:
+    - [branch, shift]
+
+spec.assessment-cache.assessmentjson-written-by-the-explore-action-read-by-tree-co:
+  source:
+    - [writeAssessment]
+    - [assessment.json]
+  test:
+    - [assessment.json, writeAssessment]
+
+spec.assessment-cache.contains-invariant-gaps-specifiedonly-untested-unspecified-w:
+  source:
+    - [specifiedOnly]
+    - [implementedUntested]
+    - [testsPass]
+    - [healthScore]
+    - [openPlans]
+    - [recentGitActivity]
+  test:
+    - [specifiedOnly]
+    - [testsPass]
+
+spec.assessment-cache.this-is-the-only-state-file-the-tree-reads-it-explore-writes:
+  source:
+    - [writeAssessment]
+    - [readBlackboard]
+  test:
+    - [writeAssessment, readBlackboard]
+
+spec.configuration.shoemakersconfigyaml-with-sensible-defaults:
+  source:
+    - [loadConfig]
+    - [DEFAULTS]
+    - [config.yaml]
+  test:
+    - [loadConfig, defaults]
+
+spec.configuration.configurable-branch-prefix-tick-interval-assessment-stalenes:
+  source:
+    - [branchPrefix]
+    - [tickInterval]
+    - [assessmentStaleAfter]
+    - [maxTicksPerShift]
+  test:
+    - [branchPrefix, tickInterval]
+
+spec.configuration.works-without-a-config-file:
+  source:
+    - [ENOENT]
+    - [DEFAULTS]
+  test:
+    - ["does not exist", defaults]
+
+spec.skill-files.frontmatter-description-mapsto-priority-type-risk-level:
+  source:
+    - [parseSkillFile]
+    - [description]
+    - [maps-to]
+    - [risk]
+  test:
+    - [parseSkillFile]
+    - [mapsTo, maps-to]
+
+spec.skill-files.body-when-to-apply-instructions-verification-criteria-permit:
+  source:
+    - [parseSkillFile]
+    - [body]
+  test:
+    - [parseSkillFile]
+    - [body, Instructions]
+
+spec.skill-files.registry-loads-all-md-files-from-shoemakersskills-and-matche:
+  source:
+    - [loadSkills]
+    - [findSkillForType]
+  test:
+    - [loadSkills, findSkillForType]
+
+spec.trust-the-quality.the-reviewer-knows-what-rules-the-previous-elf-was-given-and:
+  source:
+    - [last-action.md]
+    - [saveLastAction, readLastAction]
+  test:
+    - [last-action, saveLastAction]
+
+spec.trust-the-quality.a-different-elf-adversarially-reviews-each-piece-of-work-not:
+  source:
+    - [Adversarial Review]
+    - [critique]
+    - [last-reviewed-commit]
+  test:
+    - [critique]
+
+spec.trust-the-quality.critiques-become-findings-that-future-elves-action-quality-i:
+  source:
+    - [critique-]
+    - [findings]
+  test:
+    - [critique, findings]
+
+spec.observability.automated-logging-from-bun-run-tick-supplements-manual-elf-e:
+  source:
+    - [appendToShiftLog]
+    - [formatTickLog]
+  test:
+    - [appendToShiftLog, formatTickLog]
+
+spec.skills.current-skills-fixtests-implement-testcoverage-docsync-healt:
+  source:
+    - [fix-tests, implement, write-tests, doc-sync, improve-health]
+  test:
+    - [fix-tests, implement, write-tests]
+
+spec.role-based-permissions.implementers-must-write-tests-first-tdd-they-cannot-touch-te:
+  source:
+    - ["src/__tests__/"]
+    - [cannotWrite]
+    - [implement-spec]
+  test:
+    - ["cannot write test files"]
+
+spec.steer-the-elves.findings-and-suggestions-from-previous-elves-are-visible-to-:
+  source:
+    - [readFindings, shoe-makers/findings]
+    - [findings]
+  test:
+    - [findings]
+
+spec.trust-the-quality.code-health-doesnt-regress-octoclean-scores-are-checked-befo:
+  source:
+    - [checkHealthRegression]
+    - [healthBefore, healthAfter]
+  test:
+    - [checkHealthRegression]
+    - [regress]
+
+spec.trust-the-quality.every-change-on-the-branch-has-passing-tests-no-exceptions:
+  source:
+    - [testsPass]
+    - [runTests]
+  test:
+    - [testsPass]
+
+spec.trust-the-quality.verification-checks-scope-violation-test-quality-invariant-g:
+  source:
+    - [checkPermissionViolations]
+    - [checkInvariants]
+  test:
+    - [checkPermissionViolations, checkInvariants]
+
+spec.trust-the-quality.if-verification-finds-blocking-issues-they-must-be-fixed-bef:
+  source:
+    - [hasUnresolvedCritiques]
+    - [fix-critique]
+  test:
+    - [fix-critique]
+
+spec.trust-the-quality.elves-cannot-modify-invariants-only-humans-maintain-shoemake:
+  source:
+    - [ALWAYS_FORBIDDEN]
+    - [invariants.md]
+  test:
+    - [invariants.md]
+    - ["no action can write"]
+
+spec.review-and-merge-with-confidence.nothing-reaches-main-without-the-human-choosing-to-merge:
+  source:
+    - [ensureBranch]
+    - [shoemakers/]
+  test:
+    - [branch]
+
+spec.review-and-merge-with-confidence.verification-has-already-caught-and-reverted-bad-work-whats-:
+  source:
+    - [verify]
+    - ["\"commit\""]
+    - ["\"revert\""]
+  test:
+    - [commit]
+    - [revert]
+
+spec.steer-the-elves.mark-areas-as-offlimits-in-skill-definitions-and-elves-respe:
+  source:
+    - [offLimits, parseOffLimits, Off-limits]
+  test:
+    - [offLimits, Off-limits]
+
+spec.review-and-merge-with-confidence.each-commit-has-a-clear-message-explaining-what-was-built-an:
+  source:
+    - [commit]
+    - [appendToShiftLog]
+  test:
+    - [commit]
+
+spec.review-and-merge-with-confidence.the-shift-log-provides-enough-context-to-make-good-merge-dec:
+  source:
+    - [formatTickLog]
+    - [Decision]
+    - [Result]
+  test:
+    - [formatTickLog]
+
+spec.narrow-scoped-actions.the-elf-doesnt-need-to-understand-the-whole-system-just-read:
+  source:
+    - [generatePrompt]
+    - [ActionType]
+  test:
+    - [generatePrompt]
+
+spec.assessment-and-exploration.assessment-must-be-granular-a-wiki-page-with-10-behaviours-1:
+  source:
+    - [extractClaims]
+    - [checkEvidence]
+  test:
+    - [extractClaims]
+
+spec.the-wiki-drives-work.plans-generate-work-candidates-until-implemented-or-marked-d:
+  source:
+    - [findOpenPlans]
+    - ["status: blocked", "status: done"]
+  test:
+    - [plan]
+
+spec.branch-isolation.agents-commit-freely-within-the-branch-no-approval-needed:
+  source:
+    - [ensureBranch]
+    - [shoemakers/]
+  test:
+    - [branch]
+
+spec.branch-isolation.only-one-branch-is-active-at-a-time-no-crossbranch-conflicts:
+  source:
+    - [ensureBranch, checkoutOrCreateBranch]
+  test:
+    - [branch]
+
+spec.statelessness-and-resilience.deleting-the-branch-resets-everything-cleanly:
+  source:
+    - [readBlackboard]
+    - [getCurrentBranch]
+  test:
+    - [blackboard, branch]
+
+spec.statelessness-and-resilience.no-task-tracking-no-locks-no-leases-the-classes-of-bugs-that:
+  source:
+    - ["evaluate(defaultTree"]
+    - [readWorldState]
+  test:
+    - ["evaluate("]
+
+spec.separation-of-concerns.intelligence-review-implementation-selection-within-a-condit:
+  source:
+    - [generatePrompt]
+    - [Adversarial Review]
+  test:
+    - [generatePrompt, critique]
+
+spec.separation-of-concerns.the-wiki-is-the-interface-between-human-intent-and-agent-act:
+  source:
+    - [readWikiPages, extractClaims]
+    - [checkInvariants]
+  test:
+    - [extractClaims, checkInvariants]
+
+spec.steer-the-elves.drop-a-markdown-file-in-shoemakersinbox-and-the-next-elf-act:
+  source:
+    - [shoe-makers/inbox]
+    - [hasInboxMessages]
+    - [inbox]
+  test:
+    - [inbox]
+
+spec.steer-the-elves.write-a-plan-page-in-the-wiki-category-plan-and-elves-work-t:
+  source:
+    - [findOpenPlans]
+    - ["category: plan", "category:\\s*plan"]
+  test:
+    - [plan]
+
+spec.steer-the-elves.mark-a-plan-as-status-blocked-or-status-done-to-control-what:
+  source:
+    - ["status: blocked", "status: done", "status:\\s*(blocked|done)"]
+  test:
+    - [blocked, done]
+
+spec.maintain-a-living-spec.invariants-continuously-compare-spec-against-code-and-surfac:
+  source:
+    - [checkInvariants]
+    - [checkEvidence]
+  test:
+    - [checkInvariants]
+
+spec.observability.suggestions-for-next-priorities-are-noted-in-the-shift-log:
+  source:
+    - [suggestions]
+    - [formatTickLog]
+  test:
+    - [suggestions, Suggestions]
+
+spec.observability.the-morning-review-should-be-selfcontained-shift-log-finding:
+  source:
+    - [appendToShiftLog]
+    - [findings]
+    - [formatTickLog]
+  test:
+    - [appendToShiftLog, formatTickLog]
+    - [findings]
+
+spec.the-wiki-drives-work.the-wiki-is-the-source-of-truth-agents-read-it-to-understand:
+  source:
+    - [readWikiPages]
+    - [extractClaims, checkInvariants]
+  test:
+    - [extractClaims, checkInvariants]
+
+spec.the-wiki-drives-work.agents-also-discover-improvements-from-code-analysis-that-is:
+  source:
+    - [getHealthResult, getHealthScore]
+    - [findUnspecifiedDirs]
+  test:
+    - [healthScore, health]
+
+spec.pure-function-agents.the-scheduled-task-is-the-agent-llm-prioritiser-means-the-el:
+  source:
+    - [generatePrompt]
+    - ["Pick the most"]
+  test:
+    - [generatePrompt]
+
+spec.pure-function-agents.agents-are-replaceable-different-llm-different-prompt-a-huma:
+  source:
+    - [AgentResult]
+    - [filesChanged]
+  test:
+    - [AgentResult]
+
+spec.branch-isolation.the-human-merges-before-the-next-shift-starts:
+  source:
+    - [ensureBranch]
+    - [shoemakers/]
+  test:
+    - [branch]
+
+spec.review-and-merge-with-confidence.the-human-can-merge-the-whole-branch-cherrypick-specific-com:
+  source:
+    - [ensureBranch]
+    - [shoemakers/]
+  test:
+    - [branch]
+
+spec.review-and-merge-with-confidence.if-discarded-nothing-is-lost-next-shift-starts-fresh-from-ma:
+  source:
+    - [ensureBranch, checkoutOrCreateBranch]
+  test:
+    - [branch]
+
+spec.steer-the-elves.adjust-the-behaviour-tree-to-shift-focus-more-testing-less-f:
+  source:
+    - [enabledSkills, enabled-skills]
+    - [loadConfig]
+  test:
+    - [enabledSkills, enabled-skills]
+
+spec.wake-up-to-a-better-project.the-branch-tells-a-coherent-story-a-human-reads-the-shift-lo:
+  source:
+    - [appendToShiftLog]
+    - [formatTickLog]
+    - [Decision, Result]
+  test:
+    - [appendToShiftLog, formatTickLog]
+
+spec.wake-up-to-a-better-project.agents-work-unbidden-they-infer-what-to-do-from-the-spec-and:
+  source:
+    - [checkInvariants]
+    - [evaluate]
+    - [generatePrompt]
+  test:
+    - [evaluate, generatePrompt]
+
+spec.maintain-a-living-spec.the-wiki-describes-what-the-system-is-and-does-it-is-the-sou:
+  source:
+    - [readWikiPages]
+    - [wiki]
+  test:
+    - [wiki, extractClaims]
+
+spec.self-improvement.agents-can-modify-the-protocol-add-scripts-create-skills-upd:
+  source:
+    - [protocol.md]
+    - [loadSkills]
+    - [shoe-makers/skills]
+  test:
+    - [loadSkills]
+
+spec.maintain-a-living-spec.plans-describe-what-the-system-should-become-deltas-that-are:
+  source:
+    - [findOpenPlans]
+    - ["category: plan", "category:\\s*plan"]
+  test:
+    - [plan]
+
+spec.maintain-a-living-spec.when-a-plan-is-implemented-spec-pages-are-updated-and-the-pl:
+  source:
+    - ["status: done"]
+    - [implement-plan]
+  test:
+    - [plan, done]
+
+spec.maintain-a-living-spec.agents-create-new-spec-pages-when-they-discover-undocumented:
+  source:
+    - [document]
+    - ["Update or create wiki pages"]
+  test:
+    - [document]
+
+spec.maintain-a-living-spec.agents-update-stale-spec-pages-when-code-has-diverged-from-d:
+  source:
+    - [document]
+    - ["Update or create wiki pages"]
+  test:
+    - [document]
+
+spec.the-wiki-drives-work.when-agents-build-something-they-update-the-spec-closing-the:
+  source:
+    - ["status: done"]
+    - [implement-plan]
+    - [document]
+  test:
+    - [plan, document]
+
+spec.maintain-a-living-spec.if-the-spec-is-accurate-enough-the-application-could-be-rebu:
+  source:
+    - [extractClaims, extractInvariantClaims]
+    - [checkInvariants]
+  test:
+    - [extractClaims, checkInvariants]
+
+spec.set-up-and-go.existing-docs-and-code-are-bootstrapped-into-the-wiki-via-ba:
+  source:
+    - [export async function init]
+    - [protocol.md, config.yaml]
+  test:
+    - [init]
+
+spec.skills.planned-octocleanfix-octocleanspecific-bugfix-from-issues-de:
+  source:
+    - [loadSkills]
+    - [shoe-makers/skills]
+  test:
+    - [octoclean-fix, bug-fix, dead-code]
+
+spec.self-improvement.every-elf-should-leave-the-workshop-in-better-shape-than-the:
+  source:
+    - [improve-health, explore]
+    - [suggestions]
+  test:
+    - [improve-health, explore]
+
+spec.tdd-enforcement.implementing-a-feature-starts-with-writing-tests-not-code:
+  source:
+    - ["Write Tests First", "Write tests first"]
+    - [implement-spec]
+  test:
+    - ["cannot write test files"]
+
+spec.tdd-enforcement.the-elf-making-tests-pass-cannot-modify-the-tests:
+  source:
+    - ["src/__tests__/"]
+    - [cannotWrite]
+    - [implement-spec]
+  test:
+    - ["cannot write test files", "cannot modify tests"]
+
+spec.tdd-enforcement.the-elf-writing-tests-cannot-write-implementation-in-the-sam:
+  source:
+    - ["role: \"test-writer\"", "test-writer"]
+    - ["src/__tests__/"]
+  test:
+    - [test-writer]
+    - ["cannot write non-test"]
+
+spec.tdd-enforcement.this-is-enforced-by-the-permission-model-each-ticks-role-det:
+  source:
+    - [getPermissions]
+    - [role]
+    - [canWrite]
+  test:
+    - [getPermissions, role]
+
+# === Shift quality and balance ===
+spec.wake-up-to-a-better-project.overnight-the-system-produces-a-branch-with-genuine-improvem:
+  source:
+    - [summarizeShift]
+    - [ImprovementCategory, categories]
+  test:
+    - [summarizeShift]
+    - [categories]
+
+spec.wake-up-to-a-better-project.the-improvements-are-not-just-one-type-features-tests-docs-c:
+  source:
+    - [isBalanced]
+    - [ImprovementCategory]
+  test:
+    - [isBalanced]
+    - [balanced]
+
+spec.wake-up-to-a-better-project.agents-can-produce-unexpected-delightful-results-not-just-gr:
+  source:
+    - [summarizeShift]
+    - [explore]
+    - [generatePrompt]
+  test:
+    - [summarizeShift]
+    - [explore]
+
+spec.wake-up-to-a-better-project.quality-over-speed-agents-take-their-time-run-thorough-check:
+  source:
+    - [checkInvariants]
+    - [checkHealthRegression]
+    - [hasUnreviewedCommits]
+  test:
+    - [checkInvariants, checkHealthRegression]
+
+# === Self-improvement ===
+spec.self-improvement.friction-scripts-confusion-wiki-updates-missing-capability-n:
+  source:
+    - [loadSkills]
+    - [document]
+    - [shoe-makers/skills]
+  test:
+    - [loadSkills]
+    - [document]
+
+spec.self-improvement.the-protocol-evolves-from-prose-bootstrap-to-automated-invoc:
+  source:
+    - [export async function init]
+    - [next-action.md]
+    - ["bun run"]
+  test:
+    - [init]
+    - [next-action]
+
+spec.self-improvement.the-system-builds-the-system-that-replaces-the-bootstrap:
+  source:
+    - [export async function init]
+    - [setup]
+    - [shift]
+  test:
+    - [init]
+    - ["shift("]

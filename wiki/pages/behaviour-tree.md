@@ -2,104 +2,90 @@
 title: Behaviour Tree
 category: architecture
 tags: [behaviour-tree, core, npc, game-ai, scheduler]
-summary: The core behaviour tree — evaluated every tick like an NPC in a game, reacting to world state and working until conditions are resolved.
+summary: The behaviour tree — reactive conditions for urgent work, three-phase orchestration for proactive work.
 last-modified-by: user
 ---
 
 ## The NPC Model
 
-The shoe-makers system works like NPCs in games. Every tick, a behaviour tree is evaluated against the current world state. The first matching condition determines what the agent does. The agent works on that action until the condition is resolved — then the tree falls through to the next applicable action.
+The shoe-makers system works like NPCs in games. Each invocation, the behaviour tree is evaluated against the world state. The first matching condition determines what the elf does. The elf does ONE thing and exits. The next invocation evaluates the tree again.
 
-This is reactive, not planned. The agent doesn't decide a sequence of tasks. It looks at the world, does the most important thing, and when that's done, looks again.
+One invocation, one action, one exit. The scheduled task interval provides the loop.
 
-## How Game Behaviour Trees Work
+## The Tree
 
-In games, an NPC's tree is evaluated every frame:
-
-```
-Selector (try each child, first match wins)
-├── [enemy nearby?] → fight
-├── [low health?] → find health pack
-├── [loot nearby?] → collect loot
-├── patrol
-```
-
-- Actions return three states: **SUCCESS** (done), **FAILURE** (can't), **RUNNING** (still working)
-- RUNNING means "keep doing this" — the NPC continues fighting until the enemy is dead
-- When the condition resolves (enemy dies), the tree falls through to the next match
-- Priority is the tree order — fighting always beats looting because it's higher
-- The NPC never plans — it reacts to what's in front of it
-
-## The Shoe-Makers Tree
+The tree has two zones: **reactive** conditions at the top (urgent, handled directly) and a **three-phase orchestration** at the bottom (proactive work).
 
 ```
 Selector
-├── [tests failing?] → Fix them (test fixer role — scoped to failing files)
-├── [unresolved critiques?] → Fix the flagged issues (fixer role — scoped to flagged files)
-├── [unreviewed commits?] → Review adversarially (reviewer role — can only write findings)
-├── [inbox messages?] → Read and act on them
-├── [open plans?] → Write tests first, then implement (implementer role)
-├── [specified-only invariants?] → Write tests first, then implement (implementer role)
-├── [untested code?] → Write tests only (test writer role — tests only)
-├── [undocumented code?] → Update the wiki (doc writer role — wiki only)
-├── [code health below threshold?] → Refactor (refactorer role — scoped files)
-├── [nothing?] → Explore deeper (assessor role — state and findings only)
+├── [tests failing?] → Fix tests (direct prompt)
+├── [unresolved critiques?] → Fix critiques (direct prompt)
+├── [unreviewed commits?] → Review adversarially (direct prompt)
+├── [inbox messages?] → Handle inbox (direct prompt)
+├── [work-item.md exists?] → Execute it
+├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
+├── [neither?] → Explore: write candidates.md
 ```
 
-Each condition has a **role** that determines what files the elf can write. See [[verification]] for the full permissions model. The reviewer checks that the previous elf stayed within its role's boundaries.
+### Reactive zone (top)
 
-Each condition reads a cached assessment of the world. The agent works on the first match. Once the condition is resolved (tests pass, plan is implemented, invariant is satisfied), the tree naturally falls through to the next thing.
+These fire immediately with a direct prompt. No orchestration needed — the action is obvious.
 
-The **explore** action at the bottom prevents sleeping. When nothing obvious needs doing, the agent does a deeper assessment — reads the wiki more carefully, runs invariant checks, analyses code health. This surfaces work for the conditions above.
+- **Tests failing** — always highest priority. The elf gets the test output and fixes it.
+- **Unresolved critiques** — blocking findings from a previous reviewer. Must fix before new work.
+- **Unreviewed commits** — a previous elf's commits need adversarial review. The reviewer gets the diff and the rules the previous elf was given.
+- **Inbox messages** — human instructions take priority over self-directed work.
 
-## How the Tick Works
+### Three-phase orchestration (bottom)
 
-1. Code evaluates the tree against cached world state — cheap, deterministic
-2. Tree produces an **action + context** — a focused prompt like "fix these failing tests" or "review this diff adversarially"
-3. The elf performs the action — this is where intelligence lives
-4. The elf commits the result
-5. Code re-evaluates the tree — the condition may no longer match
-6. Tree falls through to the next applicable action
-7. Repeat until time runs out or nothing matches
+Proactive work goes through three phases across three separate invocations:
 
-The elf gets a **narrow, scoped prompt** for each action. A verify action gives the elf reviewer instructions. A work action gives implementation instructions with the relevant [[skills|skill]]. The elf doesn't need to understand the whole system — just read the prompt and do the work.
+**1. Explore** — broad context, produces a candidate list.
+The elf reads everything: wiki, code, findings, invariants, health scores. It produces `.shoe-makers/state/candidates.md` — a ranked list of possible work items with reasoning about why each matters. This is where the elf discovers what needs doing.
+
+**2. Prioritise** — medium context, produces one detailed work item.
+The elf reads the candidate list, reads the relevant wiki pages and source files for the top candidates, and picks one. It writes `.shoe-makers/state/work-item.md` — a specific, detailed prompt with full context: the relevant wiki text, the relevant code, exactly what to build, which patterns to follow. This is the orchestrator that writes really good instructions.
+
+**3. Execute** — narrow context, does the work.
+The elf reads `work-item.md` and does exactly what it says. It commits and optionally writes a new `work-item.md` for the next elf (e.g. "review what I just built" or "write tests for this feature"). This creates a natural handoff chain.
+
+### Why three phases?
+
+Each phase narrows the context for the next:
+- Explore reads everything → produces a list
+- Prioritise reads the list + relevant code → produces one detailed instruction
+- Execute reads one instruction → does one thing
+
+This solves the problem of elves getting generic prompts. The prioritiser's entire job is to write a specific, detailed prompt — it reads the wiki, looks at the code, and tells the executor exactly what to build and how. The executor doesn't need to figure out what to work on.
+
+### State files
+
+```
+.shoe-makers/state/
+  assessment.json   ← cached world state, read by tree conditions
+  candidates.md     ← written by explore, read by prioritise
+  work-item.md      ← written by prioritise (or by executor as handoff), read by executor
+  last-action.md    ← copy of previous action, read by reviewer
+```
+
+After execution, `work-item.md` is consumed (deleted or replaced with a follow-up). After prioritisation, `candidates.md` is consumed. This ensures the cycle advances: explore → prioritise → execute → (explore again when no items remain).
 
 ## Priority
 
-Priority is encoded in two places:
+**Reactive conditions** have fixed priority encoded in tree order. Tests always beat critiques, critiques always beat reviews, reviews always beat inbox.
 
-**Tree order** (macro): fixing tests is always more important than adding features, which is always more important than improving health. This is deterministic and built into the tree structure.
+**Proactive work** is prioritised by the prioritise elf using LLM judgement. Health issues, spec gaps, untested code, stale docs, open plans — all appear as candidates. The prioritiser weighs impact, confidence, risk, and balance. A critical doc inconsistency can outrank a trivial feature gap.
 
-**Agent judgement** (micro): within a condition like "specified-only invariants?", the agent uses its intelligence to pick which invariant to tackle — the most impactful, the most foundational, the one that unblocks other work. This is where the LLM thinks.
+No hardcoded priority between health/features/tests/docs. The prioritiser decides each cycle.
 
-A separate prioritisation phase is not needed. The tree handles macro priority. The agent handles micro priority within each action.
+## Review as Handoff
 
-## Assessment and Exploration
+After executing work, the elf can write a new `work-item.md` that says "review my last commit." The next invocation sees `work-item.md exists` and the elf gets a review prompt. This is how adversarial review happens for proactive work — not as a tree condition, but as a handoff from the executor.
 
-In games, checking "enemy nearby?" is cheap. In shoe-makers, checking "specified-only invariants?" requires comparing wiki against code. This is expensive.
-
-The solution: **cached assessment**. The conditions read a cached snapshot of the world. The snapshot is refreshed by the "explore" action at the bottom of the tree — or when the cache is stale.
-
-```
-.shoe-makers/state/assessment.json
-```
-
-This is the only blackboard file needed. It's written by the explore/assess action and read by all the tree conditions. When it's stale and nothing else matches, the explore action refreshes it.
+For reactive work (fixing tests, handling inbox), the unreviewed-commits condition catches it on the next cycle.
 
 ## Branch as State
 
-The branch is the state — no database, no task tracker. The assessment cache is an ephemeral file on the branch, not a separate system. Delete the branch and you start clean.
-
-This eliminates the entire class of bugs that killed [[existing-projects#octopoid|Octopoid]] — tasks stuck between states, locks held by dead agents, inconsistent state between server and agents.
-
-## Comparison to Octopoid
-
-| Octopoid | Shoe-makers |
-|----------|------------|
-| State machine (fragile) | Behaviour tree (re-evaluates each tick) |
-| Task state tracked in D1 | Branch + cached assessment |
-| Complex flow transitions | Reactive: fix condition, fall through |
-| Pipeline gets stuck | Can't get stuck — re-evaluates from scratch |
-| Tasks stuck between states | No states to get stuck between |
+The branch is the state — no database, no task tracker. State files are ephemeral on the branch. Delete the branch and start clean.
 
 See also: [[pure-function-agents]], [[invariants]], [[verification]], [[skills]]

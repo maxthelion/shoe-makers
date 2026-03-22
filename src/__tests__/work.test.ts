@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm } from "fs/promises";
+import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { work } from "../skills/work";
@@ -30,6 +30,7 @@ const sampleAssessment: Assessment = {
   timestamp: now,
   invariants: null,
   healthScore: null,
+  worstFiles: [],
   openPlans: [],
   findings: [],
   testsPass: true,
@@ -93,6 +94,34 @@ describe("work skill", () => {
     expect(result.instructions).toContain("Build the work skill");
     expect(result.instructions).toContain(sampleItem.taskPrompt);
     expect(result.instructions).toContain("implement");
+  });
+
+  test("includes skill prompt when a matching skill exists", async () => {
+    // Create a skill file that maps to the "implement" priority type
+    await mkdir(join(tempDir, ".shoe-makers", "skills"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers", "skills", "implement.md"),
+      [
+        "---",
+        "name: implement",
+        "description: Implement a feature",
+        "maps-to: implement",
+        "risk: medium",
+        "---",
+        "## Instructions",
+        "",
+        "Build the feature following TDD.",
+      ].join("\n")
+    );
+
+    await writePriorities(tempDir, samplePriorities);
+    const result = await work(tempDir);
+
+    expect(result.skill).not.toBeNull();
+    expect(result.skill!.name).toBe("implement");
+    expect(result.instructions).toContain("**Skill**: implement (risk: medium)");
+    expect(result.instructions).toContain("Build the feature following TDD.");
+    expect(result.instructions).toContain("### Context");
   });
 
   test("can start work after a previous task was completed", async () => {

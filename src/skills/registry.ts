@@ -8,6 +8,8 @@ export interface SkillDefinition extends Skill {
   mapsTo: string;
   /** Full markdown body (instructions, verification, etc.) */
   body: string;
+  /** Off-limits items parsed from the ## Off-limits section */
+  offLimits: string[];
 }
 
 /**
@@ -57,7 +59,26 @@ export function parseSkillFile(content: string): SkillDefinition {
     risk,
     mapsTo,
     body: body.trim(),
+    offLimits: parseOffLimits(body),
   };
+}
+
+/**
+ * Parse the "## Off-limits" section from a skill body.
+ * Returns an array of off-limits items (bullet points).
+ */
+function parseOffLimits(body: string): string[] {
+  const match = body.match(/## Off-limits\s*\n([\s\S]*?)(?=\n## |\n---|\s*$)/i);
+  if (!match) return [];
+
+  const items: string[] = [];
+  for (const line of match[1].split("\n")) {
+    const bullet = line.match(/^- (.+)/);
+    if (bullet) {
+      items.push(bullet[1].trim());
+    }
+  }
+  return items;
 }
 
 /**
@@ -66,7 +87,10 @@ export function parseSkillFile(content: string): SkillDefinition {
  * Reads `.shoe-makers/skills/*.md` and parses each file.
  * Returns a map of skill name → SkillDefinition.
  */
-export async function loadSkills(repoRoot: string): Promise<Map<string, SkillDefinition>> {
+export async function loadSkills(
+  repoRoot: string,
+  enabledSkills?: string[] | null,
+): Promise<Map<string, SkillDefinition>> {
   const skillsDir = join(repoRoot, ".shoe-makers", "skills");
   const skills = new Map<string, SkillDefinition>();
 
@@ -82,6 +106,8 @@ export async function loadSkills(repoRoot: string): Promise<Map<string, SkillDef
   for (const file of mdFiles) {
     const content = await Bun.file(join(skillsDir, file)).text();
     const skill = parseSkillFile(content);
+    // Filter by enabledSkills if configured (null = all enabled)
+    if (enabledSkills && !enabledSkills.includes(skill.name)) continue;
     skills.set(skill.name, skill);
   }
 

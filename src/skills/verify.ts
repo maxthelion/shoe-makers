@@ -1,6 +1,8 @@
 import { execSync } from "child_process";
 import type { Verification } from "../types";
 import { readBlackboard, writeVerification, clearCurrentTask, clearPriorities } from "../state/blackboard";
+import { checkHealthRegression } from "../verify/health-regression";
+import { getHealthScore } from "./health-scan";
 
 /**
  * The verify skill: check completed work, then commit or flag for revert.
@@ -40,6 +42,14 @@ export async function verify(repoRoot: string): Promise<Verification> {
   const taskCompleted = blackboard.currentTask.status === "done";
   if (!taskCompleted) {
     issues.push(`Task status is "${blackboard.currentTask.status}", not "done".`);
+  }
+
+  // 3. Health regression check — compare before (assessment) vs after (current)
+  const healthBefore = blackboard.assessment?.healthScore ?? null;
+  const healthAfter = await getHealthScore(repoRoot);
+  const healthIssue = checkHealthRegression(healthBefore, healthAfter);
+  if (healthIssue) {
+    issues.push(healthIssue);
   }
 
   const reviewPassed = taskCompleted && issues.length === 0;

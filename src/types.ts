@@ -177,4 +177,6 @@ export interface Config {
   assessmentStaleAfter: number;
   /** Maximum ticks per shift (safety limit) */
   maxTicksPerShift: number;
+  /** Which skills are enabled (null = all enabled) */
+  enabledSkills: string[] | null;
 }

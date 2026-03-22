@@ -9,6 +9,7 @@ import type { TreeNode, WorldState } from "../types";
  *
  * Selector
  * ├── [tests failing?] → Fix them
+ * ├── [assessment stale?] → Explore (refresh the assessment cache)
  * ├── [unverified work on branch?] → Review the diff adversarially
  * ├── [inbox messages?] → Read and act on them
  * ├── [open plans?] → Implement the most important one
@@ -61,6 +62,15 @@ function healthBelowThreshold(state: WorldState): boolean {
   return score !== null && score !== undefined && score < 70;
 }
 
+function isAssessmentStale(state: WorldState): boolean {
+  const threshold = state.config?.assessmentStaleAfter;
+  if (threshold == null) return false; // no config → no staleness check
+  const assessment = state.blackboard.assessment;
+  if (!assessment) return true; // no assessment → stale
+  const age = (Date.now() - new Date(assessment.timestamp).getTime()) / 60_000;
+  return age > threshold;
+}
+
 function alwaysTrue(_state: WorldState): boolean {
   return true;
 }
@@ -91,6 +101,7 @@ export const defaultTree: TreeNode = {
     makeConditionAction("tests-failing", testsFailing, "fix-tests"),
     makeConditionAction("unresolved-critiques", hasUnresolvedCritiques, "fix-critique"),
     makeConditionAction("unreviewed-commits", hasUnreviewedCommits, "critique"),
+    makeConditionAction("assessment-stale", isAssessmentStale, "explore"),
     makeConditionAction("unverified-work", hasUnverifiedWork, "review"),
     makeConditionAction("inbox-messages", hasInboxMessages, "inbox"),
     makeConditionAction("open-plans", hasOpenPlans, "implement-plan"),

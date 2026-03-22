@@ -52,12 +52,12 @@ const ROLE_MAP: Record<ActionType, RolePermissions> = {
   "implement-plan": {
     role: "plan-implementer",
     canWrite: ["src/", "wiki/"],
-    cannotWrite: [...ALWAYS_FORBIDDEN],
+    cannotWrite: [...ALWAYS_FORBIDDEN, "src/__tests__/"],
   },
   "implement-spec": {
     role: "implementer",
     canWrite: ["src/"],
-    cannotWrite: [...ALWAYS_FORBIDDEN, "wiki/"],
+    cannotWrite: [...ALWAYS_FORBIDDEN, "wiki/", "src/__tests__/"],
   },
   "write-tests": {
     role: "test-writer",
@@ -72,7 +72,7 @@ const ROLE_MAP: Record<ActionType, RolePermissions> = {
   "improve-health": {
     role: "refactorer",
     canWrite: ["src/"],
-    cannotWrite: [...ALWAYS_FORBIDDEN, "wiki/"],
+    cannotWrite: [...ALWAYS_FORBIDDEN, "wiki/", "src/__tests__/"],
   },
   explore: {
     role: "assessor",

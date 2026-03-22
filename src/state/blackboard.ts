@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { readFile, writeFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 import type {
   Blackboard,
@@ -68,8 +68,50 @@ export async function writeAssessment(repoRoot: string, data: Assessment): Promi
 }
 
 /**
+ * Write priorities to the blackboard.
+ */
+export async function writePriorities(repoRoot: string, data: PriorityList): Promise<void> {
+  await writeJsonFile(repoRoot, FILES.priorities, data);
+}
+
+/**
  * Write current task (used by the task lifecycle CLI).
  */
 export async function writeCurrentTask(repoRoot: string, data: CurrentTask): Promise<void> {
   await writeJsonFile(repoRoot, FILES.currentTask, data);
+}
+
+/**
+ * Write verification result to the blackboard.
+ */
+export async function writeVerification(repoRoot: string, data: Verification): Promise<void> {
+  await writeJsonFile(repoRoot, FILES.verification, data);
+}
+
+/**
+ * Delete a state file, ignoring if it doesn't exist.
+ */
+async function clearFile(repoRoot: string, filename: string): Promise<void> {
+  try {
+    await unlink(join(repoRoot, STATE_DIR, filename));
+  } catch (err: unknown) {
+    if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      return;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Clear the current task from the blackboard.
+ */
+export async function clearCurrentTask(repoRoot: string): Promise<void> {
+  await clearFile(repoRoot, FILES.currentTask);
+}
+
+/**
+ * Clear priorities from the blackboard.
+ */
+export async function clearPriorities(repoRoot: string): Promise<void> {
+  await clearFile(repoRoot, FILES.priorities);
 }

@@ -68,49 +68,39 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 
 ## 2. How it decides what to do
 
-### 2.1 The reactive tree
-- The behaviour tree is evaluated every tick — re-evaluates from scratch, cannot get stuck
-- It's reactive, not planned: look at the world, do the most important thing, repeat
-- The first matching condition determines the action — priority is the tree order
-- When the condition is resolved (tests pass, plan implemented), the tree falls through to the next match
-- The system almost never sleeps — an "explore" action at the bottom surfaces new work
-- If an agent crashes, the next tick sees the same world and retries
+### 2.1 One invocation, one action, one exit
+- Each scheduled invocation does ONE thing and exits — the elf never loops internally
+- The behaviour tree evaluates from scratch each invocation — cannot get stuck
+- The scheduled task interval provides the loop, not the elf
+- If an agent crashes, the next invocation sees the same world and retries
 
-### 2.2 The tree conditions (in priority order)
-- Tests failing? → Fix them (always highest priority)
-- Unverified work on branch? → Review the diff adversarially
-- Inbox messages? → Read and act on them
-- Open plans? → Implement the most important one
-- Specified-only invariants? → Implement the most impactful one
-- Untested code? → Write tests for the riskiest one
-- Undocumented code? → Update the wiki
-- Code health below threshold? → Fix the worst file
-- Nothing? → Explore deeper to surface new work
+### 2.2 Reactive conditions (top of tree, fixed priority)
+- Tests failing? → Fix them (always highest priority, direct prompt)
+- Unresolved critiques? → Fix the flagged issues (direct prompt)
+- Unreviewed commits? → Review adversarially (direct prompt)
+- Inbox messages? → Read and act on them (direct prompt)
+- These fire immediately with a focused prompt — no orchestration needed
 
-### 2.3 Narrow-scoped actions
-- Each tick, the tree produces a focused prompt scoped to one action
-- A verify action gives reviewer instructions — the elf only reviews a diff
-- A work action gives implementation instructions with the relevant skill prompt
-- The elf doesn't need to understand the whole system — just read the prompt and do the work
+### 2.3 Three-phase orchestration (bottom of tree)
+- If no reactive condition matches, proactive work goes through three phases across three invocations
+- **Explore**: read everything (wiki, code, invariants, health, findings), write `candidates.md` with a ranked list of possible work items
+- **Prioritise**: read candidates + relevant code and wiki for the top items, pick one, write a detailed `work-item.md` with full context (relevant wiki text, relevant code, exactly what to build, which patterns to follow)
+- **Execute**: read `work-item.md`, do the work, commit, optionally write a follow-up `work-item.md` for the next elf (e.g. "review what I just built")
+- Each phase narrows the context for the next — explore is broad, prioritise is medium, execute is narrow
 
-### 2.4 Assessment and exploration
-- Tree conditions read a cached assessment (.shoe-makers/state/assessment.json)
-- Assessment contains: invariant gaps, test results, health scores, open plans, findings, git activity
-- The "explore" action refreshes the cache when stale or when nothing else matches
-- Assessment must be granular: a wiki page with 10 behaviours → 10 invariants, not 1
-- Findings from previous elves are part of the assessment — context survives across sessions
-
-### 2.5 Priority
-- Macro priority (tree order) is deterministic — built into the tree structure
-- Micro priority (which specific item) uses the elf's judgement — the LLM thinks, no API needed
-- No separate prioritisation phase — tree handles routing, elf handles selection within each action
+### 2.4 The prioritiser writes the real prompt
+- The prioritise step IS the orchestrator — its entire job is to write a really good, specific prompt
+- Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern"
+- It reads the relevant code to understand conventions, reads the wiki to understand intent, and writes instructions the executor can follow without searching
+- This is the LLM judgement step — it weighs impact, confidence, risk, and balance across work types
+- No hardcoded priority between features/tests/docs/health — the prioritiser decides each cycle
 
 ### 2.5 The wiki drives work
 - The wiki is the source of truth — agents read it to understand project intent
+- Invariants compare wiki claims against code and surface gaps
 - Plans generate work candidates until implemented or marked done/blocked
-- Invariants surface three types of gap: specified-only, implemented-untested, unspecified
-- Agents also discover improvements from code analysis that isn't in the wiki at all
 - When agents build something, they update the spec — closing the loop
+- Changes to the wiki surface as new invariant gaps — elves discover changed intent automatically
 
 ---
 

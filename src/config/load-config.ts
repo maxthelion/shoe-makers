@@ -10,6 +10,7 @@ const DEFAULTS: Config = {
   wikiDir: "wiki",
   assessmentStaleAfter: 30,
   maxTicksPerShift: 10,
+  enabledSkills: null,
 };
 
 /**
@@ -63,5 +64,8 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
     wikiDir: raw["wiki-dir"] ?? DEFAULTS.wikiDir,
     assessmentStaleAfter: intOrDefault("assessment-stale-after", DEFAULTS.assessmentStaleAfter),
     maxTicksPerShift: intOrDefault("max-ticks-per-shift", DEFAULTS.maxTicksPerShift),
+    enabledSkills: raw["enabled-skills"]
+      ? raw["enabled-skills"].split(",").map((s) => s.trim()).filter(Boolean)
+      : null,
   };
 }

@@ -139,6 +139,8 @@ describe("shift runner", () => {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
       inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
       blackboard: emptyBlackboard(),
     };
 
@@ -213,6 +215,8 @@ describe("shift runner", () => {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
       inboxCount: 2,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
       blackboard: {
         ...emptyBlackboard(),
         assessment: freshAssessment,
@@ -227,6 +231,52 @@ describe("shift runner", () => {
 
     expect(result.outcome).toBe("action");
     expect(result.steps[0].tick.action).toBe("inbox");
+  });
+
+  test("handles fix-critique action", async () => {
+    const state: WorldState = {
+      branch: "shoemakers/2026-03-21",
+      hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 2,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: freshAssessment,
+      },
+    };
+
+    const result = await shift(tempDir, {
+      readState: mockStateSequence([state]),
+      runSkill: async (_root, action) => `${action} done`,
+      writeLog: noopLog,
+    });
+
+    expect(result.outcome).toBe("action");
+    expect(result.steps[0].tick.action).toBe("fix-critique");
+  });
+
+  test("handles critique action for unreviewed commits", async () => {
+    const state: WorldState = {
+      branch: "shoemakers/2026-03-21",
+      hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: true,
+      unresolvedCritiqueCount: 0,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: freshAssessment,
+      },
+    };
+
+    const result = await shift(tempDir, {
+      readState: mockStateSequence([state]),
+      runSkill: async (_root, action) => `${action} done`,
+      writeLog: noopLog,
+    });
+
+    expect(result.outcome).toBe("action");
+    expect(result.steps[0].tick.action).toBe("critique");
   });
 
   test("writes to log by default when using real shift log", async () => {
