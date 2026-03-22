@@ -12,6 +12,7 @@ import type { WorldState, Blackboard, ActionType, Config } from "./types";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
 import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
+import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
 
 /**
  * Setup script: runs before the elf starts.
@@ -56,7 +57,18 @@ async function main() {
   // 5. Load skills (filtered by enabledSkills config) and evaluate the tree
   const loadedSkills = await loadSkills(repoRoot, config.enabledSkills);
   const { skill } = evaluate(defaultTree, state);
-  const action = formatAction(skill, state, inboxMessages, loadedSkills);
+
+  // 6. If explore, maybe fetch a Wikipedia lens for creative prompting
+  let wikipediaLens: { title: string; summary: string } | null = null;
+  if (skill === "explore" && shouldIncludeLens(config.insightFrequency ?? 0.3)) {
+    console.log("[setup] Fetching random Wikipedia article for creative lens...");
+    wikipediaLens = await fetchRandomArticle();
+    if (wikipediaLens) {
+      console.log(`[setup] Lens: ${wikipediaLens.title}`);
+    }
+  }
+
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, wikipediaLens);
 
   const stateDir = join(repoRoot, ".shoe-makers", "state");
   await mkdir(stateDir, { recursive: true });
@@ -168,6 +180,7 @@ function formatAction(
   state: WorldState,
   inboxMessages: { file: string; content: string }[],
   loadedSkills?: Map<string, SkillDefinition>,
+  wikipediaLens?: { title: string; summary: string } | null,
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -187,7 +200,7 @@ Run \`bun run setup\` again to get your next action.
 
   if (skill) {
     const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills);
+    const prompt = generatePrompt(actionType, state, loadedSkills, wikipediaLens);
     return `${prompt}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}

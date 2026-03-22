@@ -24,6 +24,7 @@ describe("loadConfig", () => {
       assessmentStaleAfter: 30,
       maxTicksPerShift: 10,
       enabledSkills: null,
+      insightFrequency: 0.3,
     });
   });
 
@@ -48,6 +49,7 @@ describe("loadConfig", () => {
       assessmentStaleAfter: 60,
       maxTicksPerShift: 10,
       enabledSkills: null,
+      insightFrequency: 0.3,
     });
   });
 

@@ -11,6 +11,7 @@ const DEFAULTS: Config = {
   assessmentStaleAfter: 30,
   maxTicksPerShift: 10,
   enabledSkills: null,
+  insightFrequency: 0.3,
 };
 
 /**
@@ -67,5 +68,8 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
     enabledSkills: raw["enabled-skills"]
       ? raw["enabled-skills"].split(",").map((s) => s.trim()).filter(Boolean)
       : null,
+    insightFrequency: raw["insight-frequency"]
+      ? parseFloat(raw["insight-frequency"])
+      : DEFAULTS.insightFrequency,
   };
 }

@@ -179,4 +179,6 @@ export interface Config {
   maxTicksPerShift: number;
   /** Which skills are enabled (null = all enabled) */
   enabledSkills: string[] | null;
+  /** Frequency of creative lens in explore cycles (0-1, default 0.3) */
+  insightFrequency: number;
 }

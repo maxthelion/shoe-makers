@@ -1,5 +1,6 @@
 import type { ActionType, WorldState } from "./types";
 import type { SkillDefinition } from "./skills/registry";
+import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
 
 /** Off-limits notice appended to all non-critique prompts */
 const OFF_LIMITS = `
@@ -54,6 +55,7 @@ export function generatePrompt(
   action: ActionType,
   state: WorldState,
   skills?: Map<string, SkillDefinition>,
+  wikipediaLens?: { title: string; summary: string } | null,
 ): string {
   const assessment = state.blackboard.assessment;
   const skill = findSkillForAction(action, skills);
@@ -199,7 +201,26 @@ Code health score is ${assessment?.healthScore ?? "unknown"}/100 (below threshol
 Pick the worst file and improve it: reduce complexity, extract helpers, remove duplication. Run \`bun test\`. Commit.${skillSection}${OFF_LIMITS}`;
     }
 
-    case "explore":
+    case "explore": {
+      let lensSection = "";
+      if (wikipediaLens) {
+        lensSection = `
+
+## Creative Lens — Random Analogy
+
+A random Wikipedia article for analogical thinking:
+
+**${wikipediaLens.title}**
+
+> ${wikipediaLens.summary}
+
+Does anything about this concept remind you of a pattern, approach, or problem in this codebase? Could any aspect of it inspire a better solution to something we're building? Think laterally — the connection might be abstract.
+
+If you see a connection, write an insight to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\` with: the article that prompted it, the connection to the codebase, a concrete proposal, and why it would be better. If no connection, move on — not every lens produces something.
+
+`;
+      }
+
       return `# Explore — Find Work
 
 Nothing obvious needs doing. Look deeper:
@@ -208,9 +229,11 @@ Nothing obvious needs doing. Look deeper:
 2. Read \`.shoe-makers/invariants.md\` — are there gaps the checker missed?
 3. Read the shift log — did previous elves flag anything?
 4. Read findings in \`.shoe-makers/findings/\`
-5. Check test coverage — untested paths?
-6. Check code quality — files too complex or duplicated?
-
+5. Read insights in \`.shoe-makers/insights/\` — any worth promoting?
+6. Check test coverage — untested paths?
+7. Check code quality — files too complex or duplicated?
+${lensSection}
 If you find something, do it. Write tests. Commit.${OFF_LIMITS}`;
+    }
   }
 }
