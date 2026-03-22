@@ -63,6 +63,8 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - Agents create new spec pages when they discover undocumented behaviour
 - Agents update stale spec pages when code has diverged from docs
 - Invariants continuously compare spec against code and surface gaps as work
+- When wiki and code diverge, the NEWER change wins — if the wiki changed more recently, change the code to match, never revert the wiki
+- `.shoe-makers/invariants.md` is always authoritative regardless of what the code does
 
 ---
 
