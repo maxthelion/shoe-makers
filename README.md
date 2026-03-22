@@ -1,25 +1,51 @@
 # Shoe-Makers
 
-Autonomous AI agents that improve codebases overnight, like the elves in the fairy tale.
+Autonomous AI agents that proactively improve codebases overnight, like the elves in the Brothers Grimm fairy tale.
 
-## What it does
+Set it up on a project, point a scheduled task at it, and wake up to a branch with genuine improvements — features implemented, tests added, docs synced, code health improved, all reviewed adversarially.
 
-Shoe-makers is a behaviour tree system that runs on a regular tick (every 5 minutes). Each tick, it reads the world state (branch status, test results, invariant counts) and routes to the appropriate pure-function agent. Agents write files to a dedicated branch and exit — all side effects (commit, push, merge) are handled by the scheduler.
+## How it works
 
-## Current status
+Shoe-makers uses a **behaviour tree** inspired by game AI. Each scheduled invocation does one thing and exits. The tree evaluates against the world state and picks the most important action.
 
-The core tick loop is working:
+```
+Selector
+├── [tests failing?]        → Fix tests
+├── [unresolved critiques?]  → Fix issues flagged by reviewer
+├── [unreviewed commits?]    → Adversarial review of previous elf's work
+├── [inbox messages?]        → Handle human instructions
+├── [work-item.md exists?]   → Execute the detailed work item
+├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
+├── [neither?]               → Explore: assess the codebase, write candidates.md
+```
 
-- **Behaviour tree evaluator** — deterministic routing based on world state
-- **World state reader** — reads git branch, blackboard state, config
-- **All four tick types**: assess, prioritise, work, verify
-- **Blackboard I/O** — reads/writes JSON state files in `.shoe-makers/state/`
-- **Bootstrap invariants** — structural comparison of wiki spec vs code
-- **Skill registry** — loads markdown skill prompts from `.shoe-makers/skills/`
-- **Shift logging** — appends to `.shoe-makers/log/YYYY-MM-DD.md`
-- **Config loader** — reads `.shoe-makers/config.yaml` with sensible defaults
+**Reactive conditions** (top) handle urgent work with direct prompts. **Three-phase orchestration** (bottom) handles proactive work across separate invocations:
 
-The system can run a full cycle: assess → prioritise → (work → verify) → sleep.
+1. **Explore** — broad context. Read the wiki, code, invariants, health scores, findings. Write a ranked list of candidates. Occasionally prompted with a random Wikipedia article as an analogical lens for creative thinking.
+2. **Prioritise** — medium context. Read the candidates, read the relevant code and wiki. Pick one and write a detailed work item with full context — not "implement something" but specific instructions with relevant code and patterns.
+3. **Execute** — narrow context. Read the work item. Do exactly what it says. Commit. Optionally hand off a follow-up (e.g. "review what I just built").
+
+Each phase narrows the context for the next. The prioritiser's job is to write a really good prompt for the executor.
+
+## The wiki is the spec
+
+The wiki (`wiki/pages/`) is the source of truth. Code is derived from the spec, not the other way around. When wiki and code diverge, check which changed more recently — if the wiki is newer, change the code. Never revert the wiki to match existing code.
+
+**Invariants** (`.shoe-makers/invariants.md`) are human-written falsifiable claims about the system. The invariants checker compares them against the code and surfaces gaps — specified-only (wiki says it, code doesn't do it), implemented-untested (code exists, no tests), unspecified (code does it, wiki doesn't mention it). These gaps drive the behaviour tree's proactive work.
+
+## Quality assurance
+
+- **Cross-elf gatekeeping**: a different elf reviews each elf's commits adversarially. The reviewer knows what rules the previous elf was given and checks compliance.
+- **Critiques become findings**: blocking issues must be fixed before new work starts.
+- **Tests must pass**: every change, no exceptions.
+- **Code health**: octoclean monitors complexity, coverage, and duplication. Health must not regress.
+- **Role-based permissions**: each action type has a role determining what files the elf can write. Reviewers can only write findings. Invariants are human-only.
+
+## Branches and shifts
+
+All work happens on a daily branch (e.g. `shoemakers/2026-03-22`). Nothing reaches main without human approval. In the morning, review the branch and merge, cherry-pick, or discard.
+
+The shift log (`.shoe-makers/log/`) tells the story of the night's work. Findings (`.shoe-makers/findings/`) persist across shifts for continuity.
 
 ## Getting started
 
@@ -27,92 +53,87 @@ The system can run a full cycle: assess → prioritise → (work → verify) →
 
 - [Bun](https://bun.sh/) v1.0+
 
-### Run one tick
+### Install in a project
 
 ```bash
-bun run tick
+bun run init
 ```
 
-This evaluates the behaviour tree, invokes the appropriate skill, and logs the result.
+Scaffolds `.shoe-makers/` with protocol, config, skills, and directory structure. Optionally bootstraps a wiki from existing docs.
 
-### Run a full shift
+### Set up a scheduled task
+
+**Setup script** (runs before each invocation):
+```bash
+#!/bin/bash
+bun install
+bun run setup
+```
+
+**Prompt**:
+```
+You are a shoe-maker elf. Read .shoe-makers/state/next-action.md and do what it says.
+When done, run `bun run setup` to get your next action. Repeat until time runs out.
+Log your work to .shoe-makers/log/.
+```
+
+### Run locally
 
 ```bash
-bun run shift
+bun run setup          # Evaluate the tree, write next-action.md
+bun run tick           # Run one tick of the behaviour tree
+bun test               # Run tests
+bun run wiki           # Start octowiki on port 4570
 ```
 
-Runs multiple ticks in sequence. Housekeeping ticks (assess, prioritise, verify) execute automatically. When the tree routes to "work", the shift pauses and prints instructions for the caller. When there's nothing to do, it stops with "sleep".
+### Communicate with the elves
 
-### Manage the current task
+- **Inbox**: drop a `.md` file in `.shoe-makers/inbox/` — the next elf reads it with priority
+- **Plans**: add a wiki page with `category: plan` — elves work toward implementing it
+- **Invariants**: edit `.shoe-makers/invariants.md` — new claims surface as gaps automatically
 
-```bash
-bun run task:status   # Show current task details and instructions
-bun run task:done     # Mark current task as completed
-bun run task:fail     # Mark current task as failed
+### Configuration
+
+`.shoe-makers/config.yaml`:
+
+```yaml
+branch-prefix: shoemakers
+tick-interval: 5
+wiki-dir: wiki
+assessment-stale-after: 30
+insight-frequency: 0.3
 ```
 
-After marking a task done or failed, run `bun run shift` again to trigger verification.
-
-### Run tests
-
-```bash
-bun test
+`.shoe-makers/schedule.md` (optional):
+```
+start: 22
+end: 6
 ```
 
-### Project structure
+## Project structure
 
 ```
-src/
-  types.ts              — Core types (WorldState, TreeNode, Skill, etc.)
-  index.ts              — Entry point (reads state, ticks, invokes skill, logs)
-  tree/
-    evaluate.ts         — Behaviour tree evaluator
-    default-tree.ts     — Default tree definition
-  scheduler/
-    tick.ts             — Pure tick function (tree evaluation)
-    run-skill.ts        — Skill dispatcher
-  skills/
-    assess.ts           — Gather world information
-    prioritise.ts       — Generate and rank work items
-    work.ts             — Pick top priority, set up task
-    verify.ts           — Check work, decide commit/revert
-    registry.ts         — Load skill markdown files
-  state/
-    blackboard.ts       — Read/write blackboard JSON files
-    world.ts            — Assemble WorldState
-  config/
-    load-config.ts      — Load .shoe-makers/config.yaml
-  verify/
-    invariants.ts       — Bootstrap invariants checker
-  log/
-    shift-log.ts        — Append to shift log
-  task.ts               — Task lifecycle CLI (status/done/fail)
-  __tests__/            — Tests (93 tests)
-
 .shoe-makers/
-  protocol.md           — Bootstrap instructions for scheduled tasks
-  skills/               — Skill prompts (markdown)
-  state/                — Blackboard JSON files (ephemeral)
-  log/                  — Shift logs (append-only)
-  findings/             — Persistent observations for future elves
+  protocol.md           # Instructions for the elf
+  config.yaml           # Settings with sensible defaults
+  invariants.md         # Human-written spec claims (authoritative)
+  schedule.md           # Working hours (optional)
+  skills/               # Markdown skill prompts
+  state/                # Ephemeral state (assessment, candidates, work items)
+  log/                  # Shift logs
+  findings/             # Persistent observations
+  insights/             # Creative proposals from analogical prompting
+  inbox/                # Messages from humans
+  known-issues.md       # Troubleshooting
 
-wiki/
-  pages/                — The specification (markdown + frontmatter)
+src/                    # The behaviour tree system
+wiki/pages/             # The specification
 ```
 
-## The spec
+## Background
 
-The wiki (`wiki/pages/`) is the source of truth. Code is derived from the spec.
+Blog posts:
+- [The Elves and the Shoemaker](https://blog.maxthelion.me/blog/shoe-maker-elves/) — the vision
+- [Defining the Source of Truth](https://blog.maxthelion.me/blog/defining-the-source-of-truth/) — why the wiki is primary
 
-## How the behaviour tree works
-
-```
-Root (selector — pick first applicable)
-├── Is assessment stale? → Assess
-├── Is assessment newer than priorities? → Prioritise
-├── Is there completed work to verify? → Verify
-├── Is there a top priority to work on? → Work
-└── Sleep
-```
-
-Each tick re-evaluates from the root. The tree cannot get stuck because it re-evaluates from scratch every time.
+Built on: [OctoWiki](https://github.com/maxthelion/octowiki) (wiki), [Octoclean](https://github.com/maxthelion/octoclean) (code health). Lessons learned from [Octopoid](https://github.com/maxthelion/octopoid) (don't build state machines).
