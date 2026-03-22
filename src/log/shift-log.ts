@@ -49,6 +49,16 @@ export async function appendToShiftLog(
     }
   }
 
+  // Deduplicate consecutive identical entries
+  const lastEntryMatch = existing.match(/\n## [^\n]+ — Tick\n\n([\s\S]*?)(?=\n## |\n*$)/g);
+  if (lastEntryMatch) {
+    const lastEntry = lastEntryMatch[lastEntryMatch.length - 1];
+    const lastContent = lastEntry.replace(/\n## [^\n]+ — Tick\n\n/, "").trim();
+    if (lastContent === entry.trim()) {
+      return; // Skip duplicate consecutive entry
+    }
+  }
+
   const logEntry = `\n## ${timeStamp()} — Tick\n\n${entry}\n`;
   await writeFile(filepath, existing + logEntry, "utf-8");
 }

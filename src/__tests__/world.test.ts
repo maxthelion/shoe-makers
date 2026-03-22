@@ -68,16 +68,24 @@ describe("checkUnreviewedCommits", () => {
   });
 
   test("returns true when commits exist after marker", async () => {
-    // Use the merge-base as the marker — there are definitely commits after it
-    const mergeBase = execSync("git merge-base HEAD origin/main", {
+    // Use a parent commit as the marker — there are definitely commits after it
+    const parent = execSync("git rev-parse HEAD~1", {
       cwd: repoRoot,
       encoding: "utf-8",
     }).trim();
     await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
-    await writeFile(markerPath, mergeBase);
+    await writeFile(markerPath, parent);
 
     const result = await checkUnreviewedCommits(repoRoot);
     expect(result).toBe(true);
+  });
+
+  test("returns true when marker contains invalid content", async () => {
+    await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(markerPath, "; rm -rf /");
+
+    const result = await checkUnreviewedCommits(repoRoot);
+    expect(result).toBe(true); // treats invalid marker as "all unreviewed"
   });
 
   test("returns false for non-git directory", async () => {

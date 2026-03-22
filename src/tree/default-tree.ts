@@ -1,27 +1,24 @@
 import type { TreeNode, WorldState } from "../types";
 
 /**
- * The game-style behaviour tree.
- *
- * A selector with conditions checked in priority order. First match wins.
- * The agent works on that action until the condition is resolved, then the
- * tree falls through to the next applicable action.
+ * The behaviour tree — reactive conditions for urgent work,
+ * three-phase orchestration for proactive work.
  *
  * Selector
- * ├── [tests failing?] → Fix them
- * ├── [assessment stale?] → Explore (refresh the assessment cache)
- * ├── [unverified work on branch?] → Review the diff adversarially
- * ├── [inbox messages?] → Read and act on them
- * ├── [open plans?] → Implement the most important one
- * ├── [specified-only invariants?] → Implement the most impactful one
- * ├── [untested code?] → Write tests
- * ├── [undocumented code?] → Update the wiki
- * ├── [code health below threshold?] → Fix the worst file
- * ├── [nothing?] → Explore deeper (refresh assessment)
+ * ├── [tests failing?] → Fix tests (direct)
+ * ├── [unresolved critiques?] → Fix critiques (direct)
+ * ├── [unreviewed commits?] → Review adversarially (direct)
+ * ├── [uncommitted changes?] → Review before committing (direct)
+ * ├── [inbox messages?] → Handle inbox (direct)
+ * ├── [work-item.md exists?] → Execute the work item
+ * ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
+ * ├── [neither?] → Explore: write candidates.md
  */
 
 function testsFailing(state: WorldState): boolean {
-  return state.blackboard.assessment?.testsPass === false;
+  const assessment = state.blackboard.assessment;
+  if (!assessment) return false;
+  return assessment.testsPass === false || assessment.typecheckPass === false;
 }
 
 function hasUnresolvedCritiques(state: WorldState): boolean {
@@ -33,7 +30,6 @@ function hasUnreviewedCommits(state: WorldState): boolean {
 }
 
 function hasUnverifiedWork(state: WorldState): boolean {
-  // Uncommitted changes on the branch need reviewing before commit
   return state.hasUncommittedChanges;
 }
 
@@ -41,34 +37,16 @@ function hasInboxMessages(state: WorldState): boolean {
   return state.inboxCount > 0;
 }
 
-function hasOpenPlans(state: WorldState): boolean {
-  return (state.blackboard.assessment?.openPlans.length ?? 0) > 0;
+function hasDeadCodeWorkItem(state: WorldState): boolean {
+  return state.hasWorkItem && state.workItemSkillType === "dead-code";
 }
 
-function hasSpecGaps(state: WorldState): boolean {
-  return (state.blackboard.assessment?.invariants?.specifiedOnly ?? 0) > 0;
+function hasWorkItem(state: WorldState): boolean {
+  return state.hasWorkItem;
 }
 
-function hasUntestedCode(state: WorldState): boolean {
-  return (state.blackboard.assessment?.invariants?.implementedUntested ?? 0) > 0;
-}
-
-function hasUndocumentedCode(state: WorldState): boolean {
-  return (state.blackboard.assessment?.invariants?.unspecified ?? 0) > 0;
-}
-
-function healthBelowThreshold(state: WorldState): boolean {
-  const score = state.blackboard.assessment?.healthScore;
-  return score !== null && score !== undefined && score < 70;
-}
-
-function isAssessmentStale(state: WorldState): boolean {
-  const threshold = state.config?.assessmentStaleAfter;
-  if (threshold == null) return false; // no config → no staleness check
-  const assessment = state.blackboard.assessment;
-  if (!assessment) return true; // no assessment → stale
-  const age = (Date.now() - new Date(assessment.timestamp).getTime()) / 60_000;
-  return age > threshold;
+function hasCandidates(state: WorldState): boolean {
+  return state.hasCandidates;
 }
 
 function alwaysTrue(_state: WorldState): boolean {
@@ -98,17 +76,16 @@ export const defaultTree: TreeNode = {
   type: "selector",
   name: "root",
   children: [
+    // Reactive zone — urgent, handled with direct prompts
     makeConditionAction("tests-failing", testsFailing, "fix-tests"),
     makeConditionAction("unresolved-critiques", hasUnresolvedCritiques, "fix-critique"),
     makeConditionAction("unreviewed-commits", hasUnreviewedCommits, "critique"),
-    makeConditionAction("assessment-stale", isAssessmentStale, "explore"),
     makeConditionAction("unverified-work", hasUnverifiedWork, "review"),
     makeConditionAction("inbox-messages", hasInboxMessages, "inbox"),
-    makeConditionAction("open-plans", hasOpenPlans, "implement-plan"),
-    makeConditionAction("spec-gaps", hasSpecGaps, "implement-spec"),
-    makeConditionAction("untested-code", hasUntestedCode, "write-tests"),
-    makeConditionAction("undocumented-code", hasUndocumentedCode, "document"),
-    makeConditionAction("low-health", healthBelowThreshold, "improve-health"),
+    // Three-phase orchestration — proactive work
+    makeConditionAction("dead-code-work", hasDeadCodeWorkItem, "dead-code"),
+    makeConditionAction("work-item", hasWorkItem, "execute-work-item"),
+    makeConditionAction("candidates", hasCandidates, "prioritise"),
     makeConditionAction("explore", alwaysTrue, "explore"),
   ],
 };

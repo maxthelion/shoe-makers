@@ -38,6 +38,9 @@ function makeState(overrides: Partial<WorldState> = {}): WorldState {
     inboxCount: 0,
     hasUnreviewedCommits: false,
     unresolvedCritiqueCount: 0,
+    hasWorkItem: false,
+    hasCandidates: false,
+    workItemSkillType: null,
     blackboard: {
       ...emptyBlackboard(),
       assessment: freshAssessment,
@@ -106,8 +109,6 @@ describe("evaluate edge cases", () => {
 
 describe("selector and sequence evaluation", () => {
   test("selector tries children in order and returns first success", () => {
-    // The root is a selector — it tries each condition-action pair
-    // and returns the first one whose condition passes
     const result = evaluate(
       defaultTree,
       makeState({
@@ -117,7 +118,6 @@ describe("selector and sequence evaluation", () => {
         },
       })
     );
-    // fix-tests is the first child → should be selected
     expect(result.skill).toBe("fix-tests");
     expect(result.status).toBe("success");
   });
@@ -131,13 +131,11 @@ describe("selector and sequence evaluation", () => {
 
 describe("verification model: commit or revert", () => {
   test("review action handles uncommitted changes for commit or revert decision", () => {
-    // The elf reviews changes and decides to commit or revert
     const result = evaluate(
       defaultTree,
       makeState({ hasUncommittedChanges: true })
     );
     expect(result.skill).toBe("review");
-    // The elf's review leads to commit (if good) or revert (if bad)
   });
 });
 
@@ -166,19 +164,13 @@ describe("cross-elf gatekeeping", () => {
     expect(result.skill).toBe("fix-critique");
   });
 
-  test("critiques take priority over inbox and plans", () => {
+  test("critiques take priority over inbox and work-item", () => {
     const result = evaluate(
       defaultTree,
       makeState({
         unresolvedCritiqueCount: 1,
         inboxCount: 3,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...freshAssessment,
-            openPlans: ["some-plan"],
-          },
-        },
+        hasWorkItem: true,
       })
     );
     expect(result.skill).toBe("fix-critique");
@@ -248,132 +240,71 @@ describe("game-style behaviour tree", () => {
     expect(result.skill).toBe("inbox");
   });
 
-  test("returns implement-plan when there are open plans", () => {
+  test("returns execute-work-item when work-item.md exists", () => {
     const result = evaluate(
       defaultTree,
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...freshAssessment,
-            openPlans: ["agent-work-execution"],
-          },
-        },
-      })
+      makeState({ hasWorkItem: true })
     );
-    expect(result.skill).toBe("implement-plan");
+    expect(result.skill).toBe("execute-work-item");
   });
 
-  test("returns implement-spec when there are specified-only invariants", () => {
+  test("returns dead-code when work item has dead-code skill type", () => {
     const result = evaluate(
       defaultTree,
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...freshAssessment,
-            invariants: {
-              ...freshAssessment.invariants!,
-              specifiedOnly: 3,
-              topSpecGaps: [
-                { id: "foo", description: "missing feature", group: "core" },
-              ],
-            },
-          },
-        },
-      })
+      makeState({ hasWorkItem: true, workItemSkillType: "dead-code" })
     );
-    expect(result.skill).toBe("implement-spec");
+    expect(result.skill).toBe("dead-code");
   });
 
-  test("returns write-tests when there is untested code", () => {
+  test("returns execute-work-item when work item has non-dead-code skill type", () => {
     const result = evaluate(
       defaultTree,
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...freshAssessment,
-            invariants: {
-              ...freshAssessment.invariants!,
-              implementedUntested: 2,
-              topUntested: [
-                { id: "bar", description: "untested thing", group: "core" },
-              ],
-            },
-          },
-        },
-      })
+      makeState({ hasWorkItem: true, workItemSkillType: null })
     );
-    expect(result.skill).toBe("write-tests");
+    expect(result.skill).toBe("execute-work-item");
   });
 
-  test("returns document when there is undocumented code", () => {
+  test("returns prioritise when candidates.md exists", () => {
     const result = evaluate(
       defaultTree,
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...freshAssessment,
-            invariants: {
-              ...freshAssessment.invariants!,
-              unspecified: 1,
-              topUnspecified: [
-                { id: "baz", description: "mystery code", group: "state" },
-              ],
-            },
-          },
-        },
-      })
+      makeState({ hasCandidates: true })
     );
-    expect(result.skill).toBe("document");
+    expect(result.skill).toBe("prioritise");
   });
 
-  test("returns improve-health when health is low", () => {
+  test("work-item takes priority over candidates", () => {
     const result = evaluate(
       defaultTree,
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: { ...freshAssessment, healthScore: 40, worstFiles: [] },
-        },
-      })
+      makeState({ hasWorkItem: true, hasCandidates: true })
     );
-    expect(result.skill).toBe("improve-health");
+    expect(result.skill).toBe("execute-work-item");
+  });
+
+  test("inbox takes priority over work-item", () => {
+    const result = evaluate(
+      defaultTree,
+      makeState({ inboxCount: 1, hasWorkItem: true })
+    );
+    expect(result.skill).toBe("inbox");
   });
 
   test("returns explore when nothing else matches", () => {
-    // All conditions resolved — falls through to explore
     const result = evaluate(defaultTree, makeState());
     expect(result.skill).toBe("explore");
   });
 
-  test("priority order: tests > review > inbox > plans > spec > tests > docs > health > explore", () => {
+  test("priority order: tests > critiques > reviews > uncommitted > inbox > work-item > candidates > explore", () => {
     // Everything is wrong at once — should return fix-tests (highest priority)
     const result = evaluate(
       defaultTree,
       makeState({
         hasUncommittedChanges: true,
         inboxCount: 3,
+        hasWorkItem: true,
+        hasCandidates: true,
         blackboard: {
           ...emptyBlackboard(),
-          assessment: {
-            ...freshAssessment,
-            testsPass: false,
-            openPlans: ["some-plan"],
-            healthScore: 30,
-            worstFiles: [],
-            invariants: {
-              specifiedOnly: 5,
-              implementedUntested: 3,
-              implementedTested: 40,
-              unspecified: 2,
-              topSpecGaps: [],
-              topUntested: [],
-              topUnspecified: [],
-            },
-          },
+          assessment: { ...freshAssessment, testsPass: false },
         },
       })
     );
@@ -387,141 +318,6 @@ describe("game-style behaviour tree", () => {
         blackboard: emptyBlackboard(),
       })
     );
-    // Without assessment, no conditions match except explore (always true)
-    expect(result.skill).toBe("explore");
-  });
-});
-
-describe("assessment staleness", () => {
-  function makeStaleAssessment(minutesAgo: number): Assessment {
-    const staleTime = new Date(Date.now() - minutesAgo * 60 * 1000);
-    return {
-      ...freshAssessment,
-      timestamp: staleTime.toISOString(),
-    };
-  }
-
-  const defaultConfig: Config = {
-    branchPrefix: "shoemakers",
-    tickInterval: 5,
-    wikiDir: "wiki",
-    assessmentStaleAfter: 30,
-    maxTicksPerShift: 10,
-    enabledSkills: null,
-  };
-
-  test("stale assessment triggers explore even when other conditions match", () => {
-    // Assessment is 45 minutes old, threshold is 30
-    // There are open plans, but staleness takes priority
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        config: defaultConfig,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...makeStaleAssessment(45),
-            openPlans: ["some-plan"],
-          },
-        },
-      })
-    );
-    expect(result.skill).toBe("explore");
-  });
-
-  test("fresh assessment does not trigger staleness explore", () => {
-    // Assessment is 5 minutes old, threshold is 30
-    // Open plans should match instead
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        config: defaultConfig,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...makeStaleAssessment(5),
-            openPlans: ["some-plan"],
-          },
-        },
-      })
-    );
-    expect(result.skill).toBe("implement-plan");
-  });
-
-  test("fix-tests still takes priority over stale assessment", () => {
-    // Tests failing takes priority over everything, even stale assessment
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        config: defaultConfig,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...makeStaleAssessment(60),
-            testsPass: false,
-          },
-        },
-      })
-    );
-    expect(result.skill).toBe("fix-tests");
-  });
-
-  test("unresolved critiques take priority over stale assessment", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        config: defaultConfig,
-        unresolvedCritiqueCount: 1,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: makeStaleAssessment(60),
-        },
-      })
-    );
-    expect(result.skill).toBe("fix-critique");
-  });
-
-  test("stale assessment takes priority over inbox messages", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        config: defaultConfig,
-        inboxCount: 3,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: makeStaleAssessment(45),
-        },
-      })
-    );
-    expect(result.skill).toBe("explore");
-  });
-
-  test("without config, no staleness check (backward compatible)", () => {
-    // No config → no staleness threshold → falls through normally
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...makeStaleAssessment(120),
-            openPlans: ["some-plan"],
-          },
-        },
-      })
-    );
-    expect(result.skill).toBe("implement-plan");
-  });
-
-  test("null assessment timestamp treated as stale when config present", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        config: defaultConfig,
-        blackboard: emptyBlackboard(),
-      })
-    );
-    // No assessment at all → explore (same as current behavior, but now via staleness)
     expect(result.skill).toBe("explore");
   });
 });

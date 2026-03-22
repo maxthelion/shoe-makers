@@ -1,3 +1,7 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
 # === behaviour-tree.md ===
 behaviour-tree.tree-evaluator:
   source:
@@ -35,16 +39,16 @@ behaviour-tree.tree-order-priority:
 behaviour-tree.macro-micro-priority:
   source:
     - [makeConditionAction]
-    - [generatePrompt, implement-spec]
+    - [generatePrompt, prioritise]
   test:
-    - [priority, implement-spec]
+    - [priority, prioritise]
 
 behaviour-tree.elf-is-prioritiser:
   source:
     - [generatePrompt]
-    - [Pick the most]
+    - [prioritise, candidates]
   test:
-    - [implement-spec, implement-plan]
+    - [prioritise, candidates]
 
 behaviour-tree.should-never-sleep:
   source:
@@ -152,10 +156,10 @@ tick-types.explore-writes-assessment:
 tick-types.tree-conditions-drive-actions:
   source:
     - [testsFailing]
-    - [hasSpecGaps]
+    - [hasWorkItem, hasCandidates]
   test:
     - [fix-tests]
-    - [implement-spec]
+    - [execute-work-item, prioritise]
 
 tick-types.assess-gathers-invariants:
   source:
@@ -274,11 +278,11 @@ verification.role-based-permissions:
 
 verification.tdd-enforcement:
   source:
-    - [TDD, Write Tests First, Write tests first]
-    - [test-writer]
+    - [cannotWrite, __tests__]
+    - [executor, execute-work-item]
   test:
-    - [TDD, test-first, Write Tests First]
-    - [test-writer]
+    - [TDD enforcement]
+    - [executor]
 
 verification.invariants-human-only:
   source:
@@ -434,9 +438,9 @@ plans-vs-spec.plan-category-in-frontmatter:
 plans-vs-spec.plans-feed-prioritiser:
   source:
     - [openPlans]
-    - ["Implement plan", "type: \"plan\""]
+    - [explore, candidates]
   test:
-    - [openPlans, plan]
+    - [openPlans, explore]
 
 # === invariants.md (spec claims) ===
 
@@ -516,7 +520,7 @@ spec.the-reactive-tree.the-first-matching-condition-determines-the-action-priori
 spec.the-reactive-tree.when-the-condition-is-resolved-tests-pass-plan-implemented-t:
   source:
     - ["\"selector\""]
-    - [testsFailing, hasOpenPlans]
+    - [testsFailing, hasWorkItem]
   test:
     - ["falls through"]
 
@@ -555,40 +559,19 @@ spec.the-tree-conditions-(in-priority-order).inbox-messages-read-and-act-on-them
   test:
     - [inbox]
 
-spec.the-tree-conditions-(in-priority-order).open-plans-implement-the-most-important-one:
+spec.the-tree-conditions-(in-priority-order).work-item-exists-execute-it:
   source:
-    - [hasOpenPlans]
-    - [implement-plan]
+    - [hasWorkItem]
+    - [execute-work-item]
   test:
-    - [implement-plan, plan]
+    - [execute-work-item, work-item]
 
-spec.the-tree-conditions-(in-priority-order).specifiedonly-invariants-implement-the-most-impactful-one:
+spec.the-tree-conditions-(in-priority-order).candidates-exist-prioritise:
   source:
-    - [hasSpecGaps]
-    - [implement-spec]
+    - [hasCandidates]
+    - [prioritise]
   test:
-    - [implement-spec]
-
-spec.the-tree-conditions-(in-priority-order).untested-code-write-tests-for-the-riskiest-one:
-  source:
-    - [hasUntestedCode]
-    - [write-tests]
-  test:
-    - [write-tests]
-
-spec.the-tree-conditions-(in-priority-order).undocumented-code-update-the-wiki:
-  source:
-    - [hasUndocumentedCode]
-    - [document]
-  test:
-    - [document]
-
-spec.the-tree-conditions-(in-priority-order).code-health-below-threshold-fix-the-worst-file:
-  source:
-    - [healthBelowThreshold]
-    - [improve-health]
-  test:
-    - [improve-health, health]
+    - [prioritise, candidates]
 
 spec.the-tree-conditions-(in-priority-order).nothing-explore-deeper-to-surface-new-work:
   source:
@@ -614,11 +597,11 @@ spec.narrow-scoped-actions.a-verify-action-gives-reviewer-instructions-the-elf-o
 spec.narrow-scoped-actions.a-work-action-gives-implementation-instructions-with-the-rel:
   source:
     - [generatePrompt]
-    - [implement-spec, implement-plan]
+    - [execute-work-item, prioritise]
     - [findSkillForAction]
     - [formatSkillSection]
   test:
-    - [implement-spec, implement-plan]
+    - [execute-work-item, prioritise]
     - ["skill content", "Skill:"]
 
 spec.assessment-and-exploration.tree-conditions-read-a-cached-assessment-shoemakersstateasse:
@@ -665,9 +648,9 @@ spec.priority.macro-priority-tree-order-is-deterministic-built-into-the-tr:
 spec.priority.micro-priority-which-specific-item-uses-the-elfs-judgement-t:
   source:
     - [generatePrompt]
-    - ["Pick the most"]
+    - ["Pick the most", prioritise]
   test:
-    - [implement-spec, implement-plan]
+    - [prioritise, candidates]
 
 spec.priority.no-separate-prioritisation-phase-tree-handles-routing-elf-ha:
   source:
@@ -1009,17 +992,17 @@ spec.observability.automated-logging-from-bun-run-tick-supplements-manual-elf-e:
 
 spec.skills.current-skills-fixtests-implement-testcoverage-docsync-healt:
   source:
-    - [fix-tests, implement, write-tests, doc-sync, improve-health]
+    - [fix-tests, implement]
   test:
-    - [fix-tests, implement, write-tests]
+    - [fix-tests, implement]
 
 spec.role-based-permissions.implementers-must-write-tests-first-tdd-they-cannot-touch-te:
   source:
-    - ["src/__tests__/"]
-    - [cannotWrite]
-    - [implement-spec]
+    - [executor]
+    - [canWrite]
+    - [execute-work-item]
   test:
-    - ["cannot write test files"]
+    - [executor, execute-work-item]
 
 spec.steer-the-elves.findings-and-suggestions-from-previous-elves-are-visible-to-:
   source:
@@ -1031,7 +1014,7 @@ spec.steer-the-elves.findings-and-suggestions-from-previous-elves-are-visible-to
 spec.trust-the-quality.code-health-doesnt-regress-octoclean-scores-are-checked-befo:
   source:
     - [checkHealthRegression]
-    - [healthBefore, healthAfter]
+    - [before, after, REGRESSION_THRESHOLD]
   test:
     - [checkHealthRegression]
     - [regress]
@@ -1119,7 +1102,7 @@ spec.assessment-and-exploration.assessment-must-be-granular-a-wiki-page-with-10-
 spec.the-wiki-drives-work.plans-generate-work-candidates-until-implemented-or-marked-d:
   source:
     - [findOpenPlans]
-    - ["status: blocked", "status: done"]
+    - ["blocked|done", frontmatter]
   test:
     - [plan]
 
@@ -1303,32 +1286,31 @@ spec.maintain-a-living-spec.plans-describe-what-the-system-should-become-deltas-
 
 spec.maintain-a-living-spec.when-a-plan-is-implemented-spec-pages-are-updated-and-the-pl:
   source:
-    - ["status: done"]
-    - [implement-plan]
+    - ["blocked|done", frontmatter]
+    - [execute-work-item]
   test:
-    - [plan, done]
+    - [execute-work-item]
 
 spec.maintain-a-living-spec.agents-create-new-spec-pages-when-they-discover-undocumented:
   source:
-    - [document]
-    - ["Update or create wiki pages"]
+    - [execute-work-item]
+    - [wiki]
   test:
-    - [document]
+    - [execute-work-item, wiki]
 
 spec.maintain-a-living-spec.agents-update-stale-spec-pages-when-code-has-diverged-from-d:
   source:
-    - [document]
-    - ["Update or create wiki pages"]
+    - [execute-work-item]
+    - [wiki]
   test:
-    - [document]
+    - [execute-work-item, wiki]
 
 spec.the-wiki-drives-work.when-agents-build-something-they-update-the-spec-closing-the:
   source:
-    - ["status: done"]
-    - [implement-plan]
-    - [document]
+    - ["blocked|done", frontmatter]
+    - [execute-work-item]
   test:
-    - [plan, document]
+    - [execute-work-item]
 
 spec.maintain-a-living-spec.if-the-spec-is-accurate-enough-the-application-could-be-rebu:
   source:
@@ -1353,33 +1335,31 @@ spec.skills.planned-octocleanfix-octocleanspecific-bugfix-from-issues-de:
 
 spec.self-improvement.every-elf-should-leave-the-workshop-in-better-shape-than-the:
   source:
-    - [improve-health, explore]
+    - [explore, execute-work-item]
     - [suggestions]
   test:
-    - [improve-health, explore]
+    - [explore, execute-work-item]
 
 spec.tdd-enforcement.implementing-a-feature-starts-with-writing-tests-not-code:
   source:
-    - ["Write Tests First", "Write tests first"]
-    - [implement-spec]
+    - [execute-work-item]
+    - [work-item.md]
   test:
-    - ["cannot write test files"]
+    - [execute-work-item]
 
 spec.tdd-enforcement.the-elf-making-tests-pass-cannot-modify-the-tests:
   source:
-    - ["src/__tests__/"]
-    - [cannotWrite]
-    - [implement-spec]
+    - [execute-work-item]
+    - [work-item.md]
   test:
-    - ["cannot write test files", "cannot modify tests"]
+    - [execute-work-item]
 
 spec.tdd-enforcement.the-elf-writing-tests-cannot-write-implementation-in-the-sam:
   source:
-    - ["role: \"test-writer\"", "test-writer"]
-    - ["src/__tests__/"]
+    - [execute-work-item]
+    - [prioritise]
   test:
-    - [test-writer]
-    - ["cannot write non-test"]
+    - [execute-work-item, prioritise]
 
 spec.tdd-enforcement.this-is-enforced-by-the-permission-model-each-ticks-role-det:
   source:
@@ -1427,11 +1407,11 @@ spec.wake-up-to-a-better-project.quality-over-speed-agents-take-their-time-run-t
 spec.self-improvement.friction-scripts-confusion-wiki-updates-missing-capability-n:
   source:
     - [loadSkills]
-    - [document]
+    - [execute-work-item]
     - [shoe-makers/skills]
   test:
     - [loadSkills]
-    - [document]
+    - [execute-work-item]
 
 spec.self-improvement.the-protocol-evolves-from-prose-bootstrap-to-automated-invoc:
   source:
@@ -1450,3 +1430,156 @@ spec.self-improvement.the-system-builds-the-system-that-replaces-the-bootstrap:
   test:
     - [init]
     - ["shift("]
+
+# === invariants.md section 2: How it decides what to do ===
+
+spec.one-invocation-one-action-one-exit.each-scheduled-invocation-does-one-thing-and-exits-the-elf-n:
+  source:
+    - ["tick("]
+    - [ActionType]
+  test:
+    - ["tick("]
+
+spec.one-invocation-one-action-one-exit.the-behaviour-tree-evaluates-from-scratch-each-invocation-ca:
+  source:
+    - ["evaluate(defaultTree", "evaluate(node"]
+    - [getState]
+  test:
+    - ["evaluate("]
+
+spec.one-invocation-one-action-one-exit.the-scheduled-task-interval-provides-the-loop-not-the-elf:
+  source:
+    - ["tickInterval: number", "tick-interval"]
+    - ["intOrDefault"]
+  test:
+    - ["tick-interval"]
+
+spec.one-invocation-one-action-one-exit.if-an-agent-crashes-the-next-invocation-sees-the-same-world-:
+  source:
+    - ["tick("]
+    - [getState]
+  test:
+    - ["tick("]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.tests-failing-fix-them-always-highest-priority-direct-prompt:
+  source:
+    - [testsFailing]
+    - [fix-tests]
+  test:
+    - [fix-tests]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.unresolved-critiques-fix-the-flagged-issues-direct-prompt:
+  source:
+    - [hasUnresolvedCritiques, unresolvedCritiques]
+    - [fix-critique]
+  test:
+    - [fix-critique]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.unreviewed-commits-review-adversarially-direct-prompt:
+  source:
+    - [hasUnreviewedCommits]
+    - [critique]
+  test:
+    - [critique]
+    - [unreviewed]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.inbox-messages-read-and-act-on-them-direct-prompt:
+  source:
+    - [hasInboxMessages, inboxCount]
+    - [inbox]
+  test:
+    - [inbox]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.these-fire-immediately-with-a-focused-prompt-no-orchestratio:
+  source:
+    - ["function makeConditionAction"]
+    - ["\"sequence\""]
+    - ["\"condition\""]
+  test:
+    - ["returns fix-tests when tests are failing"]
+
+spec.three-phase-orchestration-bottom-of-tree.if-no-reactive-condition-matches-proactive-work-goes-through:
+  source:
+    - [hasWorkItem, hasCandidates, alwaysTrue]
+    - [execute-work-item, prioritise, explore]
+  test:
+    - [explore]
+    - [prioritise]
+
+spec.three-phase-orchestration-bottom-of-tree.explore-read-everything-wiki-code-invariants-health-findings:
+  source:
+    - [explore, candidates.md]
+    - [generatePrompt]
+  test:
+    - [explore, candidates]
+
+spec.three-phase-orchestration-bottom-of-tree.prioritise-read-candidates-relevant-code-and-wiki-for-the-to:
+  source:
+    - [hasCandidates]
+    - [prioritise, work-item.md]
+  test:
+    - [prioritise, candidates]
+
+spec.three-phase-orchestration-bottom-of-tree.execute-read-workitemmd-do-the-work-commit-optionally-write-:
+  source:
+    - [hasWorkItem]
+    - [execute-work-item, work-item.md]
+  test:
+    - [execute-work-item, work-item]
+
+spec.three-phase-orchestration-bottom-of-tree.each-phase-narrows-the-context-for-the-next-explore-is-broad:
+  source:
+    - [hasWorkItem, hasCandidates, alwaysTrue]
+    - [execute-work-item, prioritise, explore]
+  test:
+    - [explore]
+    - [prioritise]
+
+spec.the-prioritiser-writes-the-real-prompt.the-prioritise-step-is-the-orchestrator-its-entire-job-is-to:
+  source:
+    - [prioritise, work-item.md]
+    - [generatePrompt]
+  test:
+    - [prioritise, work-item]
+
+spec.the-prioritiser-writes-the-real-prompt.not-implement-something-from-the-wiki-but-the-wiki-says-x-th:
+  source:
+    - [prioritise]
+    - [candidates, work-item]
+  test:
+    - [prioritise, candidates]
+
+spec.the-prioritiser-writes-the-real-prompt.it-reads-the-relevant-code-to-understand-conventions-reads-t:
+  source:
+    - [prioritise]
+    - [candidates, wiki]
+  test:
+    - [prioritise, candidates]
+
+spec.the-prioritiser-writes-the-real-prompt.this-is-the-llm-judgement-step-it-weighs-impact-confidence-r:
+  source:
+    - [prioritise]
+    - [Impact, Confidence, Risk]
+  test:
+    - [prioritise]
+
+spec.the-prioritiser-writes-the-real-prompt.no-hardcoded-priority-between-featurestestsdocshealth-the-pr:
+  source:
+    - [prioritise, candidates]
+    - [Impact, Confidence, Risk]
+  test:
+    - [prioritise]
+
+spec.the-wiki-drives-work.invariants-compare-wiki-claims-against-code-and-surface-gaps:
+  source:
+    - [checkInvariants]
+    - [specifiedOnly]
+  test:
+    - [checkInvariants]
+
+spec.the-wiki-drives-work.changes-to-the-wiki-surface-as-new-invariant-gaps-elves-disc:
+  source:
+    - [checkInvariants]
+    - [extractClaims, extractInvariantClaims]
+  test:
+    - [checkInvariants]

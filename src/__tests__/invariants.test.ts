@@ -1,10 +1,13 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
+import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { checkInvariants, extractClaims, parseClaimEvidenceYaml, type EvidenceRule } from "../verify/invariants";
+import { checkInvariants } from "../verify/invariants";
+import { extractClaims } from "../verify/extract-claims";
+import { parseClaimEvidenceYaml, type EvidenceRule } from "../verify/parse-evidence";
 import { readFile as readFileAsync } from "fs/promises";
 import type { AgentResult } from "../types";
+import { writeWikiPage as _writeWikiPage, writeSourceFile as _writeSourceFile, writeTestFile as _writeTestFile, writeClaimEvidence as _writeClaimEvidence } from "./test-utils";
 
 let tempDir: string;
 
@@ -16,32 +19,18 @@ afterEach(async () => {
   await rm(tempDir, { recursive: true, force: true });
 });
 
-async function writeWikiPage(
-  name: string,
-  title: string,
-  category: string,
-  body: string = ""
-): Promise<void> {
-  const dir = join(tempDir, "wiki", "pages");
-  await mkdir(dir, { recursive: true });
-  await writeFile(
-    join(dir, `${name}.md`),
-    `---\ntitle: ${title}\ncategory: ${category}\n---\n# ${title}\n${body}`
-  );
+// Bind helpers to tempDir for convenience
+function writeWikiPage(name: string, title: string, category: string, body?: string) {
+  return _writeWikiPage(tempDir, name, title, category, body);
 }
-
-async function writeSourceFile(path: string, content: string = "// source\n"): Promise<void> {
-  const fullPath = join(tempDir, "src", path);
-  const dir = fullPath.substring(0, fullPath.lastIndexOf("/"));
-  await mkdir(dir, { recursive: true });
-  await writeFile(fullPath, content);
+function writeSourceFile(path: string, content?: string) {
+  return _writeSourceFile(tempDir, path, content);
 }
-
-async function writeTestFile(path: string, content: string = "// test\n"): Promise<void> {
-  const fullPath = join(tempDir, "src", path);
-  const dir = fullPath.substring(0, fullPath.lastIndexOf("/"));
-  await mkdir(dir, { recursive: true });
-  await writeFile(fullPath, content);
+function writeTestFile(path: string, content?: string) {
+  return _writeTestFile(tempDir, path, content);
+}
+function writeClaimEvidence(yaml: string) {
+  return _writeClaimEvidence(tempDir, yaml);
 }
 
 describe("AgentResult type contract", () => {
@@ -120,21 +109,21 @@ describe("parseClaimEvidenceYaml", () => {
 
 describe("extractInvariantClaims", () => {
   test("extracts claims from real invariants.md", async () => {
-    const { extractInvariantClaims } = await import("../verify/invariants");
+    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims(process.cwd());
     // Should find 100+ claims in the real invariants.md
     expect(claims.length).toBeGreaterThanOrEqual(100);
   });
 
   test("each claim has a unique ID", async () => {
-    const { extractInvariantClaims } = await import("../verify/invariants");
+    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims(process.cwd());
     const ids = new Set(claims.map((c) => c.id));
     expect(ids.size).toBe(claims.length);
   });
 
   test("all claims belong to a known group", async () => {
-    const { extractInvariantClaims } = await import("../verify/invariants");
+    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims(process.cwd());
     const validGroups = new Set([
       "what-a-user-can-do",
@@ -149,7 +138,7 @@ describe("extractInvariantClaims", () => {
   });
 
   test("returns empty array when no invariants file exists", async () => {
-    const { extractInvariantClaims } = await import("../verify/invariants");
+    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims("/tmp/nonexistent-repo");
     expect(claims).toEqual([]);
   });
@@ -231,6 +220,9 @@ describe("checkInvariants", () => {
 
   test("detects implemented-and-tested claim", async () => {
     await writeWikiPage("behaviour-tree", "Behaviour Tree", "architecture");
+    await writeClaimEvidence(
+      "behaviour-tree.tree-evaluator:\n  source:\n    - [export function evaluate]\n  test:\n    - [\"evaluate(\"]\n"
+    );
     // Write source with patterns that match the "tree-evaluator" claim
     await writeSourceFile(
       "tree/evaluate.ts",
@@ -248,6 +240,9 @@ describe("checkInvariants", () => {
   test("detects specified-only claim when no matching code exists", async () => {
     // behaviour-tree page has claims like "llm-prioritiser" that require LLM code
     await writeWikiPage("behaviour-tree", "Behaviour Tree", "architecture");
+    await writeClaimEvidence(
+      "behaviour-tree.llm-prioritiser:\n  source:\n    - [LLMPrioritiser]\n  test:\n    - [LLMPrioritiser]\n"
+    );
     // No source code at all
 
     const result = await checkInvariants(tempDir);
@@ -259,6 +254,18 @@ describe("checkInvariants", () => {
 
   test("multiple claims from same page can have different statuses", async () => {
     await writeWikiPage("behaviour-tree", "Behaviour Tree", "architecture");
+    await writeClaimEvidence([
+      "behaviour-tree.tree-evaluator:",
+      "  source:",
+      "    - [export function evaluate]",
+      "  test:",
+      '    - ["evaluate("]',
+      "behaviour-tree.llm-prioritiser:",
+      "  source:",
+      "    - [LLMPrioritiser]",
+      "  test:",
+      "    - [LLMPrioritiser]",
+    ].join("\n") + "\n");
     // Implement the evaluator but not the LLM prioritiser
     await writeSourceFile(
       "tree/evaluate.ts",

@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { mkdtemp, rm, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -24,7 +24,6 @@ describe("loadConfig", () => {
       assessmentStaleAfter: 30,
       maxTicksPerShift: 10,
       enabledSkills: null,
-      insightFrequency: 0.3,
     });
   });
 
@@ -49,7 +48,6 @@ describe("loadConfig", () => {
       assessmentStaleAfter: 60,
       maxTicksPerShift: 10,
       enabledSkills: null,
-      insightFrequency: 0.3,
     });
   });
 
@@ -85,6 +83,39 @@ describe("loadConfig", () => {
     expect(config.enabledSkills).toBeNull();
   });
 
+  test("handles non-numeric tick-interval gracefully (falls back to default)", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "tick-interval: abc\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.tickInterval).toBe(5);
+  });
+
+  test("handles empty enabled-skills value", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "enabled-skills: \n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toBeNull();
+  });
+
+  test("handles lines without colons", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "this line has no colon\nbranch-prefix: valid\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.branchPrefix).toBe("valid");
+  });
+
   test("ignores comments and blank lines", async () => {
     await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
     await writeFile(
@@ -100,5 +131,45 @@ describe("loadConfig", () => {
 
     const config = await loadConfig(tempDir);
     expect(config.branchPrefix).toBe("custom");
+  });
+
+  test("no warning when all keys are known", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      [
+        "branch-prefix: test",
+        "tick-interval: 5",
+        "wiki-dir: wiki",
+        "assessment-stale-after: 30",
+        "max-ticks-per-shift: 10",
+        "enabled-skills: fix-tests",
+      ].join("\n")
+    );
+
+    const warnSpy = spyOn(console, "warn");
+    await loadConfig(tempDir);
+    const unknownKeyWarnings = warnSpy.mock.calls.filter(
+      (call) => typeof call[0] === "string" && call[0].includes("Unknown config key")
+    );
+    expect(unknownKeyWarnings).toHaveLength(0);
+    warnSpy.mockRestore();
+  });
+
+  test("warns on unknown config key", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "unknown-key: value\nbranch-prefix: test\n"
+    );
+
+    const warnSpy = spyOn(console, "warn");
+    await loadConfig(tempDir);
+    const unknownKeyWarnings = warnSpy.mock.calls.filter(
+      (call) => typeof call[0] === "string" && call[0].includes("Unknown config key")
+    );
+    expect(unknownKeyWarnings).toHaveLength(1);
+    expect(unknownKeyWarnings[0][0]).toContain("unknown-key");
+    warnSpy.mockRestore();
   });
 });

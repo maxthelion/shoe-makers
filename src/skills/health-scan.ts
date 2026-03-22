@@ -23,6 +23,18 @@ export async function getHealthResult(repoRoot: string): Promise<HealthResult | 
     );
 
     const raw = await readFile(outputPath, "utf-8");
+    return parseHealthSnapshot(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Parse an octoclean snapshot JSON string into a HealthResult.
+ * Returns null if the JSON is invalid or missing required fields.
+ */
+export function parseHealthSnapshot(raw: string): HealthResult | null {
+  try {
     const snapshot = JSON.parse(raw);
     const score = snapshot?.summary?.health_score;
 

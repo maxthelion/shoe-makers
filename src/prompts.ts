@@ -1,22 +1,18 @@
 import type { ActionType, WorldState } from "./types";
 import type { SkillDefinition } from "./skills/registry";
-import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
 
 /** Off-limits notice appended to all non-critique prompts */
 const OFF_LIMITS = `
 
 **Off-limits — do NOT modify these files:**
 - \`.shoe-makers/invariants.md\` — only humans maintain the spec claims
-- \`.shoe-makers/state/\` — managed by the scheduler, not agents`;
+- \`.shoe-makers/state/\` — managed by the scheduler, not agents (except candidates.md and work-item.md which you write as part of the three-phase cycle)`;
 
 /** Maps action types to skill mapsTo values for work actions */
 export const ACTION_TO_SKILL_TYPE: Partial<Record<ActionType, string>> = {
   "fix-tests": "fix",
-  "implement-spec": "implement",
-  "implement-plan": "implement",
-  "write-tests": "test",
-  "improve-health": "health",
-  "document": "doc-sync",
+  "execute-work-item": "implement",
+  "dead-code": "dead-code",
 };
 
 /**
@@ -47,17 +43,12 @@ function formatSkillSection(skill: SkillDefinition): string {
  *
  * Each action produces a scoped prompt telling the elf exactly what to do.
  * This is the interface between the deterministic tree and the elf's intelligence.
- *
- * When skills are provided, work actions include the matching skill's instructions,
- * verification criteria, and off-limits from `.shoe-makers/skills/`.
  */
 export function generatePrompt(
   action: ActionType,
   state: WorldState,
   skills?: Map<string, SkillDefinition>,
-  wikipediaLens?: { title: string; summary: string } | null,
 ): string {
-  const assessment = state.blackboard.assessment;
   const skill = findSkillForAction(action, skills);
   const skillSection = skill ? formatSkillSection(skill) : "";
 
@@ -126,114 +117,85 @@ If the changes are good, commit them. If not, fix the issues first.${OFF_LIMITS}
 
 There are ${state.inboxCount} message(s) in \`.shoe-makers/inbox/\`. Read them, do what they ask, commit your work, then delete the message files.${OFF_LIMITS}`;
 
-    case "implement-plan": {
-      const plans = assessment?.openPlans ?? [];
-      const planFiles = plans.map((p) => `- wiki/pages/${p}.md`);
-      return `# Implement Plan
+    case "execute-work-item":
+      return `# Execute Work Item
 
-There are ${plans.length} open plan(s): ${plans.join(", ")}
+A previous elf wrote a detailed work item in \`.shoe-makers/state/work-item.md\`. Read it and do exactly what it says.
 
-Read the plan page(s):
-${planFiles.join("\n")}
+1. Read \`.shoe-makers/state/work-item.md\`
+2. Do the work described — implement, test, or fix as instructed
+3. Run \`bun test\` to confirm nothing is broken
+4. Commit your work
+5. Delete \`.shoe-makers/state/work-item.md\` (the work is done)
+6. Optionally, write a new \`.shoe-makers/state/work-item.md\` as a follow-up for the next elf (e.g. "review what I just built" or "write tests for this feature")
 
-Pick the most impactful thing and implement it. Write tests. Run \`bun test\`. Commit.
+The work-item contains specific, detailed instructions with full context. Follow them precisely.${skillSection}${OFF_LIMITS}`;
 
-If you complete all items in a plan, update its frontmatter to \`status: done\`.${skillSection}${OFF_LIMITS}`;
-    }
+    case "dead-code":
+      return `# Remove Dead Code
 
-    case "implement-spec": {
-      const gaps = assessment?.invariants?.topSpecGaps ?? [];
-      const gapList = gaps
-        .map((g) => `- **${g.id}**: ${g.description} (group: ${g.group})`)
-        .join("\n");
-      return `# Implement Specified-Only Invariant — Write Tests First (TDD)
+A work item in \`.shoe-makers/state/work-item.md\` describes dead code to remove. Read it and follow the instructions.
 
-The wiki specifies ${assessment?.invariants?.specifiedOnly ?? 0} thing(s) not yet implemented. Pick the most impactful:
+1. Read \`.shoe-makers/state/work-item.md\`
+2. Verify each candidate is truly dead — grep for all references
+3. Remove the dead code (source files AND their stale test files)
+4. Run \`bun test\` to confirm nothing depended on the removed code
+5. Commit your changes
+6. Delete \`.shoe-makers/state/work-item.md\`
 
-${gapList}
+You ARE permitted to delete test files that test removed features.${skillSection}${OFF_LIMITS}`;
 
-**TDD enforcement**: Write failing tests first, then implement to make them pass.
+    case "prioritise":
+      return `# Prioritise — Pick a Work Item
 
-1. Read the relevant wiki page to understand the requirement
-2. Write tests that verify the desired behaviour (they should fail — the feature doesn't exist yet)
-3. Implement the feature to make the tests pass
-4. Run \`bun test\` to confirm all tests pass
-5. Commit both tests and implementation together${skillSection}${OFF_LIMITS}`;
-    }
+A previous elf explored the codebase and wrote a candidate list in \`.shoe-makers/state/candidates.md\`. Your job is to pick the most impactful candidate and write a detailed work item.
 
-    case "write-tests": {
-      const untested = assessment?.invariants?.topUntested ?? [];
-      const list = untested
-        .map((g) => `- **${g.id}**: ${g.description} (group: ${g.group})`)
-        .join("\n");
-      return `# Add Tests for Untested Code
+1. Read \`.shoe-makers/state/candidates.md\`
+2. For the top candidates, read the relevant wiki pages and source files to understand the context
+3. Pick ONE candidate — the most impactful, highest-confidence, lowest-risk option
+4. Write \`.shoe-makers/state/work-item.md\` with:
+   - A clear title
+   - The relevant wiki text (quote it)
+   - The relevant code (reference files and line numbers)
+   - Exactly what to build or change
+   - Which patterns to follow
+   - What tests to write
+   - What NOT to change
+5. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
+6. Commit both changes
 
-There are ${assessment?.invariants?.implementedUntested ?? 0} implemented but untested invariant(s). Pick the riskiest:
+Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."${OFF_LIMITS}`;
 
-${list}
+    case "explore":
+      return `# Explore — Survey and Write Candidates
 
-Write tests that verify this behaviour. Run \`bun test\`. Commit.${skillSection}${OFF_LIMITS}`;
-    }
+Nothing is queued for work. Your job is to survey the entire codebase and produce a ranked candidate list.
 
-    case "document": {
-      const unspec = assessment?.invariants?.topUnspecified ?? [];
-      const list = unspec
-        .map((g) => `- **${g.id}**: ${g.description} (group: ${g.group})`)
-        .join("\n");
-      return `# Document Unspecified Code
+1. Read wiki pages in \`wiki/pages/\` — what does the spec say should exist?
+2. Read \`.shoe-makers/invariants.md\` — are there gaps?
+3. Read the code in \`src/\` — what's built, what's missing?
+4. Read findings in \`.shoe-makers/findings/\` — any open issues?
+5. Check test coverage — untested paths?
+6. Check code quality — files too complex or duplicated?
 
-There are ${assessment?.invariants?.unspecified ?? 0} thing(s) in the code not documented in the wiki:
+Write \`.shoe-makers/state/candidates.md\` with a ranked list of possible work items:
 
-${list}
+\`\`\`markdown
+# Candidates
 
-Update or create wiki pages to document this behaviour. Commit.${skillSection}${OFF_LIMITS}`;
-    }
+## 1. [Title]
+**Type**: implement | test | fix | health | doc-sync
+**Impact**: high | medium | low
+**Confidence**: high | medium | low
+**Risk**: high | medium | low
+**Reasoning**: Why this matters, what wiki page specifies it, what code is affected.
 
-    case "improve-health": {
-      const worst = assessment?.worstFiles ?? [];
-      const worstList = worst.length > 0
-        ? "\n\nWorst files:\n" + worst.map((f) => `- \`${f.path}\` — health ${f.score}/100`).join("\n")
-        : "";
-      return `# Improve Code Health
+## 2. [Title]
+...
+\`\`\`
 
-Code health score is ${assessment?.healthScore ?? "unknown"}/100 (below threshold of 70).${worstList}
+Include 3-5 candidates, ranked by impact. Be specific — reference file paths, wiki pages, and invariant IDs.
 
-Pick the worst file and improve it: reduce complexity, extract helpers, remove duplication. Run \`bun test\`. Commit.${skillSection}${OFF_LIMITS}`;
-    }
-
-    case "explore": {
-      let lensSection = "";
-      if (wikipediaLens) {
-        lensSection = `
-
-## Creative Lens — Random Analogy
-
-A random Wikipedia article for analogical thinking:
-
-**${wikipediaLens.title}**
-
-> ${wikipediaLens.summary}
-
-Does anything about this concept remind you of a pattern, approach, or problem in this codebase? Could any aspect of it inspire a better solution to something we're building? Think laterally — the connection might be abstract.
-
-If you see a connection, write an insight to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\` with: the article that prompted it, the connection to the codebase, a concrete proposal, and why it would be better. If no connection, move on — not every lens produces something.
-
-`;
-      }
-
-      return `# Explore — Find Work
-
-Nothing obvious needs doing. Look deeper:
-
-1. Read wiki pages in \`wiki/pages/\` — are there claims that aren't implemented?
-2. Read \`.shoe-makers/invariants.md\` — are there gaps the checker missed?
-3. Read the shift log — did previous elves flag anything?
-4. Read findings in \`.shoe-makers/findings/\`
-5. Read insights in \`.shoe-makers/insights/\` — any worth promoting?
-6. Check test coverage — untested paths?
-7. Check code quality — files too complex or duplicated?
-${lensSection}
-If you find something, do it. Write tests. Commit.${OFF_LIMITS}`;
-    }
+Commit \`candidates.md\` when done.${OFF_LIMITS}`;
   }
 }

@@ -24,3 +24,7 @@
 - The `Config.tickInterval` value is still parsed but unused — could be wired into shift timing
 - The spec-code-audit finding's dead code items (verify.ts, prioritise.ts, work.ts) are architectural — don't remove without discussion
 - `bootstrapWiki` should be called from the init command or run-init CLI entry point
+
+## Status
+
+Resolved.

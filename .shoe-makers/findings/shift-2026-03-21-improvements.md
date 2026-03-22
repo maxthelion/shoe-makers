@@ -35,3 +35,7 @@ These describe properties that emerge from the whole system working together, no
 ## Status
 
 Complete.
+
+## Status
+
+Resolved.

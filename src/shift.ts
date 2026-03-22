@@ -31,10 +31,13 @@ async function main() {
   console.log(`\n[shoe-makers] Shift complete. Outcome: ${result.outcome}`);
   console.log(`[shoe-makers] ${result.steps.length} tick(s) executed.\n`);
 
-  if (result.outcome === "action" && result.workInstructions) {
-    console.log("--- Action ---\n");
-    console.log(result.workInstructions);
-    console.log("\n--- End Action ---");
+  if (result.outcome === "action") {
+    const lastStep = result.steps[result.steps.length - 1];
+    if (lastStep?.skillResult) {
+      console.log("--- Action ---\n");
+      console.log(lastStep.skillResult);
+      console.log("\n--- End Action ---");
+    }
   }
 
   if (result.outcome === "error") {

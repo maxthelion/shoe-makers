@@ -33,20 +33,14 @@ export async function runSkill(
     case "inbox":
       return "Action: inbox — elf should read and act on inbox messages.";
 
-    case "implement-plan":
-      return "Action: implement-plan — elf should read open plans and implement the most important one.";
+    case "execute-work-item":
+      return "Action: execute-work-item — elf should read work-item.md and do the work described.";
 
-    case "implement-spec":
-      return "Action: implement-spec — elf should implement the most impactful specified-only invariant.";
+    case "dead-code":
+      return "Action: dead-code — elf should identify and remove dead code, including stale test files.";
 
-    case "write-tests":
-      return "Action: write-tests — elf should add tests for untested code.";
-
-    case "document":
-      return "Action: document — elf should update the wiki for undocumented code.";
-
-    case "improve-health":
-      return "Action: improve-health — elf should improve the worst code health file.";
+    case "prioritise":
+      return "Action: prioritise — elf should read candidates.md, pick one, and write a detailed work-item.md.";
 
     default:
       return `Unknown action: ${action}`;

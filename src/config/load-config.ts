@@ -4,6 +4,15 @@ import type { Config } from "../types";
 
 const CONFIG_PATH = ".shoe-makers/config.yaml";
 
+const KNOWN_KEYS = new Set([
+  "branch-prefix",
+  "tick-interval",
+  "wiki-dir",
+  "assessment-stale-after",
+  "max-ticks-per-shift",
+  "enabled-skills",
+]);
+
 const DEFAULTS: Config = {
   branchPrefix: "shoemakers",
   tickInterval: 5,
@@ -11,7 +20,6 @@ const DEFAULTS: Config = {
   assessmentStaleAfter: 30,
   maxTicksPerShift: 10,
   enabledSkills: null,
-  insightFrequency: 0.3,
 };
 
 /**
@@ -45,6 +53,11 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
   try {
     const content = await readFile(join(repoRoot, CONFIG_PATH), "utf-8");
     raw = parseSimpleYaml(content);
+    for (const key of Object.keys(raw)) {
+      if (!KNOWN_KEYS.has(key)) {
+        console.warn(`[config] Unknown config key: "${key}"`);
+      }
+    }
   } catch (err: unknown) {
     if (
       err instanceof Error &&
@@ -56,8 +69,15 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
     throw err;
   }
 
-  const intOrDefault = (key: string, fallback: number) =>
-    raw[key] ? parseInt(raw[key], 10) : fallback;
+  const intOrDefault = (key: string, fallback: number) => {
+    if (!raw[key]) return fallback;
+    const parsed = parseInt(raw[key], 10);
+    if (Number.isNaN(parsed)) {
+      console.warn(`[config] Invalid value for "${key}": "${raw[key]}", using default ${fallback}`);
+      return fallback;
+    }
+    return parsed;
+  };
 
   return {
     branchPrefix: raw["branch-prefix"] ?? DEFAULTS.branchPrefix,
@@ -68,8 +88,5 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
     enabledSkills: raw["enabled-skills"]
       ? raw["enabled-skills"].split(",").map((s) => s.trim()).filter(Boolean)
       : null,
-    insightFrequency: raw["insight-frequency"]
-      ? parseFloat(raw["insight-frequency"])
-      : DEFAULTS.insightFrequency,
   };
 }

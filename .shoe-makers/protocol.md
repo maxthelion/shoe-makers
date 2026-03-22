@@ -6,13 +6,14 @@ When you're done, run `bun run setup` to get your next action. Repeat until time
 
 ## Spec vs Code Divergence
 
-When the wiki says one thing and the code does another, **check which changed more recently** using `git log`.
+When the wiki says one thing and the code does another, **check which changed more recently**.
 
-- If the **wiki/invariants changed more recently** → the spec is intentional. **Change the code to match.** The humans updated the spec because they want the system to work differently.
-- If the **code changed more recently** → the wiki may be stale. Update the wiki, or write a finding asking for clarification.
-- If you find **code with no corresponding invariant** → write a finding suggesting what the invariant should be. The prioritise elf may add it to `invariants.md`.
+- If the **wiki/invariants changed more recently** than the code → the spec is intentional. **Change the code to match the spec.** The humans updated the spec because they want the system to work differently.
+- If the **code changed more recently** than the wiki → the wiki may be stale. Update the wiki to match the code, or write a finding asking for human clarification.
 
-`.shoe-makers/invariants.md` is always authoritative — it represents the desired state regardless of what the code currently does.
+Use `git log` on the wiki files and the source files to determine which changed last. **Never revert wiki changes that are newer than the code** — that undoes intentional design decisions.
+
+`.shoe-makers/invariants.md` is always authoritative — it's human-maintained and represents the desired state of the system regardless of what the code currently does.
 
 ## Logging
 
@@ -25,7 +26,7 @@ If you discovered something surprising or useful for future elves, create a find
 
 ## Troubleshooting
 
-If you hit a problem, check `.shoe-makers/known-issues.md` first. If you solve a new problem, add it to that file.
+If you hit a problem, check `.shoe-makers/known-issues.md` first — previous elves may have documented it. If you solve a problem that others might hit, add it to that file.
 
 ## Self-improvement
 
@@ -41,5 +42,5 @@ If something would have made your job easier, add it:
 - Read the wiki — it describes the intended design. Follow it.
 - Small, correct changes are better than large, broken ones.
 - Keep README.md and CHANGELOG.md up to date.
-- **NEVER force push.**
-- **NEVER revert wiki pages to match existing code.** The wiki is the target — implement it.
+- **NEVER force push.** If the branch has diverged, merge or rebase — do not overwrite other elves' work.
+- **NEVER revert wiki pages to match existing code.** If the wiki describes something different from the code, the wiki is the target — implement it.

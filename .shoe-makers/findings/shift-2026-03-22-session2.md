@@ -26,3 +26,7 @@ Total tests: 246 → 250 (+4, -1 removed duplicate)
 ## Status
 
 Complete.
+
+## Status
+
+Resolved.

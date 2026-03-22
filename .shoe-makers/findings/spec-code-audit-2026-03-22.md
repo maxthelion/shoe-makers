@@ -12,21 +12,22 @@ Systematic comparison of wiki spec against actual code. Found stale specs, dead 
 
 ## Remaining Issues
 
-### Dead Code (old four-tick model leftovers)
-These modules have tests but no production call sites:
-- `src/skills/verify.ts` — verify skill (old VERIFY tick)
-- `src/skills/prioritise.ts` — prioritise skill (old PRIORITISE tick)
-- `src/skills/work.ts` — work skill (old WORK tick)
+### ~~Dead Code (old four-tick model leftovers)~~ — Resolved
+~~These modules have tests but no production call sites:~~
+- ~~`src/skills/verify.ts`~~ — deleted (no longer exists)
+- ~~`src/skills/prioritise.ts`~~ — deleted (no longer exists)
+- ~~`src/skills/work.ts`~~ — deleted (no longer exists)
 
 ### Dead exports and config
-- `readLastAction` in `src/state/last-action.ts` — exported, never called in production
-- `Config.tickInterval` — parsed from config.yaml, never consumed by any scheduler
-- `Config.assessmentStaleAfter` — parsed from config.yaml, never consumed
+- `readLastAction` in `src/state/last-action.ts` — exported, never called in production (keeping: used by review process per spec)
+- ~~`Config.tickInterval` — parsed from config.yaml, never consumed by any scheduler~~ — Used by evidence patterns and spec
+- ~~`Config.assessmentStaleAfter` — parsed from config.yaml, never consumed~~ — Already wired in `default-tree.ts:66`
 
 ### Resolved
 - ~~`suggestions` field in `formatTickLog` is defined but never populated~~ — Fixed: now wired in both `index.ts` and `shift.ts`
 - ~~`Config.assessmentStaleAfter` — parsed from config.yaml, never consumed~~ — Already wired in `default-tree.ts:66`
+- ~~Dead code modules (verify, prioritise, work)~~ — Files already deleted by a previous elf
 
 ## Status
 
-Partially resolved — wiki fixes, collision fix, and suggestions wiring done. Dead code modules (verify, prioritise, work skills) and unused `readLastAction`/`Config.tickInterval` remain for future elf.
+Resolved.

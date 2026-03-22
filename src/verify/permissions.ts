@@ -49,34 +49,24 @@ const ROLE_MAP: Record<ActionType, RolePermissions> = {
     canWrite: ["src/", "wiki/", ".shoe-makers/"],
     cannotWrite: [...ALWAYS_FORBIDDEN],
   },
-  "implement-plan": {
-    role: "plan-implementer",
-    canWrite: ["src/", "wiki/"],
+  "execute-work-item": {
+    role: "executor",
+    canWrite: ["src/", "wiki/", ".shoe-makers/state/"],
     cannotWrite: [...ALWAYS_FORBIDDEN, "src/__tests__/"],
   },
-  "implement-spec": {
-    role: "implementer",
+  "dead-code": {
+    role: "dead-code-remover",
     canWrite: ["src/"],
-    cannotWrite: [...ALWAYS_FORBIDDEN, "wiki/", "src/__tests__/"],
-  },
-  "write-tests": {
-    role: "test-writer",
-    canWrite: ["src/__tests__/"],
     cannotWrite: [...ALWAYS_FORBIDDEN, "wiki/"],
   },
-  document: {
-    role: "doc-writer",
-    canWrite: ["wiki/"],
-    cannotWrite: [...ALWAYS_FORBIDDEN, "src/"],
-  },
-  "improve-health": {
-    role: "refactorer",
-    canWrite: ["src/"],
-    cannotWrite: [...ALWAYS_FORBIDDEN, "wiki/", "src/__tests__/"],
+  prioritise: {
+    role: "prioritiser",
+    canWrite: [".shoe-makers/state/"],
+    cannotWrite: [...ALWAYS_FORBIDDEN, "src/", "wiki/"],
   },
   explore: {
-    role: "assessor",
-    canWrite: [".shoe-makers/findings/"],
+    role: "explorer",
+    canWrite: [".shoe-makers/state/", ".shoe-makers/findings/"],
     cannotWrite: [...ALWAYS_FORBIDDEN, "src/", "wiki/"],
   },
 };

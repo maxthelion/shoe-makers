@@ -3,7 +3,7 @@ title: Verification
 category: architecture
 tags: [verification, qa, gatekeeper, adversarial, permissions, tdd]
 summary: How agent work gets reviewed — role-based permissions, cross-elf gatekeeping, and TDD enforcement.
-last-modified-by: user
+last-modified-by: elf
 ---
 
 ## Principle
@@ -14,7 +14,9 @@ Verification is not self-review. The executor and verifier must be different elv
 
 Each action from the [[behaviour-tree]] has a **role** that determines what the elf is allowed to touch. The elf's prompt includes both the task and the permission boundary.
 
-| Tree condition | Role | Can write | Cannot write |
+The reactive conditions (tests failing, critiques, reviews, uncommitted work, inbox) appear directly in the tree. The remaining rows (open plans, specified-only invariants, untested code, undocumented code, code health) describe roles applied when executing work items through the three-phase orchestration cycle.
+
+| Tree condition / work type | Role | Can write | Cannot write |
 |---|---|---|---|
 | Tests failing? | **test-fixer** | `src/` | invariants, wiki |
 | Unresolved critiques? | **critique-fixer** | `src/`, `.shoe-makers/findings/` | invariants, wiki |
@@ -108,19 +110,17 @@ Selector
 ├── [tests failing?] → Fix them
 ├── [unresolved critiques?] → Fix the flagged issues
 ├── [unreviewed commits?] → Review adversarially (critique)
-├── [assessment stale?] → Explore / refresh assessment
 ├── [uncommitted work?] → Review before committing (review)
 ├── [inbox messages?] → Read and act
-├── [open plans?] → Implement (src + wiki, no tests)
-├── [specified-only invariants?] → Implement (src only, no tests)
-├── [untested code?] → Write tests only
-├── [undocumented code?] → Update wiki only
-├── [code health below threshold?] → Refactor scoped files
-├── [nothing?] → Explore
+├── [work-item.md exists?] → Execute the work item
+├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
+├── [neither?] → Explore: write candidates.md
 ```
 
 Critiques sit above unreviewed work — you fix problems before reviewing new work. Unreviewed work sits above new work — you review before starting something new.
 
 Note: The `review` node (uncommitted work) is separate from `critique` (unreviewed commits). Both use the reviewer role but trigger at different points.
+
+The conditions removed from the earlier version of this tree (open plans, specified-only invariants, untested code, undocumented code, code health) are handled through the three-phase orchestration cycle: explore surfaces them as candidates, prioritise picks one, and execute-work-item performs it. The roles and permissions in the table above still apply — the execute-work-item action uses the appropriate role based on the type of work being performed.
 
 See also: [[behaviour-tree]], [[observability]], [[invariants]], [[pure-function-agents]]

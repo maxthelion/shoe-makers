@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { getHealthScore, getHealthResult } from "../skills/health-scan";
+import { getHealthScore, getHealthResult, parseHealthSnapshot } from "../skills/health-scan";
 
-describe("health-scan", () => {
+describe("health-scan integration", () => {
   test("getHealthScore returns null for a directory without octoclean", async () => {
     const score = await getHealthScore("/tmp/nonexistent-repo");
     expect(score).toBeNull();
@@ -33,5 +33,128 @@ describe("health-scan", () => {
       expect(typeof f.path).toBe("string");
       expect(typeof f.score).toBe("number");
     }
+  });
+});
+
+describe("parseHealthSnapshot", () => {
+  test("parses valid snapshot with score and files", () => {
+    const snapshot = {
+      summary: { health_score: 0.85 },
+      files: [
+        { path: "src/foo.ts", health_score: 0.4 },
+        { path: "src/bar.ts", health_score: 0.9 },
+      ],
+    };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result).not.toBeNull();
+    expect(result!.score).toBe(85);
+    expect(result!.worstFiles).toHaveLength(2);
+    expect(result!.worstFiles[0]).toEqual({ path: "src/foo.ts", score: 40 });
+    expect(result!.worstFiles[1]).toEqual({ path: "src/bar.ts", score: 90 });
+  });
+
+  test("rounds score of 1.0 to 100", () => {
+    const snapshot = { summary: { health_score: 1.0 }, files: [] };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.score).toBe(100);
+  });
+
+  test("rounds score of 0 to 0", () => {
+    const snapshot = { summary: { health_score: 0 }, files: [] };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.score).toBe(0);
+  });
+
+  test("returns null when summary.health_score is missing", () => {
+    const snapshot = { summary: {}, files: [] };
+    expect(parseHealthSnapshot(JSON.stringify(snapshot))).toBeNull();
+  });
+
+  test("returns null when summary is missing", () => {
+    const snapshot = { files: [] };
+    expect(parseHealthSnapshot(JSON.stringify(snapshot))).toBeNull();
+  });
+
+  test("returns null when health_score is not a number", () => {
+    const snapshot = { summary: { health_score: "good" }, files: [] };
+    expect(parseHealthSnapshot(JSON.stringify(snapshot))).toBeNull();
+  });
+
+  test("returns null for malformed JSON", () => {
+    expect(parseHealthSnapshot("not json")).toBeNull();
+  });
+
+  test("returns empty worstFiles when files array is empty", () => {
+    const snapshot = { summary: { health_score: 0.9 }, files: [] };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.worstFiles).toEqual([]);
+  });
+
+  test("returns empty worstFiles when files is not an array", () => {
+    const snapshot = { summary: { health_score: 0.9 } };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.worstFiles).toEqual([]);
+  });
+
+  test("skips files without health_score", () => {
+    const snapshot = {
+      summary: { health_score: 0.8 },
+      files: [
+        { path: "src/a.ts", health_score: 0.5 },
+        { path: "src/b.ts" },
+        { path: "src/c.ts", health_score: 0.7 },
+      ],
+    };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.worstFiles).toHaveLength(2);
+  });
+
+  test("skips files without path", () => {
+    const snapshot = {
+      summary: { health_score: 0.8 },
+      files: [
+        { health_score: 0.5 },
+        { path: "src/a.ts", health_score: 0.7 },
+      ],
+    };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.worstFiles).toHaveLength(1);
+    expect(result!.worstFiles[0].path).toBe("src/a.ts");
+  });
+
+  test("sorts files by score ascending (worst first)", () => {
+    const snapshot = {
+      summary: { health_score: 0.7 },
+      files: [
+        { path: "src/good.ts", health_score: 0.9 },
+        { path: "src/bad.ts", health_score: 0.2 },
+        { path: "src/ok.ts", health_score: 0.6 },
+      ],
+    };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.worstFiles[0].path).toBe("src/bad.ts");
+    expect(result!.worstFiles[1].path).toBe("src/ok.ts");
+    expect(result!.worstFiles[2].path).toBe("src/good.ts");
+  });
+
+  test("limits to top 5 worst files", () => {
+    const files = Array.from({ length: 8 }, (_, i) => ({
+      path: `src/file${i}.ts`,
+      health_score: (i + 1) / 10,
+    }));
+    const snapshot = { summary: { health_score: 0.5 }, files };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.worstFiles).toHaveLength(5);
+    expect(result!.worstFiles[0].path).toBe("src/file0.ts");
+    expect(result!.worstFiles[4].path).toBe("src/file4.ts");
+  });
+
+  test("rounds file health scores correctly", () => {
+    const snapshot = {
+      summary: { health_score: 0.75 },
+      files: [{ path: "src/a.ts", health_score: 0.333 }],
+    };
+    const result = parseHealthSnapshot(JSON.stringify(snapshot));
+    expect(result!.worstFiles[0].score).toBe(33);
   });
 });

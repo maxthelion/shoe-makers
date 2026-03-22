@@ -12,11 +12,8 @@ const allActions: ActionType[] = [
   "critique",
   "review",
   "inbox",
-  "implement-plan",
-  "implement-spec",
-  "write-tests",
-  "document",
-  "improve-health",
+  "execute-work-item",
+  "prioritise",
   "explore",
 ];
 
@@ -51,34 +48,26 @@ describe("isFileAllowed", () => {
     expect(isFileAllowed("critique", "wiki/pages/architecture.md")).toBe(false);
   });
 
-  test("implementer can write source code", () => {
-    expect(isFileAllowed("implement-spec", "src/verify/permissions.ts")).toBe(true);
+  test("executor can write source code", () => {
+    expect(isFileAllowed("execute-work-item", "src/verify/permissions.ts")).toBe(true);
   });
 
-  test("implementer cannot write wiki", () => {
-    expect(isFileAllowed("implement-spec", "wiki/pages/architecture.md")).toBe(false);
+  test("executor can write wiki", () => {
+    expect(isFileAllowed("execute-work-item", "wiki/pages/architecture.md")).toBe(true);
   });
 
-  test("doc-writer can write wiki", () => {
-    expect(isFileAllowed("document", "wiki/pages/architecture.md")).toBe(true);
+  test("executor can write state files", () => {
+    expect(isFileAllowed("execute-work-item", ".shoe-makers/state/work-item.md")).toBe(true);
   });
 
-  test("doc-writer cannot write source", () => {
-    expect(isFileAllowed("document", "src/types.ts")).toBe(false);
+  test("prioritiser can write state files", () => {
+    expect(isFileAllowed("prioritise", ".shoe-makers/state/work-item.md")).toBe(true);
+    expect(isFileAllowed("prioritise", ".shoe-makers/state/candidates.md")).toBe(true);
   });
 
-  test("test-writer can write tests", () => {
-    expect(isFileAllowed("write-tests", "src/__tests__/foo.test.ts")).toBe(true);
-  });
-
-  test("test-writer cannot write non-test source (TDD enforcement)", () => {
-    expect(isFileAllowed("write-tests", "src/types.ts")).toBe(false);
-    expect(isFileAllowed("write-tests", "src/verify/permissions.ts")).toBe(false);
-  });
-
-  test("write-tests role name is test-writer", () => {
-    const perms = getPermissions("write-tests");
-    expect(perms.role).toBe("test-writer");
+  test("prioritiser cannot write source or wiki", () => {
+    expect(isFileAllowed("prioritise", "src/types.ts")).toBe(false);
+    expect(isFileAllowed("prioritise", "wiki/pages/foo.md")).toBe(false);
   });
 
   test("no action can write invariants.md", () => {
@@ -87,7 +76,18 @@ describe("isFileAllowed", () => {
     }
   });
 
-  test("explore can only write findings", () => {
+  test("executor cannot write test files (TDD enforcement)", () => {
+    expect(isFileAllowed("execute-work-item", "src/__tests__/foo.test.ts")).toBe(false);
+    expect(isFileAllowed("execute-work-item", "src/__tests__/permissions.test.ts")).toBe(false);
+  });
+
+  test("fix-tests can write test files (exception for test fixers)", () => {
+    expect(isFileAllowed("fix-tests", "src/__tests__/foo.test.ts")).toBe(true);
+    expect(isFileAllowed("fix-tests", "src/types.ts")).toBe(true);
+  });
+
+  test("explore can write state and findings", () => {
+    expect(isFileAllowed("explore", ".shoe-makers/state/candidates.md")).toBe(true);
     expect(isFileAllowed("explore", ".shoe-makers/findings/note.md")).toBe(true);
     expect(isFileAllowed("explore", "src/types.ts")).toBe(false);
     expect(isFileAllowed("explore", "wiki/pages/foo.md")).toBe(false);
@@ -96,7 +96,7 @@ describe("isFileAllowed", () => {
 
 describe("checkPermissionViolations", () => {
   test("returns empty array when all files are allowed", () => {
-    const violations = checkPermissionViolations("implement-spec", [
+    const violations = checkPermissionViolations("execute-work-item", [
       "src/types.ts",
       "src/verify/permissions.ts",
     ]);
@@ -113,7 +113,7 @@ describe("checkPermissionViolations", () => {
   });
 
   test("catches invariants.md modification", () => {
-    const violations = checkPermissionViolations("implement-spec", [
+    const violations = checkPermissionViolations("execute-work-item", [
       "src/types.ts",
       ".shoe-makers/invariants.md",
     ]);

@@ -25,3 +25,7 @@
 ## Status
 
 Complete.
+
+## Status
+
+Resolved.

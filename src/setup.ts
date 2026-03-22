@@ -1,4 +1,4 @@
-import { assess } from "./skills/assess";
+import { assess, buildSuggestions } from "./skills/assess";
 import { evaluate } from "./tree/evaluate";
 import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
@@ -6,13 +6,14 @@ import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
 import { saveLastAction } from "./state/last-action";
-import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges } from "./state/world";
+import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType } from "./state/world";
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
 import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
-import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
+import { readBlackboard } from "./state/blackboard";
+import { checkHealthRegression } from "./verify/health-regression";
 
 /**
  * Setup script: runs before the elf starts.
@@ -42,9 +43,16 @@ async function main() {
   // 1. Branch setup
   const branchName = ensureBranch(repoRoot);
 
-  // 2. Run assessment
+  // 2. Run assessment (with health regression check)
   console.log("[setup] Running assessment...");
+  const previousBlackboard = await readBlackboard(repoRoot);
+  const healthBefore = previousBlackboard.assessment?.healthScore ?? null;
   const assessment = await assess(repoRoot);
+  const healthAfter = assessment.healthScore;
+  const healthRegression = checkHealthRegression(healthBefore, healthAfter);
+  if (healthRegression) {
+    console.warn(`[setup] WARNING: ${healthRegression}`);
+  }
   logAssessment(assessment);
 
   // 3. Read inbox messages
@@ -52,23 +60,13 @@ async function main() {
 
   // 4. Load config and build world state for tree evaluation
   const config = await loadConfig(repoRoot);
+  console.log(`[setup] Config: tick every ${config.tickInterval}m, max ${config.maxTicksPerShift} ticks/shift`);
   const state = await buildWorldState(repoRoot, branchName, assessment, inboxMessages.length, config);
 
   // 5. Load skills (filtered by enabledSkills config) and evaluate the tree
   const loadedSkills = await loadSkills(repoRoot, config.enabledSkills);
   const { skill } = evaluate(defaultTree, state);
-
-  // 6. If explore, maybe fetch a Wikipedia lens for creative prompting
-  let wikipediaLens: { title: string; summary: string } | null = null;
-  if (skill === "explore" && shouldIncludeLens(config.insightFrequency ?? 0.3)) {
-    console.log("[setup] Fetching random Wikipedia article for creative lens...");
-    wikipediaLens = await fetchRandomArticle();
-    if (wikipediaLens) {
-      console.log(`[setup] Lens: ${wikipediaLens.title}`);
-    }
-  }
-
-  const action = formatAction(skill, state, inboxMessages, loadedSkills, wikipediaLens);
+  const action = formatAction(skill, state, inboxMessages, loadedSkills);
 
   const stateDir = join(repoRoot, ".shoe-makers", "state");
   await mkdir(stateDir, { recursive: true });
@@ -120,8 +118,11 @@ function checkoutOrCreateBranch(repoRoot: string, branchName: string): void {
   }
 }
 
-function logAssessment(assessment: Awaited<ReturnType<typeof assess>>): void {
+export function logAssessment(assessment: Awaited<ReturnType<typeof assess>>): void {
   console.log(`[setup] Tests: ${assessment.testsPass ? "pass" : "FAIL"}`);
+  if (assessment.typecheckPass !== undefined) {
+    console.log(`[setup] Typecheck: ${assessment.typecheckPass ? "pass" : "FAIL"}`);
+  }
   console.log(`[setup] Plans: ${assessment.openPlans.length}`);
   console.log(`[setup] Findings: ${assessment.findings.length}`);
   if (assessment.invariants) {
@@ -129,9 +130,20 @@ function logAssessment(assessment: Awaited<ReturnType<typeof assess>>): void {
       `[setup] Invariants: ${assessment.invariants.specifiedOnly} specified-only, ${assessment.invariants.implementedUntested} untested, ${assessment.invariants.unspecified} unspecified`
     );
   }
+  if (assessment.healthScore !== null) {
+    console.log(`[setup] Health: ${assessment.healthScore}/100`);
+    if (assessment.healthScore < 100 && assessment.worstFiles.length > 0) {
+      const worst = assessment.worstFiles.slice(0, 3).map(f => `${f.path} (${f.score})`).join(", ");
+      console.log(`[setup] Worst files: ${worst}`);
+    }
+  }
+  const suggestions = buildSuggestions(assessment, { includeFindings: false });
+  if (suggestions.length > 0) {
+    console.log(`[setup] Suggestions: ${suggestions.join("; ")}`);
+  }
 }
 
-async function readInboxMessages(repoRoot: string): Promise<{ file: string; content: string }[]> {
+export async function readInboxMessages(repoRoot: string): Promise<{ file: string; content: string }[]> {
   const inboxDir = join(repoRoot, ".shoe-makers", "inbox");
   const messages: { file: string; content: string }[] = [];
   try {
@@ -150,11 +162,16 @@ async function buildWorldState(
   branchName: string,
   assessment: Awaited<ReturnType<typeof assess>>,
   inboxCount: number,
-  config?: Config,
+  config: Config,
 ): Promise<WorldState> {
-  const uncommitted = hasUncommittedChanges(repoRoot);
-  const hasUnreviewedCommits = await checkUnreviewedCommits(repoRoot);
-  const unresolvedCritiqueCount = await countUnresolvedCritiques(repoRoot);
+  const [uncommitted, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType] = await Promise.all([
+    hasUncommittedChanges(repoRoot),
+    checkUnreviewedCommits(repoRoot),
+    countUnresolvedCritiques(repoRoot),
+    checkHasWorkItem(repoRoot),
+    checkHasCandidates(repoRoot),
+    readWorkItemSkillType(repoRoot),
+  ]);
 
   const blackboard: Blackboard = {
     assessment,
@@ -169,18 +186,20 @@ async function buildWorldState(
     inboxCount,
     hasUnreviewedCommits,
     unresolvedCritiqueCount,
+    hasWorkItem,
+    hasCandidates,
+    workItemSkillType,
     blackboard,
     config,
   };
 }
 
 
-function formatAction(
+export function formatAction(
   skill: string | null,
   state: WorldState,
   inboxMessages: { file: string; content: string }[],
   loadedSkills?: Map<string, SkillDefinition>,
-  wikipediaLens?: { title: string; summary: string } | null,
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -200,7 +219,7 @@ Run \`bun run setup\` again to get your next action.
 
   if (skill) {
     const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, wikipediaLens);
+    const prompt = generatePrompt(actionType, state, loadedSkills);
     return `${prompt}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}
@@ -215,7 +234,9 @@ The tree found no applicable action. This shouldn't happen — check the tree de
 `;
 }
 
-main().catch((err) => {
-  console.error("[setup] Fatal error:", err);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error("[setup] Fatal error:", err);
+    process.exit(1);
+  });
+}

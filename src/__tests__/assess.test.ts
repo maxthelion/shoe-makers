@@ -3,7 +3,7 @@ import { mkdtemp, rm, mkdir, writeFile, readFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
-import { assess } from "../skills/assess";
+import { assess, buildSuggestions } from "../skills/assess";
 
 let tempDir: string;
 
@@ -127,6 +127,79 @@ describe("assess skill", () => {
     expect(result.worstFiles).toEqual([]);
   });
 });
+
+describe("buildSuggestions", () => {
+  test("returns empty array for null assessment", () => {
+    expect(buildSuggestions(null)).toEqual([]);
+  });
+
+  test("returns specifiedOnly suggestion when > 0", () => {
+    const assessment = makeAssessment({ specifiedOnly: 3 });
+    const suggestions = buildSuggestions(assessment);
+    expect(suggestions).toContain("3 specified-only invariants need implementation");
+  });
+
+  test("returns implementedUntested suggestion when > 0", () => {
+    const assessment = makeAssessment({ implementedUntested: 2 });
+    const suggestions = buildSuggestions(assessment);
+    expect(suggestions).toContain("2 implemented features need tests");
+  });
+
+  test("returns openPlans suggestion when > 0", () => {
+    const assessment = makeAssessment({ openPlans: ["plan-a", "plan-b"] });
+    const suggestions = buildSuggestions(assessment);
+    expect(suggestions).toContain("2 open plan(s) to work on");
+  });
+
+  test("returns findings suggestion when > 0", () => {
+    const assessment = makeAssessment({ findings: [{ id: "f1", content: "x" }] });
+    const suggestions = buildSuggestions(assessment);
+    expect(suggestions).toContain("1 finding(s) to review");
+  });
+
+  test("returns empty when all counts are 0", () => {
+    const assessment = makeAssessment({});
+    expect(buildSuggestions(assessment)).toEqual([]);
+  });
+
+  test("excludes findings when includeFindings is false", () => {
+    const assessment = makeAssessment({ findings: [{ id: "f1", content: "x" }] });
+    const suggestions = buildSuggestions(assessment, { includeFindings: false });
+    expect(suggestions).not.toContain("1 finding(s) to review");
+  });
+
+  test("includes findings by default when no options given", () => {
+    const assessment = makeAssessment({ findings: [{ id: "f1", content: "x" }] });
+    const suggestions = buildSuggestions(assessment);
+    expect(suggestions).toContain("1 finding(s) to review");
+  });
+});
+
+function makeAssessment(overrides: {
+  specifiedOnly?: number;
+  implementedUntested?: number;
+  openPlans?: string[];
+  findings?: { id: string; content: string }[];
+} = {}) {
+  return {
+    timestamp: new Date().toISOString(),
+    invariants: {
+      specifiedOnly: overrides.specifiedOnly ?? 0,
+      implementedUntested: overrides.implementedUntested ?? 0,
+      implementedTested: 0,
+      unspecified: 0,
+      topSpecGaps: [],
+      topUntested: [],
+      topUnspecified: [],
+    },
+    healthScore: null,
+    worstFiles: [],
+    openPlans: overrides.openPlans ?? [],
+    findings: overrides.findings ?? [],
+    testsPass: true,
+    recentGitActivity: [],
+  };
+}
 
 // Note: can't test assess on the real repo here because assess runs `bun test`,
 // which would cause infinite recursion. Integration testing of assess on the

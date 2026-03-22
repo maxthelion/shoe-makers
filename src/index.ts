@@ -4,6 +4,7 @@ import { appendToShiftLog, formatTickLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
 import { loadSkills } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
+import { buildSuggestions } from "./skills/assess";
 
 /**
  * Entry point: run one tick of the behaviour tree.
@@ -34,18 +35,7 @@ async function main() {
     console.log("[tick] Tree decided: sleep (nothing to do)");
   }
 
-  // Build suggestions from assessment data
-  const suggestions: string[] = [];
-  const assessment = state.blackboard.assessment;
-  if (assessment) {
-    if (assessment.invariants) {
-      const { specifiedOnly, implementedUntested } = assessment.invariants;
-      if (specifiedOnly > 0) suggestions.push(`${specifiedOnly} specified-only invariants need implementation`);
-      if (implementedUntested > 0) suggestions.push(`${implementedUntested} implemented features need tests`);
-    }
-    if (assessment.openPlans.length > 0) suggestions.push(`${assessment.openPlans.length} open plan(s) to work on`);
-    if (assessment.findings.length > 0) suggestions.push(`${assessment.findings.length} finding(s) to review`);
-  }
+  const suggestions = buildSuggestions(state.blackboard.assessment);
 
   // Write to shift log
   const logEntry = formatTickLog({

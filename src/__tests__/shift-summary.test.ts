@@ -4,12 +4,12 @@ import type { ShiftStep } from "../scheduler/shift";
 import type { TickResult } from "../scheduler/tick";
 
 function makeStep(action: string): ShiftStep {
-  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action, tickType: action } as TickResult;
+  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action } as TickResult;
   return { tick, skillResult: `${action} done`, error: null };
 }
 
 function makeErrorStep(action: string): ShiftStep {
-  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action, tickType: action } as TickResult;
+  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action } as TickResult;
   return { tick, skillResult: null, error: "something failed" };
 }
 
@@ -18,26 +18,21 @@ describe("summarizeShift", () => {
     const steps: ShiftStep[] = [
       makeStep("explore"),
       makeStep("fix-tests"),
-      makeStep("implement-spec"),
-      makeStep("write-tests"),
-      makeStep("document"),
-      makeStep("improve-health"),
+      makeStep("execute-work-item"),
+      makeStep("prioritise"),
     ];
 
     const summary = summarizeShift(steps);
 
     expect(summary.categories).toContain("fix");
     expect(summary.categories).toContain("feature");
-    expect(summary.categories).toContain("test");
-    expect(summary.categories).toContain("docs");
-    expect(summary.categories).toContain("health");
   });
 
   test("reports whether improvements span multiple categories", () => {
     const diverse: ShiftStep[] = [
       makeStep("fix-tests"),
-      makeStep("implement-spec"),
-      makeStep("write-tests"),
+      makeStep("execute-work-item"),
+      makeStep("critique"),
     ];
     expect(summarizeShift(diverse).isBalanced).toBe(true);
 
@@ -49,9 +44,9 @@ describe("summarizeShift", () => {
 
   test("counts successful vs failed actions", () => {
     const steps: ShiftStep[] = [
-      makeStep("implement-spec"),
-      makeErrorStep("write-tests"),
-      makeStep("document"),
+      makeStep("execute-work-item"),
+      makeErrorStep("prioritise"),
+      makeStep("critique"),
     ];
 
     const summary = summarizeShift(steps);
@@ -76,18 +71,9 @@ describe("summarizeShift", () => {
     expect(summarizeShift([makeStep("fix-tests")]).categories).toContain("fix");
     expect(summarizeShift([makeStep("fix-critique")]).categories).toContain("fix");
 
-    // implement-spec and implement-plan → feature
-    expect(summarizeShift([makeStep("implement-spec")]).categories).toContain("feature");
-    expect(summarizeShift([makeStep("implement-plan")]).categories).toContain("feature");
-
-    // write-tests → test
-    expect(summarizeShift([makeStep("write-tests")]).categories).toContain("test");
-
-    // document → docs
-    expect(summarizeShift([makeStep("document")]).categories).toContain("docs");
-
-    // improve-health → health
-    expect(summarizeShift([makeStep("improve-health")]).categories).toContain("health");
+    // execute-work-item and prioritise → feature
+    expect(summarizeShift([makeStep("execute-work-item")]).categories).toContain("feature");
+    expect(summarizeShift([makeStep("prioritise")]).categories).toContain("feature");
 
     // critique and review → review
     expect(summarizeShift([makeStep("critique")]).categories).toContain("review");
@@ -123,7 +109,7 @@ describe("summarizeShift", () => {
 
     const twoCategories: ShiftStep[] = [
       makeStep("fix-tests"),
-      makeStep("implement-spec"),
+      makeStep("execute-work-item"),
     ];
     expect(summarizeShift(twoCategories).isBalanced).toBe(true);
   });
@@ -131,13 +117,13 @@ describe("summarizeShift", () => {
   test("produces a human-readable description", () => {
     const steps: ShiftStep[] = [
       makeStep("fix-tests"),
-      makeStep("implement-spec"),
-      makeStep("write-tests"),
+      makeStep("execute-work-item"),
+      makeStep("critique"),
     ];
 
     const summary = summarizeShift(steps);
     expect(summary.description).toContain("fix");
     expect(summary.description).toContain("feature");
-    expect(summary.description).toContain("test");
+    expect(summary.description).toContain("review");
   });
 });

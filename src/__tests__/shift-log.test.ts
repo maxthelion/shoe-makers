@@ -42,6 +42,38 @@ describe("appendToShiftLog", () => {
     expect(content).toContain("Second entry.");
   });
 
+  test("deduplicates consecutive identical entries", async () => {
+    await appendToShiftLog(tempDir, "Same entry.");
+    await appendToShiftLog(tempDir, "Same entry.");
+    await appendToShiftLog(tempDir, "Same entry.");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8"
+    );
+
+    const matches = content.match(/Same entry\./g);
+    expect(matches).toHaveLength(1);
+  });
+
+  test("allows different consecutive entries", async () => {
+    await appendToShiftLog(tempDir, "Entry A.");
+    await appendToShiftLog(tempDir, "Entry B.");
+    await appendToShiftLog(tempDir, "Entry A.");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8"
+    );
+
+    const matchesA = content.match(/Entry A\./g);
+    const matchesB = content.match(/Entry B\./g);
+    expect(matchesA).toHaveLength(2);
+    expect(matchesB).toHaveLength(1);
+  });
+
   test("includes UTC timestamp in entry header", async () => {
     await appendToShiftLog(tempDir, "Test entry.");
 
@@ -87,8 +119,8 @@ describe("formatTickLog", () => {
   test("formats suggestions for next priorities", () => {
     const log = formatTickLog({
       branch: "shoemakers/2026-03-21",
-      tickType: "implement-spec",
-      skill: "implement-spec",
+      tickType: "execute-work-item",
+      skill: "execute-work-item",
       result: "Implemented init command",
       error: null,
       suggestions: ["Fix the plan detection bug next", "Add more test coverage for invariants"],

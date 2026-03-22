@@ -30,15 +30,11 @@ export type ActionType =
   | "critique"
   | "review"
   | "inbox"
-  | "implement-plan"
-  | "implement-spec"
-  | "write-tests"
-  | "document"
-  | "improve-health"
+  | "execute-work-item"
+  | "dead-code"
+  | "prioritise"
   | "explore";
 
-/** @deprecated Use ActionType instead. Kept for backward compatibility. */
-export type TickType = "assess" | "prioritise" | "work" | "verify";
 
 /** The blackboard — shared state written as files on the branch */
 export interface Blackboard {
@@ -70,6 +66,8 @@ export interface Assessment {
   /** Findings from .shoe-makers/findings/ — persistent observations from previous elves */
   findings: Finding[];
   testsPass: boolean | null;
+  /** Whether TypeScript compilation passes (npx tsc --noEmit). Optional for backward compatibility. */
+  typecheckPass?: boolean | null;
   recentGitActivity: string[];
 }
 
@@ -142,6 +140,12 @@ export interface WorldState {
   hasUnreviewedCommits: boolean;
   /** Number of unresolved critique findings */
   unresolvedCritiqueCount: number;
+  /** Whether .shoe-makers/state/work-item.md exists */
+  hasWorkItem: boolean;
+  /** Whether .shoe-makers/state/candidates.md exists */
+  hasCandidates: boolean;
+  /** The skill type of the current work item, or null if no work item or unknown type */
+  workItemSkillType: string | null;
   /** Configuration (optional — defaults used if absent) */
   config?: Config;
 }
@@ -179,6 +183,4 @@ export interface Config {
   maxTicksPerShift: number;
   /** Which skills are enabled (null = all enabled) */
   enabledSkills: string[] | null;
-  /** Frequency of creative lens in explore cycles (0-1, default 0.3) */
-  insightFrequency: number;
 }

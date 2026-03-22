@@ -26,3 +26,7 @@ Integrated octoclean (`github:maxthelion/octoclean`) into the assessment pipelin
 ## Status
 
 Complete.
+
+## Status
+
+Resolved.

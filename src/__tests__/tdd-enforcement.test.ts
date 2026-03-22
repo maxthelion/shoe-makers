@@ -1,33 +1,32 @@
 import { describe, test, expect } from "bun:test";
 import { isFileAllowed, getPermissions } from "../verify/permissions";
 
-describe("TDD enforcement via permissions", () => {
-  test("implement-spec cannot write test files (elf making tests pass cannot modify tests)", () => {
-    expect(isFileAllowed("implement-spec", "src/__tests__/foo.test.ts")).toBe(false);
-    expect(isFileAllowed("implement-spec", "src/__tests__/bar.test.ts")).toBe(false);
+describe("permission enforcement", () => {
+  test("executor can write source, wiki, and state files", () => {
+    expect(isFileAllowed("execute-work-item", "src/types.ts")).toBe(true);
+    expect(isFileAllowed("execute-work-item", "wiki/pages/foo.md")).toBe(true);
+    expect(isFileAllowed("execute-work-item", ".shoe-makers/state/work-item.md")).toBe(true);
   });
 
-  test("implement-spec can still write non-test source files", () => {
-    expect(isFileAllowed("implement-spec", "src/types.ts")).toBe(true);
-    expect(isFileAllowed("implement-spec", "src/verify/permissions.ts")).toBe(true);
+  test("executor cannot write test files (TDD enforcement)", () => {
+    expect(isFileAllowed("execute-work-item", "src/__tests__/foo.test.ts")).toBe(false);
   });
 
-  test("implement-plan cannot write test files", () => {
-    expect(isFileAllowed("implement-plan", "src/__tests__/foo.test.ts")).toBe(false);
+  test("executor cannot write invariants.md", () => {
+    expect(isFileAllowed("execute-work-item", ".shoe-makers/invariants.md")).toBe(false);
   });
 
-  test("implement-plan can write source and wiki", () => {
-    expect(isFileAllowed("implement-plan", "src/types.ts")).toBe(true);
-    expect(isFileAllowed("implement-plan", "wiki/pages/foo.md")).toBe(true);
+  test("prioritiser can only write state files", () => {
+    expect(isFileAllowed("prioritise", ".shoe-makers/state/work-item.md")).toBe(true);
+    expect(isFileAllowed("prioritise", ".shoe-makers/state/candidates.md")).toBe(true);
+    expect(isFileAllowed("prioritise", "src/types.ts")).toBe(false);
+    expect(isFileAllowed("prioritise", "wiki/pages/foo.md")).toBe(false);
   });
 
-  test("write-tests cannot write non-test source (test writer can't implement)", () => {
-    expect(isFileAllowed("write-tests", "src/types.ts")).toBe(false);
-    expect(isFileAllowed("write-tests", "src/verify/permissions.ts")).toBe(false);
-  });
-
-  test("write-tests CAN write test files", () => {
-    expect(isFileAllowed("write-tests", "src/__tests__/foo.test.ts")).toBe(true);
+  test("explorer can write state and findings only", () => {
+    expect(isFileAllowed("explore", ".shoe-makers/state/candidates.md")).toBe(true);
+    expect(isFileAllowed("explore", ".shoe-makers/findings/note.md")).toBe(true);
+    expect(isFileAllowed("explore", "src/types.ts")).toBe(false);
   });
 
   test("fix-tests can write both source and tests (fixing requires both)", () => {
@@ -35,11 +34,9 @@ describe("TDD enforcement via permissions", () => {
     expect(isFileAllowed("fix-tests", "src/__tests__/foo.test.ts")).toBe(true);
   });
 
-  test("improve-health cannot write test files", () => {
-    expect(isFileAllowed("improve-health", "src/__tests__/foo.test.ts")).toBe(false);
-  });
-
-  test("improve-health can write non-test source", () => {
-    expect(isFileAllowed("improve-health", "src/types.ts")).toBe(true);
+  test("reviewer cannot write source or wiki", () => {
+    expect(isFileAllowed("critique", "src/types.ts")).toBe(false);
+    expect(isFileAllowed("critique", "wiki/pages/foo.md")).toBe(false);
+    expect(isFileAllowed("critique", ".shoe-makers/findings/critique-001.md")).toBe(true);
   });
 });

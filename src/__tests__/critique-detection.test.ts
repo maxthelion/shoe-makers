@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, mkdir, writeFile, readFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
+import { RESOLVED_PATTERN } from "../state/world";
 
 /**
  * Tests for the critique resolution detection pattern.
@@ -12,8 +13,6 @@ import { tmpdir } from "os";
  * - NOT match when "Resolved" appears in body text without Status heading
  * - NOT match "## Status\nNot Resolved"
  */
-
-const RESOLVED_PATTERN = /^## Status\s*\n\s*Resolved\.?\s*$/mi;
 
 describe("critique resolution regex", () => {
   test("matches standard resolved format", () => {

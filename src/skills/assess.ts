@@ -25,9 +25,21 @@ function getRecentGitActivity(repoRoot: string): string[] {
 /**
  * Run `bun test` and return whether tests pass.
  */
-function runTests(repoRoot: string): boolean {
+export function runTests(repoRoot: string): boolean {
   try {
     execSync("bun test", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Run `npx tsc --noEmit` and return whether TypeScript compilation passes.
+ */
+function runTypecheck(repoRoot: string): boolean {
+  try {
+    execSync("npx tsc --noEmit", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
     return true;
   } catch {
     return false;
@@ -87,6 +99,28 @@ async function readFindings(repoRoot: string): Promise<Finding[]> {
 }
 
 /**
+ * Build actionable suggestions from assessment data.
+ * Used by setup, index, and shift to surface work opportunities.
+ */
+export function buildSuggestions(
+  assessment: Assessment | null,
+  options?: { includeFindings?: boolean }
+): string[] {
+  const suggestions: string[] = [];
+  if (!assessment) return suggestions;
+  if (assessment.invariants) {
+    const { specifiedOnly, implementedUntested } = assessment.invariants;
+    if (specifiedOnly > 0) suggestions.push(`${specifiedOnly} specified-only invariants need implementation`);
+    if (implementedUntested > 0) suggestions.push(`${implementedUntested} implemented features need tests`);
+  }
+  if (assessment.openPlans.length > 0) suggestions.push(`${assessment.openPlans.length} open plan(s) to work on`);
+  if (options?.includeFindings !== false && assessment.findings.length > 0) {
+    suggestions.push(`${assessment.findings.length} finding(s) to review`);
+  }
+  return suggestions;
+}
+
+/**
  * The assess skill: gather world information and write assessment.json.
  *
  * Gathers: test results, git activity, open plans, invariants pipeline,
@@ -96,8 +130,9 @@ export async function assess(repoRoot: string): Promise<Assessment> {
   const config = await loadConfig(repoRoot);
   const wikiDir = config.wikiDir;
 
-  const [testsPass, recentGitActivity, openPlans, invariants, findings, healthResult] = await Promise.all([
+  const [testsPass, typecheckPass, recentGitActivity, openPlans, invariants, findings, healthResult] = await Promise.all([
     runTests(repoRoot),
+    runTypecheck(repoRoot),
     getRecentGitActivity(repoRoot),
     findOpenPlans(repoRoot, wikiDir),
     checkInvariants(repoRoot, wikiDir),
@@ -113,6 +148,7 @@ export async function assess(repoRoot: string): Promise<Assessment> {
     openPlans,
     findings,
     testsPass,
+    typecheckPass,
     recentGitActivity,
   };
 

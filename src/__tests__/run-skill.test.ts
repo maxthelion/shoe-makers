@@ -42,29 +42,16 @@ describe("runSkill", () => {
     expect(result).toContain("inbox");
   });
 
-  test("returns descriptive message for implement-plan", async () => {
-    const result = await runSkill(tempDir, "implement-plan");
-    expect(result).toContain("implement-plan");
+  test("returns descriptive message for execute-work-item", async () => {
+    const result = await runSkill(tempDir, "execute-work-item");
+    expect(result).toContain("execute-work-item");
+    expect(result).toContain("work-item.md");
   });
 
-  test("returns descriptive message for implement-spec", async () => {
-    const result = await runSkill(tempDir, "implement-spec");
-    expect(result).toContain("implement-spec");
-  });
-
-  test("returns descriptive message for write-tests", async () => {
-    const result = await runSkill(tempDir, "write-tests");
-    expect(result).toContain("write-tests");
-  });
-
-  test("returns descriptive message for document", async () => {
-    const result = await runSkill(tempDir, "document");
-    expect(result).toContain("document");
-  });
-
-  test("returns descriptive message for improve-health", async () => {
-    const result = await runSkill(tempDir, "improve-health");
-    expect(result).toContain("improve-health");
+  test("returns descriptive message for prioritise", async () => {
+    const result = await runSkill(tempDir, "prioritise");
+    expect(result).toContain("prioritise");
+    expect(result).toContain("candidates.md");
   });
 
   test("handles unknown action type", async () => {

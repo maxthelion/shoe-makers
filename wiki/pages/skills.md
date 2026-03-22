@@ -3,7 +3,7 @@ title: Skills
 category: architecture
 tags: [skills, tools, extensibility]
 summary: The skill registry — self-contained units of work the behaviour tree can invoke.
-last-modified-by: user
+last-modified-by: elf
 ---
 
 ## What is a Skill?
@@ -42,10 +42,8 @@ Attempt fixes for open issues. Reads issue tracker, picks issues tagged as bugs,
 ### dead-code
 Remove unused exports, functions, and files. Conservative — only removes things with zero references. Maps to priority type `dead-code`. Risk: low.
 
-## Planned Skills (not yet implemented)
-
 ### dependency-update
-Update dependencies, run tests, check for breaking changes.
+Update outdated dependencies, run tests, check for breaking changes. One dependency at a time, separate commits. Maps to priority type `dependency-update`. Risk: medium.
 
 ## Skill Interface
 

@@ -37,6 +37,9 @@ function makeState(overrides: Partial<WorldState> = {}): WorldState {
     inboxCount: 0,
     hasUnreviewedCommits: false,
     unresolvedCritiqueCount: 0,
+    hasWorkItem: false,
+    hasCandidates: false,
+    workItemSkillType: null,
     blackboard: {
       ...emptyBlackboard(),
       assessment: freshAssessment,
@@ -65,34 +68,14 @@ describe("tick", () => {
     expect(result.action).toBe("inbox");
   });
 
-  test("returns implement-plan when plans exist", () => {
-    const result = tick(
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: { ...freshAssessment, openPlans: ["my-plan"] },
-        },
-      })
-    );
-    expect(result.action).toBe("implement-plan");
+  test("returns execute-work-item when work-item.md exists", () => {
+    const result = tick(makeState({ hasWorkItem: true }));
+    expect(result.action).toBe("execute-work-item");
   });
 
-  test("returns implement-spec when spec gaps exist", () => {
-    const result = tick(
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: {
-            ...freshAssessment,
-            invariants: {
-              ...freshAssessment.invariants!,
-              specifiedOnly: 2,
-            },
-          },
-        },
-      })
-    );
-    expect(result.action).toBe("implement-spec");
+  test("returns prioritise when candidates.md exists", () => {
+    const result = tick(makeState({ hasCandidates: true }));
+    expect(result.action).toBe("prioritise");
   });
 
   test("returns fix-critique when there are unresolved critiques", () => {
@@ -130,6 +113,61 @@ describe("tick", () => {
     const result = tick(makeState());
     expect(result.action).toBe("explore");
     expect(result.skill).toBe("explore");
+  });
+
+  test("returns review when there are uncommitted changes", () => {
+    const result = tick(makeState({ hasUncommittedChanges: true }));
+    expect(result.action).toBe("review");
+    expect(result.skill).toBe("review");
+  });
+
+  test("reactive conditions take priority over proactive work", () => {
+    // Tests failing AND has candidates → fix-tests wins
+    const result = tick(makeState({
+      hasCandidates: true,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: { ...freshAssessment, testsPass: false },
+      },
+    }));
+    expect(result.action).toBe("fix-tests");
+  });
+
+  test("returns fix-tests when typecheck fails", () => {
+    const result = tick(
+      makeState({
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: { ...freshAssessment, testsPass: true, typecheckPass: false },
+        },
+      })
+    );
+    expect(result.action).toBe("fix-tests");
+    expect(result.skill).toBe("fix-tests");
+  });
+
+  test("returns dead-code when work item is dead-code type", () => {
+    const result = tick(makeState({ hasWorkItem: true, workItemSkillType: "dead-code" }));
+    expect(result.action).toBe("dead-code");
+    expect(result.skill).toBe("dead-code");
+  });
+
+  test("dead-code work item takes priority over regular work item routing", () => {
+    // Both hasWorkItem is true and workItemSkillType is "dead-code"
+    // dead-code condition (line 86) comes before work-item (line 87) in tree
+    const result = tick(makeState({ hasWorkItem: true, workItemSkillType: "dead-code" }));
+    expect(result.action).toBe("dead-code");
+    expect(result.action).not.toBe("execute-work-item");
+  });
+
+  test("returns explore when no assessment exists", () => {
+    const result = tick(makeState({
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: null,
+      },
+    }));
+    expect(result.action).toBe("explore");
   });
 
   test("always includes timestamp and branch", () => {

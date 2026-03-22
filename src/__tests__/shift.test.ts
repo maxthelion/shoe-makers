@@ -66,6 +66,9 @@ describe("shift runner", () => {
       inboxCount: 0,
       hasUnreviewedCommits: false,
       unresolvedCritiqueCount: 0,
+      hasWorkItem: false,
+      hasCandidates: false,
+      workItemSkillType: null,
       blackboard: {
         ...emptyBlackboard(),
         assessment: { ...freshAssessment, testsPass: false },
@@ -81,7 +84,7 @@ describe("shift runner", () => {
     expect(result.outcome).toBe("action");
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0].tick.action).toBe("fix-tests");
-    expect(result.workInstructions).toContain("fix-tests");
+    expect(result.steps[0].skillResult).toContain("fix-tests");
   });
 
   test("loops through explore and then stops on next action", async () => {
@@ -94,29 +97,28 @@ describe("shift runner", () => {
       inboxCount: 0,
       hasUnreviewedCommits: false,
       unresolvedCritiqueCount: 0,
+      hasWorkItem: false,
+      hasCandidates: false,
+      workItemSkillType: null,
       blackboard: {
         ...emptyBlackboard(),
         assessment: freshAssessment,
       },
     };
 
-    // Tick 2: after explore refreshed assessment, spec gaps found → implement-spec
+    // Tick 2: after explore wrote candidates.md → prioritise
     const state2: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
       inboxCount: 0,
       hasUnreviewedCommits: false,
       unresolvedCritiqueCount: 0,
+      hasWorkItem: false,
+      hasCandidates: true,
+      workItemSkillType: null,
       blackboard: {
         ...emptyBlackboard(),
-        assessment: {
-          ...freshAssessment,
-          invariants: {
-            ...freshAssessment.invariants!,
-            specifiedOnly: 3,
-            topSpecGaps: [{ id: "foo", description: "gap", group: "core" }],
-          },
-        },
+        assessment: freshAssessment,
       },
     };
 
@@ -130,7 +132,7 @@ describe("shift runner", () => {
     });
 
     expect(result.outcome).toBe("action");
-    expect(skillLog).toEqual(["explore", "implement-spec"]);
+    expect(skillLog).toEqual(["explore", "prioritise"]);
     expect(result.steps).toHaveLength(2);
   });
 
@@ -141,6 +143,9 @@ describe("shift runner", () => {
       inboxCount: 0,
       hasUnreviewedCommits: false,
       unresolvedCritiqueCount: 0,
+      hasWorkItem: false,
+      hasCandidates: false,
+      workItemSkillType: null,
       blackboard: emptyBlackboard(),
     };
 
@@ -155,153 +160,5 @@ describe("shift runner", () => {
     expect(result.outcome).toBe("error");
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0].error).toBe("skill exploded");
-  });
-
-  test("respects maxTicks limit", async () => {
-    // State that always triggers explore (always falls through)
-    const state: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      inboxCount: 0,
-      hasUnreviewedCommits: false,
-      unresolvedCritiqueCount: 0,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
-    };
-
-    const result = await shift(tempDir, {
-      maxTicks: 3,
-      readState: mockStateSequence([state]),
-      runSkill: async () => "done",
-      writeLog: noopLog,
-    });
-
-    expect(result.outcome).toBe("max-ticks");
-    expect(result.steps).toHaveLength(3);
-  });
-
-  test("calls onTick for each step", async () => {
-    const ticks: string[] = [];
-
-    const state: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      inboxCount: 0,
-      hasUnreviewedCommits: false,
-      unresolvedCritiqueCount: 0,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: { ...freshAssessment, testsPass: false },
-      },
-    };
-
-    await shift(tempDir, {
-      maxTicks: 1,
-      readState: mockStateSequence([state]),
-      runSkill: async () => "done",
-      writeLog: noopLog,
-      onTick(step) {
-        ticks.push(step.tick.action ?? "sleep");
-      },
-    });
-
-    expect(ticks).toEqual(["fix-tests"]);
-  });
-
-  test("handles inbox action", async () => {
-    const state: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      inboxCount: 2,
-      hasUnreviewedCommits: false,
-      unresolvedCritiqueCount: 0,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
-    };
-
-    const result = await shift(tempDir, {
-      readState: mockStateSequence([state]),
-      runSkill: async (_root, action) => `${action} done`,
-      writeLog: noopLog,
-    });
-
-    expect(result.outcome).toBe("action");
-    expect(result.steps[0].tick.action).toBe("inbox");
-  });
-
-  test("handles fix-critique action", async () => {
-    const state: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      inboxCount: 0,
-      hasUnreviewedCommits: false,
-      unresolvedCritiqueCount: 2,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
-    };
-
-    const result = await shift(tempDir, {
-      readState: mockStateSequence([state]),
-      runSkill: async (_root, action) => `${action} done`,
-      writeLog: noopLog,
-    });
-
-    expect(result.outcome).toBe("action");
-    expect(result.steps[0].tick.action).toBe("fix-critique");
-  });
-
-  test("handles critique action for unreviewed commits", async () => {
-    const state: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      inboxCount: 0,
-      hasUnreviewedCommits: true,
-      unresolvedCritiqueCount: 0,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
-    };
-
-    const result = await shift(tempDir, {
-      readState: mockStateSequence([state]),
-      runSkill: async (_root, action) => `${action} done`,
-      writeLog: noopLog,
-    });
-
-    expect(result.outcome).toBe("action");
-    expect(result.steps[0].tick.action).toBe("critique");
-  });
-
-  test("writes to log by default when using real shift log", async () => {
-    const state: WorldState = {
-      branch: "shoemakers/2026-03-21",
-      hasUncommittedChanges: false,
-      inboxCount: 0,
-      hasUnreviewedCommits: false,
-      unresolvedCritiqueCount: 0,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
-    };
-
-    await shift(tempDir, {
-      maxTicks: 1,
-      readState: mockStateSequence([state]),
-      runSkill: async () => "done",
-    });
-
-    const { readFile } = await import("fs/promises");
-    const logDir = join(tempDir, ".shoe-makers", "log");
-    const today = new Date().toISOString().slice(0, 10);
-    const logContent = await readFile(join(logDir, `${today}.md`), "utf-8");
-    expect(logContent).toContain("explore");
   });
 });

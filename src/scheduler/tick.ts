@@ -9,8 +9,6 @@ export interface TickResult {
   skill: string | null;
   /** The action the tree decided on */
   action: ActionType | null;
-  /** @deprecated Use action instead */
-  tickType: string | null;
 }
 
 /** Map skill names to action types */
@@ -20,11 +18,9 @@ const SKILL_TO_ACTION: Record<string, ActionType> = {
   critique: "critique",
   review: "review",
   inbox: "inbox",
-  "implement-plan": "implement-plan",
-  "implement-spec": "implement-spec",
-  "write-tests": "write-tests",
-  document: "document",
-  "improve-health": "improve-health",
+  "execute-work-item": "execute-work-item",
+  "dead-code": "dead-code",
+  prioritise: "prioritise",
   explore: "explore",
 };
 
@@ -43,6 +39,5 @@ export function tick(state: WorldState): TickResult {
     branch: state.branch,
     skill,
     action,
-    tickType: action, // backward compat
   };
 }

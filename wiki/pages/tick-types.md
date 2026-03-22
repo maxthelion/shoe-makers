@@ -13,27 +13,34 @@ Each tick evaluates the [[behaviour-tree]] against cached world state. The first
 ```
 Selector
 ├── [tests failing?] → Fix them
-├── [unverified work?] → Review adversarially
+├── [unresolved critiques?] → Fix the flagged issues
+├── [unreviewed commits?] → Review adversarially
+├── [uncommitted changes?] → Review before committing
 ├── [inbox messages?] → Read and act
-├── [open plans?] → Implement the most important one
-├── [specified-only invariants?] → Implement the most impactful one
-├── [untested code?] → Write tests
-├── [undocumented code?] → Update the wiki
-├── [health below threshold?] → Fix the worst file
-├── [nothing?] → Explore deeper
+├── [work-item.md exists?] → Execute the work item
+├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
+├── [neither?] → Explore: write candidates.md
 ```
 
-Priority is encoded in the tree order (macro) and the elf's judgement within each action (micro). No separate prioritisation phase needed.
+The tree has two zones: **reactive** conditions at the top (urgent, direct prompt) and **three-phase orchestration** at the bottom (proactive work).
 
-## The Assessment Cache
+## Three-Phase Orchestration
 
-Conditions read a cached assessment:
+Proactive work goes through three phases across three separate invocations:
+
+1. **Explore** — reads everything (wiki, code, invariants, health, findings), writes `candidates.md`
+2. **Prioritise** — reads `candidates.md` + relevant code/wiki, picks one, writes `work-item.md`
+3. **Execute** — reads `work-item.md`, does the work, deletes it
+
+## State Files
 
 ```
-.shoe-makers/state/assessment.json
+.shoe-makers/state/
+  assessment.json   ← cached world state, read by tree conditions
+  candidates.md     ← written by explore, consumed by prioritise
+  work-item.md      ← written by prioritise, consumed by executor
+  last-action.md    ← previous action's prompt, read by reviewer
 ```
-
-This is the only blackboard file needed. It's written by the "explore" action and read by all tree conditions. When nothing else matches, the explore action refreshes the assessment to surface new work.
 
 ## How It Works
 
@@ -47,10 +54,10 @@ This is the only blackboard file needed. It's written by the "explore" action an
 
 ## The Elf IS the LLM
 
-The elf doesn't need to call an API — it IS the intelligence. LLM-based prioritisation happens when the elf picks which invariant to tackle. Adversarial review happens when the elf reviews the diff. The tree provides structure; the elf provides judgement.
+The elf doesn't need to call an API — it IS the intelligence. LLM-based prioritisation happens when the elf picks which candidate to promote to a work item. Adversarial review happens when the elf reviews the diff. The tree provides structure; the elf provides judgement.
 
 ## Branch as State
 
-The branch IS the state. The assessment cache is an ephemeral file on the branch. Delete the branch and start clean. No database, no task tracker.
+The branch IS the state. State files are ephemeral on the branch. Delete the branch and start clean. No database, no task tracker.
 
 See also: [[behaviour-tree]], [[pure-function-agents]], [[invariants]], [[branching-strategy]]
