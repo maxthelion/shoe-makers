@@ -98,7 +98,15 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - This is the LLM judgement step — it weighs impact, confidence, risk, and balance across work types
 - No hardcoded priority between features/tests/docs/health — the prioritiser decides each cycle
 
-### 2.5 The wiki drives work
+### 2.5 Creative exploration
+- Some explore cycles include a random Wikipedia article as an analogical lens
+- The elf reads the codebase through the lens and writes an insight if it sees a connection
+- Insights go to `.shoe-makers/insights/`, separate from findings — they're proposals, not problems
+- Insights are reviewed by a future prioritise elf who decides: promote, defer, or dismiss
+- The separation between generating insights (divergent/creative) and acting on them (convergent/evaluative) is deliberate — different mental states, different invocations
+- Frequency is configurable via `insightFrequency` in config.yaml (default ~30% of explore cycles)
+
+### 2.6 The wiki drives work
 - The wiki is the source of truth — agents read it to understand project intent
 - Invariants compare wiki claims against code and surface gaps
 - Plans generate work candidates until implemented or marked done/blocked
