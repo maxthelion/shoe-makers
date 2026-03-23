@@ -12,7 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Plan page for agent work execution (`wiki/pages/agent-work-execution.md`) — documents the work execution gap and task lifecycle design
 - Shift runner (`bun run shift`) — runs multiple ticks in sequence, handles housekeeping automatically, pauses on work with instructions for the caller
 - Skill registry — loads markdown skill prompts from `.shoe-makers/skills/` and matches them to priority types
-- 5 skill markdown files: fix-tests, implement, test-coverage, doc-sync, health
+- 9 skill markdown files: fix-tests, implement, test-coverage, doc-sync, health, bug-fix, dead-code, dependency-update, octoclean-fix
 - Work skill now includes skill-specific instructions (verification criteria, permitted actions, off-limits)
 - README.md and CHANGELOG.md
 - Config loader — reads `.shoe-makers/config.yaml` with defaults, wired into world state
