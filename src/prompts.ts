@@ -9,10 +9,16 @@ const OFF_LIMITS = `
 - \`.shoe-makers/state/\` — managed by the scheduler, not agents (except candidates.md and work-item.md which you write as part of the three-phase cycle)`;
 
 /** Maps action types to skill mapsTo values for work actions */
-export const ACTION_TO_SKILL_TYPE: Partial<Record<ActionType, string>> = {
+export const ACTION_TO_SKILL_TYPE: Record<ActionType, string | undefined> = {
   "fix-tests": "fix",
   "execute-work-item": "implement",
   "dead-code": "dead-code",
+  "fix-critique": undefined,
+  "critique": undefined,
+  "review": undefined,
+  "inbox": undefined,
+  "prioritise": undefined,
+  "explore": undefined,
 };
 
 /**

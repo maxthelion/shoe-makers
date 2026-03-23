@@ -203,6 +203,7 @@ describe("ACTION_TO_SKILL_TYPE matches real skill files", () => {
     );
 
     for (const [action, skillType] of Object.entries(ACTION_TO_SKILL_TYPE)) {
+      if (skillType === undefined) continue;
       expect(skillMapsToValues).toContain(skillType);
     }
   });
@@ -212,6 +213,7 @@ describe("ACTION_TO_SKILL_TYPE matches real skill files", () => {
     const state = makeState();
 
     for (const [action, skillType] of Object.entries(ACTION_TO_SKILL_TYPE)) {
+      if (skillType === undefined) continue;
       const prompt = generatePrompt(action as ActionType, state, skills);
       expect(prompt).toContain("## Skill:");
     }
