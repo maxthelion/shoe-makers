@@ -3,31 +3,10 @@ import { mkdtemp, rm, mkdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { shift } from "../scheduler/shift";
-import type { WorldState, Assessment } from "../types";
-import { emptyBlackboard } from "./test-utils";
+import type { WorldState } from "../types";
+import { emptyBlackboard, freshAssessment } from "./test-utils";
 
 let tempDir: string;
-
-const now = new Date().toISOString();
-
-const freshAssessment: Assessment = {
-  timestamp: now,
-  invariants: {
-    specifiedOnly: 0,
-    implementedUntested: 0,
-    implementedTested: 50,
-    unspecified: 0,
-    topSpecGaps: [],
-    topUntested: [],
-    topUnspecified: [],
-  },
-  healthScore: 80,
-  worstFiles: [],
-  openPlans: [],
-  findings: [],
-  testsPass: true,
-  recentGitActivity: [],
-};
 
 beforeEach(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-shift-"));
