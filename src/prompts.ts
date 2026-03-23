@@ -216,31 +216,16 @@ ${tierGuidance}
 Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."${OFF_LIMITS}`;
 }
 
-/**
- * Generate a focused prompt for the elf based on the tree's decision.
- *
- * Each action produces a scoped prompt telling the elf exactly what to do.
- * This is the interface between the deterministic tree and the elf's intelligence.
- */
-export function generatePrompt(
-  action: ActionType,
-  state: WorldState,
-  skills?: Map<string, SkillDefinition>,
-  article?: { title: string; summary: string },
-): string {
-  const skill = findSkillForAction(action, skills);
-  const skillSection = skill ? formatSkillSection(skill) : "";
-
-  switch (action) {
-    case "fix-tests":
-      return `# Fix Failing Tests
+function buildFixTestsPrompt(skillSection: string): string {
+  return `# Fix Failing Tests
 
 Tests are failing. This is the highest priority — fix them before doing anything else.
 
 Run \`bun test\` to see the failures. Fix them. Run \`bun test\` again to confirm. Commit.${skillSection}${OFF_LIMITS}`;
+}
 
-    case "fix-critique":
-      return `# Fix Unresolved Critiques
+function buildFixCritiquePrompt(): string {
+  return `# Fix Unresolved Critiques
 
 A previous elf's adversarial review found issues that haven't been resolved yet. Fix them before doing new work.
 
@@ -252,9 +237,10 @@ Read the critique findings in \`.shoe-makers/findings/\` (files starting with \`
 5. Commit your fixes
 
 Do NOT delete the critique files — mark them as resolved so the review trail is preserved.${OFF_LIMITS}`;
+}
 
-    case "critique":
-      return `# Adversarial Review — Critique Previous Elf's Work
+function buildCritiquePrompt(): string {
+  return `# Adversarial Review — Critique Previous Elf's Work
 
 There are commits since the last review that need adversarial scrutiny. You are the reviewer, not the author.
 
@@ -278,9 +264,10 @@ Be honest and thorough. If the work is good, say so briefly. If there are proble
 **Off-limits — do NOT modify these files:**
 - \`.shoe-makers/invariants.md\` — only humans maintain the spec claims
 - Any file in \`src/\`, \`wiki/\`, or tests — reviewers can only write findings`;
+}
 
-    case "review":
-      return `# Review Uncommitted Work
+function buildReviewPrompt(): string {
+  return `# Review Uncommitted Work
 
 There are uncommitted changes on the branch. Review them adversarially before committing.
 
@@ -290,14 +277,16 @@ Run \`git diff\` to see the changes. Check for:
 - Spec alignment: does this match the wiki?
 
 If the changes are good, commit them. If not, fix the issues first.${OFF_LIMITS}`;
+}
 
-    case "inbox":
-      return `# Inbox Messages
+function buildInboxPrompt(state: WorldState): string {
+  return `# Inbox Messages
 
 There are ${state.inboxCount} message(s) in \`.shoe-makers/inbox/\`. Read them, do what they ask, commit your work, then delete the message files.${OFF_LIMITS}`;
+}
 
-    case "execute-work-item":
-      return `# Execute Work Item
+function buildExecutePrompt(skillSection: string): string {
+  return `# Execute Work Item
 
 A previous elf wrote a detailed work item in \`.shoe-makers/state/work-item.md\`. Read it and do exactly what it says.
 
@@ -311,9 +300,10 @@ A previous elf wrote a detailed work item in \`.shoe-makers/state/work-item.md\`
 The work-item contains specific, detailed instructions with full context. Follow them precisely.
 
 When wiki and code diverge, check which changed more recently. If the wiki is newer, change code to match — never revert the wiki. The wiki is always the source of truth.${skillSection}${OFF_LIMITS}`;
+}
 
-    case "dead-code":
-      return `# Remove Dead Code
+function buildDeadCodePrompt(skillSection: string): string {
+  return `# Remove Dead Code
 
 A work item in \`.shoe-makers/state/work-item.md\` describes dead code to remove. Read it and follow the instructions.
 
@@ -325,10 +315,40 @@ A work item in \`.shoe-makers/state/work-item.md\` describes dead code to remove
 6. Delete \`.shoe-makers/state/work-item.md\`
 
 You ARE permitted to delete test files that test removed features.${skillSection}${OFF_LIMITS}`;
+}
 
+/**
+ * Generate a focused prompt for the elf based on the tree's decision.
+ *
+ * Each action produces a scoped prompt telling the elf exactly what to do.
+ * This is the interface between the deterministic tree and the elf's intelligence.
+ */
+export function generatePrompt(
+  action: ActionType,
+  state: WorldState,
+  skills?: Map<string, SkillDefinition>,
+  article?: { title: string; summary: string },
+): string {
+  const skill = findSkillForAction(action, skills);
+  const skillSection = skill ? formatSkillSection(skill) : "";
+
+  switch (action) {
+    case "fix-tests":
+      return buildFixTestsPrompt(skillSection);
+    case "fix-critique":
+      return buildFixCritiquePrompt();
+    case "critique":
+      return buildCritiquePrompt();
+    case "review":
+      return buildReviewPrompt();
+    case "inbox":
+      return buildInboxPrompt(state);
+    case "execute-work-item":
+      return buildExecutePrompt(skillSection);
+    case "dead-code":
+      return buildDeadCodePrompt(skillSection);
     case "prioritise":
       return buildPrioritisePrompt(state);
-
     case "explore":
       return buildExplorePrompt(state, skills, article);
   }
