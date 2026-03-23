@@ -52,7 +52,7 @@ const ROLE_MAP: Record<ActionType, RolePermissions> = {
   "execute-work-item": {
     role: "executor",
     canWrite: ["src/", "wiki/", ".shoe-makers/state/"],
-    cannotWrite: [...ALWAYS_FORBIDDEN, "src/__tests__/"],
+    cannotWrite: [...ALWAYS_FORBIDDEN],
   },
   "dead-code": {
     role: "dead-code-remover",

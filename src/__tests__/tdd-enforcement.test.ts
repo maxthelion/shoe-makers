@@ -8,8 +8,8 @@ describe("permission enforcement", () => {
     expect(isFileAllowed("execute-work-item", ".shoe-makers/state/work-item.md")).toBe(true);
   });
 
-  test("executor cannot write test files (TDD enforcement)", () => {
-    expect(isFileAllowed("execute-work-item", "src/__tests__/foo.test.ts")).toBe(false);
+  test("executor can write test files (bug-fix work items need tests alongside fix)", () => {
+    expect(isFileAllowed("execute-work-item", "src/__tests__/foo.test.ts")).toBe(true);
   });
 
   test("executor cannot write invariants.md", () => {
