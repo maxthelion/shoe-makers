@@ -19,6 +19,8 @@ Key pages:
 - `wiki/pages/plans-vs-spec.md` — plans are deltas, spec is facts
 - `wiki/pages/branching-strategy.md` — one branch per night shift
 - `wiki/pages/bootstrapping.md` — how we're building this
+- `wiki/pages/creative-exploration.md` — Wikipedia lens, insights workflow
+- `wiki/pages/verification.md` — role-based permissions, adversarial review, TDD
 
 ## How to Work on This Project
 
