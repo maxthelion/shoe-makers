@@ -2,8 +2,7 @@
 
 The previous elf modified files outside their permitted scope:
 
-- `.shoe-makers/log/2026-03-23.md`
-- `.shoe-makers/state/candidates.md`
+- `src/__tests__/detect-violations.test.ts`
 
 This was detected automatically by the setup script. The fix-critique elf should investigate whether these changes are legitimate and either revert them or explain why they were necessary.
 
@@ -11,4 +10,4 @@ This was detected automatically by the setup script. The fix-critique elf should
 
 Resolved.
 
-False positive — both files were modified by housekeeping, not by the elf. Log was auto-committed by setup; candidates.md was cleaned up as part of lifecycle. See critique-133.
+Test file written alongside bug fix implementation. The executor role forbids `src/__tests__/` but bug-fix work items require tests alongside the fix. See critique-134 for full analysis.
