@@ -57,6 +57,7 @@ const allActions: ActionType[] = [
   "review",
   "inbox",
   "execute-work-item",
+  "dead-code",
   "prioritise",
   "explore",
 ];
@@ -127,6 +128,26 @@ describe("generatePrompt", () => {
     expect(prompt).toContain("source of truth");
   });
 
+  test("dead-code prompt tells elf to read work-item.md", () => {
+    const prompt = generatePrompt("dead-code", makeState());
+    expect(prompt).toContain("work-item.md");
+  });
+
+  test("dead-code prompt tells elf to verify with grep", () => {
+    const prompt = generatePrompt("dead-code", makeState());
+    expect(prompt).toContain("grep");
+  });
+
+  test("dead-code prompt permits deleting test files", () => {
+    const prompt = generatePrompt("dead-code", makeState());
+    expect(prompt).toContain("You ARE permitted to delete test files");
+  });
+
+  test("dead-code prompt tells elf to run bun test", () => {
+    const prompt = generatePrompt("dead-code", makeState());
+    expect(prompt).toContain("bun test");
+  });
+
   test("prioritise prompt mentions reviewing insights", () => {
     const prompt = generatePrompt("prioritise", makeState());
     expect(prompt).toContain(".shoe-makers/insights/");
@@ -193,6 +214,18 @@ describe("generatePrompt includes skill content for work actions", () => {
   test("skill content is in a clearly marked section", () => {
     const prompt = generatePrompt("execute-work-item", makeState(), skills);
     expect(prompt).toContain("## Skill: implement");
+  });
+
+  test("dead-code prompt includes dead-code skill body when provided", () => {
+    const deadCodeSkill = makeSkill({
+      name: "dead-code",
+      mapsTo: "dead-code",
+      body: "## Instructions\n\nFind and remove unused exports.\n\n## Verification criteria\n\n- No import errors",
+    });
+    const skillsWithDeadCode = makeSkillMap(implementSkill, fixTestsSkill, deadCodeSkill);
+    const prompt = generatePrompt("dead-code", makeState(), skillsWithDeadCode);
+    expect(prompt).toContain("## Skill: dead-code");
+    expect(prompt).toContain("Find and remove unused exports");
   });
 
   test("non-work actions ignore skills (critique, review, explore)", () => {
