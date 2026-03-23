@@ -71,6 +71,8 @@ export interface Assessment {
   /** Whether TypeScript compilation passes (npx tsc --noEmit). Optional for backward compatibility. */
   typecheckPass?: boolean | null;
   recentGitActivity: string[];
+  /** Process patterns from current shift (reactive ratio, review loops) */
+  processPatterns?: { reactiveRatio: number; reviewLoopCount: number };
 }
 
 /** A finding from .shoe-makers/findings/ */

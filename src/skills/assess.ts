@@ -7,6 +7,7 @@ import { writeAssessment } from "../state/blackboard";
 import { checkInvariants } from "../verify/invariants";
 import { loadConfig } from "../config/load-config";
 import { getHealthResult } from "./health-scan";
+import { getShiftProcessPatterns } from "../log/shift-log-parser";
 
 /**
  * Gather recent git activity (last 10 commits, one-line).
@@ -159,7 +160,7 @@ export async function assess(repoRoot: string): Promise<Assessment> {
   const config = await loadConfig(repoRoot);
   const wikiDir = config.wikiDir;
 
-  const [testsPass, typecheckPass, recentGitActivity, openPlans, invariants, findings, healthResult] = await Promise.all([
+  const [testsPass, typecheckPass, recentGitActivity, openPlans, invariants, findings, healthResult, processPatterns] = await Promise.all([
     runTests(repoRoot),
     runTypecheck(repoRoot),
     getRecentGitActivity(repoRoot),
@@ -167,6 +168,7 @@ export async function assess(repoRoot: string): Promise<Assessment> {
     checkInvariants(repoRoot, wikiDir),
     readFindings(repoRoot),
     getHealthResult(repoRoot),
+    getShiftProcessPatterns(repoRoot),
   ]);
 
   const assessment: Assessment = {
@@ -179,6 +181,7 @@ export async function assess(repoRoot: string): Promise<Assessment> {
     testsPass,
     typecheckPass,
     recentGitActivity,
+    processPatterns,
   };
 
   await writeAssessment(repoRoot, assessment);

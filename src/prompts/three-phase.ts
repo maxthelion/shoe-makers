@@ -3,6 +3,33 @@ import type { SkillDefinition } from "../skills/registry";
 import { OFF_LIMITS, formatTopGaps, formatCodebaseSnapshot, formatSkillCatalog, determineTier, isInnovationTier } from "./helpers";
 
 /**
+ * Format process temperature guidance based on the shift's reactive ratio.
+ * Returns an empty string if no process data is available or the ratio is moderate.
+ */
+function formatProcessTemperature(assessment: WorldState["blackboard"]["assessment"]): string {
+  const patterns = assessment?.processPatterns;
+  if (!patterns) return "";
+
+  if (patterns.reactiveRatio > 0.6) {
+    return `
+
+## Process signal: high reactive ratio (${Math.round(patterns.reactiveRatio * 100)}%)
+
+This shift has been mostly reactive — fixes, reviews, and critiques dominating over proactive work. Look for **root causes** of churn rather than more surface-level fixes. What architectural issues, missing infrastructure, or quality gaps are causing repeated reactive cycles?`;
+  }
+
+  if (patterns.reactiveRatio < 0.3) {
+    return `
+
+## Process signal: stable shift (${Math.round(patterns.reactiveRatio * 100)}% reactive)
+
+This shift has been running smoothly with mostly proactive work. Candidates can be more ambitious — new features, creative improvements, or spec extensions. The system is stable enough to take risks.`;
+  }
+
+  return "";
+}
+
+/**
  * Build the explore prompt with tier-specific guidance.
  */
 export function buildExplorePrompt(
@@ -37,10 +64,12 @@ The codebase has ${tier.specOnlyCount} unimplemented spec claim(s) and ${tier.un
 
 Survey the codebase for issues that the invariants may not cover: code smells, stale documentation, missing tests, spec-code inconsistencies.`;
 
+  const processSection = formatProcessTemperature(state.blackboard.assessment);
+
   return `# Explore — Survey and Write Candidates
 
 Nothing is queued for work. Your job is to survey the codebase and produce a ranked candidate list.
-${tierSection}
+${tierSection}${processSection}
 
 ## Steps
 

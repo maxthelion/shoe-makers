@@ -242,6 +242,51 @@ describe("explore prompt creative lens", () => {
   });
 });
 
+describe("explore prompt process temperature", () => {
+  function makeStateWithProcessPatterns(reactiveRatio: number, reviewLoopCount: number = 0): WorldState {
+    return {
+      ...makeState(),
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio, reviewLoopCount },
+        },
+      },
+    };
+  }
+
+  test("includes high reactive ratio guidance when ratio > 0.6", () => {
+    const state = makeStateWithProcessPatterns(0.75);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("high reactive ratio");
+    expect(prompt).toContain("75%");
+    expect(prompt).toContain("root causes");
+  });
+
+  test("includes stability guidance when ratio < 0.3", () => {
+    const state = makeStateWithProcessPatterns(0.1);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("stable shift");
+    expect(prompt).toContain("10%");
+    expect(prompt).toContain("ambitious");
+  });
+
+  test("no extra guidance when ratio is moderate", () => {
+    const state = makeStateWithProcessPatterns(0.45);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).not.toContain("high reactive ratio");
+    expect(prompt).not.toContain("stable shift");
+    expect(prompt).not.toContain("Process signal");
+  });
+
+  test("no extra guidance when processPatterns is missing", () => {
+    const state = makeState();
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).not.toContain("Process signal");
+  });
+});
+
 describe("explore and prioritise tier switching", () => {
   function makeStateWithGaps(specifiedOnly: number, implementedUntested: number): WorldState {
     const baseInv = freshAssessment.invariants!;
