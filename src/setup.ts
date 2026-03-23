@@ -18,6 +18,7 @@ import { loadConfig } from "./config/load-config";
 import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
 import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
+import { archiveConsumedStateFiles } from "./archive/state-archive";
 
 /**
  * Setup script: runs before the elf starts.
@@ -111,6 +112,14 @@ async function main() {
     }
   }
 
+  // Archive state files that will be consumed by this action
+  if (skill) {
+    const archivedState = await archiveConsumedStateFiles(repoRoot, skill);
+    if (archivedState.length > 0) {
+      console.log(`[setup] Archived ${archivedState.length} state file(s) for traceability`);
+    }
+  }
+
   const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary);
 
   const stateDir = join(repoRoot, ".shoe-makers", "state");
@@ -134,7 +143,7 @@ async function main() {
 }
 
 /** Paths considered housekeeping (archive moves, shift log entries) */
-export const HOUSEKEEPING_PATHS = [".shoe-makers/findings/", ".shoe-makers/log/"];
+export const HOUSEKEEPING_PATHS = [".shoe-makers/findings/", ".shoe-makers/log/", ".shoe-makers/archive/"];
 
 /**
  * Check if all lines from `git status --porcelain` output are housekeeping changes.
