@@ -2,14 +2,15 @@ import { describe, test, expect } from "bun:test";
 import { summarizeShift, type ShiftSummary } from "../log/shift-summary";
 import type { ShiftStep } from "../scheduler/shift";
 import type { TickResult } from "../scheduler/tick";
+import type { TraceEntry } from "../tree/evaluate";
 
-function makeStep(action: string): ShiftStep {
-  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action } as TickResult;
+function makeStep(action: string, trace: TraceEntry[] = []): ShiftStep {
+  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action, trace } as TickResult;
   return { tick, skillResult: `${action} done`, error: null };
 }
 
 function makeErrorStep(action: string): ShiftStep {
-  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action } as TickResult;
+  const tick = { timestamp: new Date().toISOString(), branch: "shoemakers/test", action, skill: action, trace: [] } as TickResult;
   return { tick, skillResult: null, error: "something failed" };
 }
 
@@ -125,5 +126,97 @@ describe("summarizeShift", () => {
     expect(summary.description).toContain("fix");
     expect(summary.description).toContain("feature");
     expect(summary.description).toContain("review");
+  });
+
+  test("returns no traceAnalysis when steps have no traces", () => {
+    const steps: ShiftStep[] = [makeStep("fix-tests"), makeStep("explore")];
+    const summary = summarizeShift(steps);
+    expect(summary.traceAnalysis).toBeUndefined();
+  });
+
+  test("classifies shallow traces as reactive", () => {
+    const trace: TraceEntry[] = [
+      { condition: "tests-failing", passed: true, skill: "fix-tests" },
+    ];
+    const steps: ShiftStep[] = [makeStep("fix-tests", trace)];
+    const summary = summarizeShift(steps);
+
+    expect(summary.traceAnalysis).toBeDefined();
+    expect(summary.traceAnalysis!.reactive).toBe(1);
+    expect(summary.traceAnalysis!.routine).toBe(0);
+    expect(summary.traceAnalysis!.explore).toBe(0);
+  });
+
+  test("classifies medium-depth traces as routine", () => {
+    const trace: TraceEntry[] = [
+      { condition: "tests-failing", passed: false, skill: "fix-tests" },
+      { condition: "unresolved-critiques", passed: false, skill: "fix-critique" },
+      { condition: "unreviewed-commits", passed: true, skill: "critique" },
+    ];
+    const steps: ShiftStep[] = [makeStep("critique", trace)];
+    const summary = summarizeShift(steps);
+
+    expect(summary.traceAnalysis!.routine).toBe(1);
+    expect(summary.traceAnalysis!.reactive).toBe(0);
+    expect(summary.traceAnalysis!.explore).toBe(0);
+  });
+
+  test("classifies deep traces as explore", () => {
+    const trace: TraceEntry[] = [
+      { condition: "tests-failing", passed: false, skill: "fix-tests" },
+      { condition: "unresolved-critiques", passed: false, skill: "fix-critique" },
+      { condition: "unreviewed-commits", passed: false, skill: "critique" },
+      { condition: "work-item", passed: false, skill: "execute-work-item" },
+      { condition: "candidates", passed: false, skill: "prioritise" },
+      { condition: "explore", passed: true, skill: "explore" },
+    ];
+    const steps: ShiftStep[] = [makeStep("explore", trace)];
+    const summary = summarizeShift(steps);
+
+    expect(summary.traceAnalysis!.explore).toBe(1);
+    expect(summary.traceAnalysis!.reactive).toBe(0);
+    expect(summary.traceAnalysis!.routine).toBe(0);
+  });
+
+  test("computes average depth across multiple traces", () => {
+    const shallow: TraceEntry[] = [
+      { condition: "tests-failing", passed: true, skill: "fix-tests" },
+    ];
+    const deep: TraceEntry[] = [
+      { condition: "tests-failing", passed: false, skill: "fix-tests" },
+      { condition: "unresolved-critiques", passed: false, skill: "fix-critique" },
+      { condition: "unreviewed-commits", passed: false, skill: "critique" },
+      { condition: "work-item", passed: false, skill: "execute-work-item" },
+      { condition: "explore", passed: true, skill: "explore" },
+    ];
+    const steps: ShiftStep[] = [
+      makeStep("fix-tests", shallow),
+      makeStep("explore", deep),
+    ];
+    const summary = summarizeShift(steps);
+
+    expect(summary.traceAnalysis!.averageDepth).toBe(3); // (1 + 5) / 2
+  });
+
+  test("counts condition fires correctly", () => {
+    const trace1: TraceEntry[] = [
+      { condition: "tests-failing", passed: true, skill: "fix-tests" },
+    ];
+    const trace2: TraceEntry[] = [
+      { condition: "tests-failing", passed: true, skill: "fix-tests" },
+    ];
+    const trace3: TraceEntry[] = [
+      { condition: "tests-failing", passed: false, skill: "fix-tests" },
+      { condition: "unresolved-critiques", passed: true, skill: "fix-critique" },
+    ];
+    const steps: ShiftStep[] = [
+      makeStep("fix-tests", trace1),
+      makeStep("fix-tests", trace2),
+      makeStep("fix-critique", trace3),
+    ];
+    const summary = summarizeShift(steps);
+
+    expect(summary.traceAnalysis!.conditionFires["tests-failing"]).toBe(2);
+    expect(summary.traceAnalysis!.conditionFires["unresolved-critiques"]).toBe(1);
   });
 });

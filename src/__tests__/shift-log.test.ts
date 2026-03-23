@@ -134,6 +134,14 @@ const emptySummary = {
   isBalanced: false, totalActions: 0, successCount: 0, errorCount: 0,
   description: "No improvement actions taken",
 };
+const summaryWithTraces = {
+  ...balancedSummary,
+  traceAnalysis: {
+    reactive: 2, routine: 6, explore: 2,
+    conditionFires: { "tests-failing": 2, "unreviewed-commits": 6 },
+    averageDepth: 4.2,
+  },
+};
 
 describe("formatShiftSummary", () => {
   test("includes action counts and categories", () => {
@@ -154,6 +162,17 @@ describe("formatShiftSummary", () => {
     const output = formatShiftSummary(emptySummary);
     expect(output).toContain("none");
     expect(output).toContain("No improvement actions taken");
+  });
+
+  test("includes tree line when trace analysis is present", () => {
+    const output = formatShiftSummary(summaryWithTraces);
+    expect(output).toContain("**Tree**: 2 reactive, 6 routine, 2 explore");
+    expect(output).toContain("avg depth 4.2");
+  });
+
+  test("omits tree line when no trace analysis", () => {
+    const output = formatShiftSummary(balancedSummary);
+    expect(output).not.toContain("Tree");
   });
 });
 
@@ -178,6 +197,17 @@ describe("formatDashboard", () => {
     expect(output).toContain("0 actions, 0 success, 0 errors");
     expect(output).toContain("Categories: none");
     expect(output).toContain("> No improvement actions taken");
+  });
+
+  test("includes tree health line when trace analysis is present", () => {
+    const output = formatDashboard(summaryWithTraces);
+    expect(output).toContain("> Tree: 2 reactive, 6 routine, 2 explore");
+    expect(output).toContain("avg depth 4.2");
+  });
+
+  test("omits tree health line when no trace analysis", () => {
+    const output = formatDashboard(balancedSummary);
+    expect(output).not.toContain("Tree:");
   });
 });
 

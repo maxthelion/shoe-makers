@@ -117,7 +117,14 @@ export function formatDashboard(summary: ShiftSummary): string {
   const cats = summary.categories.length > 0 ? summary.categories.join(", ") : "none";
   const line1 = `> **Shift Dashboard** | ${summary.totalActions} actions, ${summary.successCount} success, ${summary.errorCount} ${errorText} | Categories: ${cats} | ${balance}`;
   const line2 = `> ${summary.description}`;
-  return line1 + "\n" + line2;
+  const lines = [line1, line2];
+
+  if (summary.traceAnalysis) {
+    const ta = summary.traceAnalysis;
+    lines.push(`> Tree: ${ta.reactive} reactive, ${ta.routine} routine, ${ta.explore} explore | avg depth ${ta.averageDepth.toFixed(1)}`);
+  }
+
+  return lines.join("\n");
 }
 
 const DASHBOARD_PATTERN = /\n> \*\*Shift Dashboard\*\*[^\n]*\n> [^\n]*/g;
@@ -169,5 +176,11 @@ export function formatShiftSummary(summary: ShiftSummary): string {
   lines.push(`- **Categories**: ${summary.categories.length > 0 ? summary.categories.join(", ") : "none"}`);
   lines.push(`- **Balance**: ${summary.isBalanced ? "balanced" : "focused on " + (summary.categories[0] || "none")}`);
   lines.push(`- ${summary.description}`);
+
+  if (summary.traceAnalysis) {
+    const ta = summary.traceAnalysis;
+    lines.push(`- **Tree**: ${ta.reactive} reactive, ${ta.routine} routine, ${ta.explore} explore (avg depth ${ta.averageDepth.toFixed(1)})`);
+  }
+
   return lines.join("\n");
 }

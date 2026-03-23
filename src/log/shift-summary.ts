@@ -1,7 +1,22 @@
 import type { ShiftStep } from "../scheduler/shift";
+import type { TraceEntry } from "../tree/evaluate";
 
 /** Category of improvement work */
 export type ImprovementCategory = "fix" | "feature" | "test" | "docs" | "health" | "review";
+
+/** Analysis of tree traces across a shift */
+export interface TraceAnalysis {
+  /** Number of ticks handled reactively (tree depth <= 2) */
+  reactive: number;
+  /** Number of ticks handled at routine depth (3-4) */
+  routine: number;
+  /** Number of ticks that reached the explore tier (depth > 4) */
+  explore: number;
+  /** How many times each condition fired (was true) */
+  conditionFires: Record<string, number>;
+  /** Average number of conditions checked per tick */
+  averageDepth: number;
+}
 
 /** Summary of a shift's work across categories */
 export interface ShiftSummary {
@@ -17,6 +32,8 @@ export interface ShiftSummary {
   errorCount: number;
   /** Human-readable description of what the shift covered */
   description: string;
+  /** Analysis of tree evaluation traces, if trace data is available */
+  traceAnalysis?: TraceAnalysis;
 }
 
 /** Map action types to improvement categories */
@@ -71,6 +88,8 @@ export function summarizeShift(steps: ShiftStep[]): ShiftSummary {
     ? `Improvements across ${categories.length} categories: ${categories.join(", ")}`
     : "No improvement actions taken";
 
+  const traceAnalysis = analyzeTraces(steps);
+
   return {
     categories,
     isBalanced,
@@ -78,5 +97,56 @@ export function summarizeShift(steps: ShiftStep[]): ShiftSummary {
     successCount,
     errorCount,
     description,
+    traceAnalysis,
+  };
+}
+
+/**
+ * Analyze tree traces from all steps in a shift.
+ *
+ * Returns undefined if no steps have trace data.
+ * Classifies each tick by depth: reactive (1-2), routine (3-4), explore (5+).
+ */
+function analyzeTraces(steps: ShiftStep[]): TraceAnalysis | undefined {
+  const traces: TraceEntry[][] = [];
+  for (const step of steps) {
+    if (step.tick.trace && step.tick.trace.length > 0) {
+      traces.push(step.tick.trace);
+    }
+  }
+
+  if (traces.length === 0) return undefined;
+
+  let reactive = 0;
+  let routine = 0;
+  let explore = 0;
+  let totalDepth = 0;
+  const conditionFires: Record<string, number> = {};
+
+  for (const trace of traces) {
+    const depth = trace.length;
+    totalDepth += depth;
+
+    if (depth <= 2) {
+      reactive++;
+    } else if (depth <= 4) {
+      routine++;
+    } else {
+      explore++;
+    }
+
+    for (const entry of trace) {
+      if (entry.passed) {
+        conditionFires[entry.condition] = (conditionFires[entry.condition] ?? 0) + 1;
+      }
+    }
+  }
+
+  return {
+    reactive,
+    routine,
+    explore,
+    conditionFires,
+    averageDepth: totalDepth / traces.length,
   };
 }
