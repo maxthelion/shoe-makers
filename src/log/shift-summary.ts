@@ -110,6 +110,11 @@ const ACTION_LABELS: Record<string, string> = {
   "inbox": "inbox processing",
 };
 
+/** Plural forms for actions where appending "s" to the label is awkward */
+const ACTION_PLURALS: Record<string, string> = {
+  "inbox": "inbox tasks",
+};
+
 /**
  * Build a narrative description of the shift.
  *
@@ -139,14 +144,30 @@ function buildDescription(
     .sort((a, b) => b[1] - a[1])
     .map(([action, count]) => {
       const label = ACTION_LABELS[action] ?? action;
-      return count === 1 ? `1 ${label}` : `${count} ${label}s`;
+      if (count === 1) return `1 ${label}`;
+      const plural = ACTION_PLURALS[action] ?? `${label}s`;
+      return `${count} ${plural}`;
     });
 
   let desc = phrases.join(", ");
 
-  // Add arc narrative from trace analysis
+  // Add arc narrative from trace analysis (check chronological order)
   if (traceAnalysis && traceAnalysis.reactive > 0 && traceAnalysis.explore > 0) {
-    desc += " — started reactive, then stabilised";
+    const depths = steps
+      .filter(s => s.tick.trace && s.tick.trace.length > 0)
+      .map(s => s.tick.trace!.length);
+    // Find last reactive tick and first explore tick
+    let lastReactiveIdx = -1;
+    let firstExploreIdx = -1;
+    for (let i = 0; i < depths.length; i++) {
+      if (depths[i] <= 2) lastReactiveIdx = i;
+      if (depths[i] > 4 && firstExploreIdx === -1) firstExploreIdx = i;
+    }
+    if (lastReactiveIdx < firstExploreIdx) {
+      desc += " — started reactive, then stabilised";
+    } else {
+      desc += " — mixed reactive and explore";
+    }
   }
 
   // Note errors
