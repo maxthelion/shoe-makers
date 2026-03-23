@@ -48,14 +48,20 @@ Insights are different from findings:
 
 Insights go in `.shoe-makers/insights/`, not `.shoe-makers/findings/`. They don't block work or trigger fix-critique actions. They're proposals, not problems.
 
-### Review by a future elf
+### Evaluation by a future elf
 
-Insights are not acted on immediately. They sit until a future elf encounters them during the prioritise phase. The prioritiser reads insights alongside candidates and decides:
-- **Promote**: this is worth doing — create a work-item.md based on it
-- **Defer**: interesting but not a priority right now — leave it for later
-- **Dismiss**: not applicable — delete with a note in the shift log explaining why
+Insights are not acted on immediately. They sit until a future elf encounters them during the prioritise phase. The prioritiser doesn't just triage — it **engages with the idea critically**:
 
-The separation between generating an insight and acting on it is deliberate. The exploring elf is in creative/divergent mode. The prioritising elf is in evaluative/convergent mode. Different mental states, different invocations.
+1. **Evaluate**: could this actually work? What are the practical obstacles?
+2. **Build on it**: if the idea as stated wouldn't work, is there a variant that would? The evaluator should say "this wouldn't work because X, but this other idea Y would work" and rewrite accordingly.
+3. **Decide**:
+   - **Promote**: the idea (or improved version) is viable → create a work-item.md
+   - **Rework**: the core insight is interesting but needs development → rewrite the insight file with the improved version for a future elf to evaluate again
+   - **Dismiss**: not applicable → delete with a note in the shift log
+
+The separation between generating an insight and evaluating it is deliberate. The exploring elf is in creative/divergent mode — its job is to make connections without judging them. The prioritising elf is in evaluative/convergent mode — its job is to stress-test, improve, and build on the idea. Good evaluation doesn't just filter ideas, it transforms them.
+
+This two-phase process means the creative elf can be wild and speculative (most ideas will be bad, and that's fine), while the evaluating elf applies rigour without killing creativity. The raw insight is never the final form — it's a seed that the evaluator develops into something actionable.
 
 ### Example
 

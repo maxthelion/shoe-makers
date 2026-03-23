@@ -109,10 +109,12 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 
 ### 2.6 Creative exploration
 - Some explore cycles include a random Wikipedia article as an analogical lens
-- The elf reads the codebase through the lens and writes an insight if it sees a connection
+- The explore elf reads the codebase through the lens and writes an insight if it sees a connection — creative/divergent mode, speculative, most ideas will be bad and that's fine
 - Insights go to `.shoe-makers/insights/`, separate from findings — they're proposals, not problems
-- Insights are reviewed by a future prioritise elf who decides: promote, defer, or dismiss
-- The separation between generating insights (divergent/creative) and acting on them (convergent/evaluative) is deliberate — different mental states, different invocations
+- The prioritise elf evaluates insights critically — not just triage but constructive engagement: could this work? If not, what variant would? "This wouldn't work because X, but Y would work"
+- The evaluator can promote (viable → work item), rework (rewrite the insight with improvements for a future elf), or dismiss (delete with a note)
+- Good evaluation improves ideas, not just filters them — the raw insight is a seed, the evaluator develops it
+- The separation between generating insights (divergent) and evaluating them (convergent) is deliberate — different mental states, different invocations
 - Frequency is configurable via `insightFrequency` in config.yaml (default ~30% of explore cycles)
 
 ### 2.7 The wiki drives work

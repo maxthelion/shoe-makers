@@ -170,10 +170,12 @@ ${pTierGuidance}
 
 1. Read \`.shoe-makers/state/candidates.md\`
 2. For the top candidates, read the relevant wiki pages and source files to understand the context
-3. Read \`.shoe-makers/insights/\` — for each insight, decide:
-   - **Promote**: worth doing now → include as a candidate in your ranking
-   - **Defer**: interesting but not a priority → leave it for a future elf
-   - **Dismiss**: not applicable → delete it and note why in the shift log
+3. Read \`.shoe-makers/insights/\` — for each insight, engage with the idea critically:
+   - Could this actually work? What are the practical obstacles?
+   - If the idea as stated wouldn't work, is there a **variant** that would? Write the improved version.
+   - If the core insight is sound but the proposal is wrong, say "this wouldn't work because X, but Y would work" and rewrite as a viable candidate.
+   - Then decide: **Promote** (viable → include as a candidate), **Rework** (rewrite the insight file with your improved version for a future elf), or **Dismiss** (not applicable → delete with a note in the shift log).
+   - Your job is not just to judge — it's to build on the idea. The explore elf was in creative mode. You're in evaluative mode. Good evaluation improves ideas, not just filters them.
 4. Pick ONE candidate — the most impactful option
 5. Write \`.shoe-makers/state/work-item.md\` with:
    - A clear title

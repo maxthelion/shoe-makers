@@ -196,7 +196,7 @@ describe("generatePrompt", () => {
     const prompt = generatePrompt("prioritise", makeState());
     expect(prompt).toContain(".shoe-makers/insights/");
     expect(prompt).toContain("Promote");
-    expect(prompt).toContain("Defer");
+    expect(prompt).toContain("Rework");
     expect(prompt).toContain("Dismiss");
   });
 
