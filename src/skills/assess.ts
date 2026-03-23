@@ -2,6 +2,7 @@ import { execSync } from "child_process";
 import { readdir, readFile, rename, mkdir } from "fs/promises";
 import { join } from "path";
 import type { Assessment, Finding } from "../types";
+import { RESOLVED_PATTERN } from "../state/world";
 import { writeAssessment } from "../state/blackboard";
 import { checkInvariants } from "../verify/invariants";
 import { loadConfig } from "../config/load-config";
@@ -72,9 +73,6 @@ async function findOpenPlans(repoRoot: string, wikiDir: string = "wiki"): Promis
 
   return plans;
 }
-
-/** Pattern to detect resolved findings: matches `## Status\nResolved.` */
-const RESOLVED_PATTERN = /^## Status\s*\n\s*Resolved\.?\s*$/mi;
 
 /**
  * Archive resolved findings by moving them from findings/ to findings/archive/.
