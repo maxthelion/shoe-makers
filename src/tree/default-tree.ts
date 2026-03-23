@@ -5,14 +5,15 @@ import type { TreeNode, WorldState } from "../types";
  * three-phase orchestration for proactive work.
  *
  * Selector
- * ├── [tests failing?] → Fix tests (direct)
- * ├── [unresolved critiques?] → Fix critiques (direct)
- * ├── [unreviewed commits?] → Review adversarially (direct)
- * ├── [uncommitted changes?] → Review before committing (direct)
- * ├── [inbox messages?] → Handle inbox (direct)
+ * ├── [tests failing?] → Fix tests
+ * ├── [unresolved critiques?] → Fix critiques
+ * ├── [unreviewed commits?] → Review adversarially
+ * ├── [uncommitted changes?] → Review before committing
+ * ├── [inbox messages?] → Handle inbox
+ * ├── [dead-code work-item?] → Remove dead code
  * ├── [work-item.md exists?] → Execute the work item
  * ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
- * ├── [neither?] → Explore: write candidates.md
+ * └── [always true] → Explore: write candidates.md
  */
 
 function testsFailing(state: WorldState): boolean {
