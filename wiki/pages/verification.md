@@ -62,7 +62,7 @@ The ideal two-tick TDD cycle — where one elf writes failing tests and a differ
 
 ### What the reviewer checks
 
-- **Scope violation**: did the elf touch files outside its allowed list?
+- **Scope violation**: did the elf touch files outside its allowed list? (Automated: `setup.ts` pre-computes permission violations using `checkPermissionViolations()` and includes them as a warning in the critique prompt. The reviewer should still verify manually — automated detection supplements but doesn't replace judgment.)
 - **Test quality**: do the tests actually verify the claimed behaviour, or are they trivial?
 - **Invariant gaming**: did the elf modify evidence patterns to make claims pass without real implementation?
 - **Spec alignment**: does the change match what the wiki describes?
@@ -102,6 +102,8 @@ You are reviewing the work of a previous elf. You did NOT write this code.
 Write your findings to .shoe-makers/findings/. Be adversarial — assume the work may be wrong.
 You may ONLY write to .shoe-makers/findings/. Do not modify any code.
 ```
+
+Note: When permission violations are detected, the prompt includes a `PERMISSION VIOLATIONS DETECTED` warning listing the specific files that were modified outside the elf's permitted scope.
 
 ## Tree Order
 
