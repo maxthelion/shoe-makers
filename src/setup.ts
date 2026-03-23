@@ -2,6 +2,7 @@ import { assess, buildSuggestions, archiveResolvedFindings } from "./skills/asse
 import { evaluateWithTrace, formatTrace } from "./tree/evaluate";
 import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
+import { writeFileSync } from "fs";
 import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
@@ -111,8 +112,69 @@ async function main() {
     `## ${new Date().toISOString()} — Setup\n\n- Action: ${actionTitle}\n`
   );
 
+  // Auto-commit housekeeping changes (archive, shift log) so they don't
+  // trigger review cycles — these are mechanical, not elf-authored
+  autoCommitHousekeeping(repoRoot);
+
   console.log(`[setup] Action: ${actionTitle}`);
   console.log("[setup] Done. The elf should read .shoe-makers/state/next-action.md");
+}
+
+/** Paths considered housekeeping (archive moves, shift log entries) */
+export const HOUSEKEEPING_PATHS = [".shoe-makers/findings/", ".shoe-makers/log/"];
+
+/**
+ * Check if all lines from `git status --porcelain` output are housekeeping changes.
+ * Returns true if every changed file is under a housekeeping path.
+ */
+export function isAllHousekeeping(statusOutput: string): boolean {
+  const lines = statusOutput.split("\n").filter(l => l.trim().length > 0);
+  if (lines.length === 0) return false;
+  return lines.every(line => {
+    // git status --porcelain format: XY filename (or XY old -> new for renames)
+    const path = line.slice(3).split(" -> ").pop()!;
+    return HOUSEKEEPING_PATHS.some(p => path.startsWith(p));
+  });
+}
+
+/**
+ * Auto-commit housekeeping changes (archive moves, shift log entries)
+ * and update the review marker so they don't trigger the critique cycle.
+ *
+ * Only commits if ALL uncommitted changes are in housekeeping paths.
+ * If there are mixed changes (e.g., findings + code), does nothing.
+ */
+export function autoCommitHousekeeping(repoRoot: string): void {
+  try {
+    const status = execSync("git status --porcelain", {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+
+    if (!status || !isAllHousekeeping(status)) return;
+
+    // Stage all housekeeping changes
+    for (const prefix of HOUSEKEEPING_PATHS) {
+      execSync(`git add "${prefix}"`, { cwd: repoRoot, stdio: "pipe" });
+    }
+
+    execSync('git commit -m "Auto-commit setup housekeeping (archive, shift log)"', {
+      cwd: repoRoot,
+      stdio: "pipe",
+    });
+
+    // Update the review marker so this commit doesn't trigger critique
+    const head = execSync("git rev-parse HEAD", {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+    const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
+    writeFileSync(markerPath, head);
+
+    console.log("[setup] Auto-committed housekeeping changes");
+  } catch {
+    // If anything fails, just skip — the elf will handle it
+  }
 }
 
 function ensureBranch(repoRoot: string): string {
