@@ -48,6 +48,7 @@ export function generatePrompt(
   action: ActionType,
   state: WorldState,
   skills?: Map<string, SkillDefinition>,
+  article?: { title: string; summary: string },
 ): string {
   const skill = findSkillForAction(action, skills);
   const skillSection = skill ? formatSkillSection(skill) : "";
@@ -166,7 +167,25 @@ A previous elf explored the codebase and wrote a candidate list in \`.shoe-maker
 
 Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."${OFF_LIMITS}`;
 
-    case "explore":
+    case "explore": {
+      const lensSection = article ? `
+
+## Creative Lens
+
+A random concept for analogical thinking:
+
+**${article.title}**
+
+${article.summary}
+
+If anything about this concept reminds you of a pattern, approach, or problem in the shoe-makers codebase, write an insight to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\` with:
+- The Wikipedia article that prompted it
+- The connection to the codebase
+- A concrete proposal for what could change
+- Why it would be better than the current approach
+
+If no connection, move on — most creative prompts yield nothing, and that's fine.` : "";
+
       return `# Explore — Survey and Write Candidates
 
 Nothing is queued for work. Your job is to survey the entire codebase and produce a ranked candidate list.
@@ -196,6 +215,7 @@ Write \`.shoe-makers/state/candidates.md\` with a ranked list of possible work i
 
 Include 3-5 candidates, ranked by impact. Be specific — reference file paths, wiki pages, and invariant IDs.
 
-Commit \`candidates.md\` when done.${OFF_LIMITS}`;
+Commit \`candidates.md\` when done.${lensSection}${OFF_LIMITS}`;
+    }
   }
 }

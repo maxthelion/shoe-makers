@@ -191,3 +191,26 @@ describe("ACTION_TO_SKILL_TYPE matches real skill files", () => {
     }
   });
 });
+
+describe("explore prompt creative lens", () => {
+  test("includes creative lens section when article provided", () => {
+    const article = { title: "Fractal Geometry", summary: "Fractals are self-similar patterns..." };
+    const prompt = generatePrompt("explore", makeState(), undefined, article);
+    expect(prompt).toContain("## Creative Lens");
+    expect(prompt).toContain("Fractal Geometry");
+    expect(prompt).toContain("Fractals are self-similar patterns...");
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("does NOT include creative lens when no article provided", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).not.toContain("## Creative Lens");
+    expect(prompt).not.toContain("insights/");
+  });
+
+  test("creative lens is only added for explore action", () => {
+    const article = { title: "Test", summary: "A".repeat(100) };
+    const prompt = generatePrompt("fix-tests", makeState(), undefined, article);
+    expect(prompt).not.toContain("## Creative Lens");
+  });
+});

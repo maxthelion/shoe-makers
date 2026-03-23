@@ -24,6 +24,7 @@ describe("loadConfig", () => {
       assessmentStaleAfter: 30,
       maxTicksPerShift: 10,
       enabledSkills: null,
+      insightFrequency: 0.3,
     });
   });
 
@@ -48,6 +49,7 @@ describe("loadConfig", () => {
       assessmentStaleAfter: 60,
       maxTicksPerShift: 10,
       enabledSkills: null,
+      insightFrequency: 0.3,
     });
   });
 
@@ -144,6 +146,7 @@ describe("loadConfig", () => {
         "assessment-stale-after: 30",
         "max-ticks-per-shift: 10",
         "enabled-skills: fix-tests",
+        "insight-frequency: 0.3",
       ].join("\n")
     );
 
@@ -154,6 +157,44 @@ describe("loadConfig", () => {
     );
     expect(unknownKeyWarnings).toHaveLength(0);
     warnSpy.mockRestore();
+  });
+
+  test("reads insight-frequency from config", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "insight-frequency: 0.5\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.insightFrequency).toBe(0.5);
+  });
+
+  test("defaults insightFrequency to 0.3", async () => {
+    const config = await loadConfig(tempDir);
+    expect(config.insightFrequency).toBe(0.3);
+  });
+
+  test("rejects invalid insight-frequency values", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "insight-frequency: 1.5\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.insightFrequency).toBe(0.3);
+  });
+
+  test("rejects negative insight-frequency", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "insight-frequency: -0.1\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.insightFrequency).toBe(0.3);
   });
 
   test("warns on unknown config key", async () => {

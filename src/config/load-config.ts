@@ -11,6 +11,7 @@ const KNOWN_KEYS = new Set([
   "assessment-stale-after",
   "max-ticks-per-shift",
   "enabled-skills",
+  "insight-frequency",
 ]);
 
 const DEFAULTS: Config = {
@@ -20,6 +21,7 @@ const DEFAULTS: Config = {
   assessmentStaleAfter: 30,
   maxTicksPerShift: 10,
   enabledSkills: null,
+  insightFrequency: 0.3,
 };
 
 /**
@@ -47,6 +49,16 @@ function parseSimpleYaml(content: string): Record<string, string> {
  * The config file is optional — if missing, all defaults are used.
  * Partial configs are merged with defaults.
  */
+function parseInsightFrequency(value: string | undefined): number {
+  if (!value) return DEFAULTS.insightFrequency;
+  const parsed = parseFloat(value);
+  if (Number.isNaN(parsed) || parsed < 0 || parsed > 1) {
+    console.warn(`[config] Invalid value for "insight-frequency": "${value}", using default ${DEFAULTS.insightFrequency}`);
+    return DEFAULTS.insightFrequency;
+  }
+  return parsed;
+}
+
 export async function loadConfig(repoRoot: string): Promise<Config> {
   let raw: Record<string, string> = {};
 
@@ -88,5 +100,6 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
     enabledSkills: raw["enabled-skills"]
       ? raw["enabled-skills"].split(",").map((s) => s.trim()).filter(Boolean)
       : null,
+    insightFrequency: parseInsightFrequency(raw["insight-frequency"]),
   };
 }

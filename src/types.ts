@@ -183,4 +183,6 @@ export interface Config {
   maxTicksPerShift: number;
   /** Which skills are enabled (null = all enabled) */
   enabledSkills: string[] | null;
+  /** Fraction of explore cycles that include a Wikipedia creative lens (0.0–1.0) */
+  insightFrequency: number;
 }

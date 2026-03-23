@@ -37,6 +37,7 @@ function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {
     assessmentStaleAfter: 30,
     maxTicksPerShift: 10,
     enabledSkills: null,
+    insightFrequency: 0.3,
   };
   const blackboard: Blackboard = {
     assessment: null,

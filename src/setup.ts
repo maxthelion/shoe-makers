@@ -14,6 +14,7 @@ import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
 import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
+import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
 
 /**
  * Setup script: runs before the elf starts.
@@ -66,7 +67,14 @@ async function main() {
   // 5. Load skills (filtered by enabledSkills config) and evaluate the tree
   const loadedSkills = await loadSkills(repoRoot, config.enabledSkills);
   const { skill } = evaluate(defaultTree, state);
-  const action = formatAction(skill, state, inboxMessages, loadedSkills);
+
+  // Fetch a Wikipedia article for creative exploration (explore actions only)
+  let article: { title: string; summary: string } | undefined;
+  if (skill === "explore" && shouldIncludeLens(config.insightFrequency)) {
+    article = (await fetchRandomArticle()) ?? undefined;
+  }
+
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, article);
 
   const stateDir = join(repoRoot, ".shoe-makers", "state");
   await mkdir(stateDir, { recursive: true });
@@ -200,6 +208,7 @@ export function formatAction(
   state: WorldState,
   inboxMessages: { file: string; content: string }[],
   loadedSkills?: Map<string, SkillDefinition>,
+  article?: { title: string; summary: string },
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -219,7 +228,7 @@ Run \`bun run setup\` again to get your next action.
 
   if (skill) {
     const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills);
+    const prompt = generatePrompt(actionType, state, loadedSkills, actionType === "explore" ? article : undefined);
     return `${prompt}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}
