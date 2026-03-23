@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { summarizeShift, type ShiftSummary } from "../log/shift-summary";
+import { summarizeShift, buildProcessSuggestions, type ShiftSummary, type ProcessPatterns } from "../log/shift-summary";
 import type { ShiftStep } from "../scheduler/shift";
 import type { TickResult } from "../scheduler/tick";
 import type { TraceEntry } from "../tree/evaluate";
@@ -218,5 +218,125 @@ describe("summarizeShift", () => {
 
     expect(summary.traceAnalysis!.conditionFires["tests-failing"]).toBe(2);
     expect(summary.traceAnalysis!.conditionFires["unresolved-critiques"]).toBe(1);
+  });
+
+  test("computes process patterns — tick distribution", () => {
+    const steps: ShiftStep[] = [
+      makeStep("fix-tests"),
+      makeStep("critique"),
+      makeStep("explore"),
+      makeStep("execute-work-item"),
+    ];
+    const summary = summarizeShift(steps);
+
+    expect(summary.processPatterns).toBeDefined();
+    expect(summary.processPatterns!.reactiveTicks).toBe(2); // fix-tests, critique
+    expect(summary.processPatterns!.proactiveTicks).toBe(2); // explore, execute-work-item
+    expect(summary.processPatterns!.reactiveRatio).toBe(0.5);
+  });
+
+  test("computes process patterns — all reactive", () => {
+    const steps: ShiftStep[] = [
+      makeStep("fix-tests"),
+      makeStep("critique"),
+      makeStep("fix-critique"),
+      makeStep("review"),
+    ];
+    const summary = summarizeShift(steps);
+
+    expect(summary.processPatterns!.reactiveTicks).toBe(4);
+    expect(summary.processPatterns!.proactiveTicks).toBe(0);
+    expect(summary.processPatterns!.reactiveRatio).toBe(1.0);
+  });
+
+  test("detects review loops — 3+ consecutive critique/fix-critique", () => {
+    const steps: ShiftStep[] = [
+      makeStep("critique"),
+      makeStep("fix-critique"),
+      makeStep("critique"),
+      makeStep("fix-critique"),
+    ];
+    const summary = summarizeShift(steps);
+
+    expect(summary.processPatterns!.reviewLoopCount).toBe(1);
+  });
+
+  test("no review loop for 2 consecutive review actions", () => {
+    const steps: ShiftStep[] = [
+      makeStep("critique"),
+      makeStep("fix-critique"),
+      makeStep("explore"),
+    ];
+    const summary = summarizeShift(steps);
+
+    expect(summary.processPatterns!.reviewLoopCount).toBe(0);
+  });
+
+  test("counts innovate and evaluate-insight as proactive", () => {
+    const steps: ShiftStep[] = [
+      makeStep("innovate"),
+      makeStep("evaluate-insight"),
+    ];
+    const summary = summarizeShift(steps);
+
+    expect(summary.processPatterns!.proactiveTicks).toBe(2);
+    expect(summary.processPatterns!.reactiveTicks).toBe(0);
+  });
+
+  test("empty steps produce zero process patterns", () => {
+    const summary = summarizeShift([]);
+
+    expect(summary.processPatterns).toBeDefined();
+    expect(summary.processPatterns!.reactiveTicks).toBe(0);
+    expect(summary.processPatterns!.proactiveTicks).toBe(0);
+    expect(summary.processPatterns!.reactiveRatio).toBe(0);
+    expect(summary.processPatterns!.reviewLoopCount).toBe(0);
+  });
+});
+
+describe("buildProcessSuggestions", () => {
+  test("suggests high reactive ratio when > 70%", () => {
+    const patterns: ProcessPatterns = {
+      reactiveTicks: 8,
+      proactiveTicks: 2,
+      reactiveRatio: 0.8,
+      reviewLoopCount: 0,
+    };
+    const suggestions = buildProcessSuggestions(patterns);
+    expect(suggestions.length).toBe(1);
+    expect(suggestions[0]).toContain("High reactive ratio");
+    expect(suggestions[0]).toContain("80%");
+  });
+
+  test("no suggestion for moderate reactive ratio", () => {
+    const patterns: ProcessPatterns = {
+      reactiveTicks: 3,
+      proactiveTicks: 7,
+      reactiveRatio: 0.3,
+      reviewLoopCount: 0,
+    };
+    expect(buildProcessSuggestions(patterns)).toHaveLength(0);
+  });
+
+  test("suggests review loop when detected", () => {
+    const patterns: ProcessPatterns = {
+      reactiveTicks: 4,
+      proactiveTicks: 6,
+      reactiveRatio: 0.4,
+      reviewLoopCount: 2,
+    };
+    const suggestions = buildProcessSuggestions(patterns);
+    expect(suggestions.length).toBe(1);
+    expect(suggestions[0]).toContain("review loop");
+  });
+
+  test("no suggestion for too few ticks even if ratio is high", () => {
+    const patterns: ProcessPatterns = {
+      reactiveTicks: 2,
+      proactiveTicks: 0,
+      reactiveRatio: 1.0,
+      reviewLoopCount: 0,
+    };
+    expect(buildProcessSuggestions(patterns)).toHaveLength(0);
   });
 });

@@ -34,7 +34,27 @@ export interface ShiftSummary {
   description: string;
   /** Analysis of tree evaluation traces, if trace data is available */
   traceAnalysis?: TraceAnalysis;
+  /** Process pattern analysis */
+  processPatterns?: ProcessPatterns;
 }
+
+/** Process-level patterns detected across the shift */
+export interface ProcessPatterns {
+  /** Number of reactive ticks (fix-tests, fix-critique, critique, review, inbox) */
+  reactiveTicks: number;
+  /** Number of proactive ticks (explore, prioritise, execute, innovate, evaluate-insight) */
+  proactiveTicks: number;
+  /** Ratio of reactive to total ticks (0.0–1.0) */
+  reactiveRatio: number;
+  /** Detected review loops: sequences where critique/fix-critique alternate 3+ times */
+  reviewLoopCount: number;
+}
+
+/** Actions considered reactive (urgent/corrective) */
+const REACTIVE_ACTIONS = new Set(["fix-tests", "fix-critique", "critique", "review", "inbox"]);
+
+/** Actions considered proactive (planned/creative) */
+const PROACTIVE_ACTIONS = new Set(["explore", "prioritise", "execute-work-item", "dead-code", "innovate", "evaluate-insight"]);
 
 /** Map action types to improvement categories */
 const ACTION_TO_CATEGORY: Record<string, ImprovementCategory> = {
@@ -85,6 +105,7 @@ export function summarizeShift(steps: ShiftStep[]): ShiftSummary {
   const categories = [...categorySet];
   const isBalanced = categories.length >= 2;
   const traceAnalysis = analyzeTraces(steps);
+  const processPatterns = analyzeProcessPatterns(steps);
   const description = buildDescription(steps, categories, errorCount, traceAnalysis);
 
   return {
@@ -95,6 +116,7 @@ export function summarizeShift(steps: ShiftStep[]): ShiftSummary {
     errorCount,
     description,
     traceAnalysis,
+    processPatterns,
   };
 }
 
@@ -228,4 +250,63 @@ function analyzeTraces(steps: ShiftStep[]): TraceAnalysis | undefined {
     conditionFires,
     averageDepth: totalDepth / traces.length,
   };
+}
+
+/**
+ * Analyze process-level patterns across the shift.
+ *
+ * Counts reactive vs. proactive ticks and detects review loops
+ * (sequences where critique/fix-critique alternate 3+ times).
+ */
+function analyzeProcessPatterns(steps: ShiftStep[]): ProcessPatterns {
+  let reactiveTicks = 0;
+  let proactiveTicks = 0;
+
+  for (const step of steps) {
+    const action = step.tick.action;
+    if (!action) continue;
+    if (REACTIVE_ACTIONS.has(action)) reactiveTicks++;
+    else if (PROACTIVE_ACTIONS.has(action)) proactiveTicks++;
+  }
+
+  const total = reactiveTicks + proactiveTicks;
+  const reactiveRatio = total > 0 ? reactiveTicks / total : 0;
+
+  // Detect review loops: sequences of critique/fix-critique alternating 3+ times
+  const reviewActions = new Set(["critique", "fix-critique"]);
+  let reviewLoopCount = 0;
+  let consecutiveReviewActions = 0;
+  for (const step of steps) {
+    if (reviewActions.has(step.tick.action ?? "")) {
+      consecutiveReviewActions++;
+    } else {
+      if (consecutiveReviewActions >= 3) reviewLoopCount++;
+      consecutiveReviewActions = 0;
+    }
+  }
+  if (consecutiveReviewActions >= 3) reviewLoopCount++;
+
+  return { reactiveTicks, proactiveTicks, reactiveRatio, reviewLoopCount };
+}
+
+/**
+ * Generate process-level suggestions from shift patterns.
+ * These can be included in the shift log or assessment for explore to pick up.
+ */
+export function buildProcessSuggestions(patterns: ProcessPatterns): string[] {
+  const suggestions: string[] = [];
+
+  if (patterns.reactiveRatio > 0.7 && patterns.reactiveTicks + patterns.proactiveTicks >= 3) {
+    suggestions.push(
+      `High reactive ratio (${Math.round(patterns.reactiveRatio * 100)}%) — most ticks spent on fixes/reviews rather than proactive work`
+    );
+  }
+
+  if (patterns.reviewLoopCount > 0) {
+    suggestions.push(
+      `${patterns.reviewLoopCount} review loop(s) detected — critique/fix-critique cycling suggests work quality issues`
+    );
+  }
+
+  return suggestions;
 }
