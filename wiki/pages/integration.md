@@ -18,7 +18,7 @@ The init command creates:
 - `.shoe-makers/protocol.md` — instructions for each elf
 - `.shoe-makers/config.yaml` — sensible defaults
 - `.shoe-makers/invariants.md` — empty, for humans to fill in
-- `.shoe-makers/skills/` — default skill prompts (implement, fix-tests, test-coverage, doc-sync, health)
+- `.shoe-makers/skills/` — default skill prompts (implement, fix-tests, test-coverage, doc-sync, health, octoclean-fix, bug-fix, dead-code, dependency-update)
 - `.shoe-makers/inbox/`, `findings/`, `insights/`, `log/`, `state/` — working directories
 
 Optionally, `bootstrapWiki` imports existing markdown docs into `wiki/pages/` so the system has a spec to work from on day one.
