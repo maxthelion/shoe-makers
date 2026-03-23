@@ -85,10 +85,12 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - These fire immediately with a focused prompt — no orchestration needed
 
 ### 2.3 Three-phase orchestration (bottom of tree)
-- If no reactive condition matches, proactive work goes through three phases across three invocations
-- **Explore**: read everything (wiki, code, invariants, health, findings), write `candidates.md` with a ranked list of possible work items
+- If no reactive condition matches, proactive work goes through phases across separate invocations
+- **Explore**: read everything (wiki, code, invariants, health, findings), write `candidates.md` with a ranked list of possible work items. Only fires when there are gaps (tiers 1-2).
 - **Prioritise**: read candidates + relevant code and wiki for the top items, pick one, write a detailed `work-item.md` with full context (relevant wiki text, relevant code, exactly what to build, which patterns to follow)
 - **Execute**: read `work-item.md`, do the work, commit, optionally write a follow-up `work-item.md` for the next elf (e.g. "review what I just built")
+- **Innovate**: fires at innovation tier (tier 3) instead of explore. Receives a deterministic creative brief from setup (wiki overview + random Wikipedia article). Must write an insight file.
+- **Evaluate-insight**: fires when insight files exist. Generous evaluator that builds on ideas — separate from the pragmatic prioritise action.
 - Each phase narrows the context for the next — explore is broad, prioritise is medium, execute is narrow
 
 ### 2.4 The prioritiser writes the real prompt
@@ -107,15 +109,17 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - At tier 3, elves should ask: could this system be easier for humans to use? Could it be easier for agents to use?
 - Impact is the primary criterion — not risk-avoidance
 
-### 2.6 Creative exploration
-- Some explore cycles include a random Wikipedia article as an analogical lens
-- The explore elf reads the codebase through the lens and writes an insight if it sees a connection — creative/divergent mode, speculative, most ideas will be bad and that's fine
+### 2.6 Creative exploration — dedicated `innovate` and `evaluate-insight` actions
+- At innovation tier (all invariants met, health good), the tree routes to `innovate` instead of `explore`
+- The setup script prepares a **deterministic creative brief**: reads wiki overview pages (architecture, etc.) and always fetches a random Wikipedia article — the elf receives both
+- The innovate elf **must** write an insight file — output is mandatory, not optional. "No connection found" is not acceptable
 - Insights go to `.shoe-makers/insights/`, separate from findings — they're proposals, not problems
-- The prioritise elf evaluates insights critically — not just triage but constructive engagement: could this work? If not, what variant would? "This wouldn't work because X, but Y would work"
-- The evaluator can promote (viable → work item), rework (rewrite the insight with improvements for a future elf), or dismiss (delete with a note)
+- A separate `evaluate-insight` action fires when insight files exist — it has a **generous disposition**, separate from the pragmatic `prioritise` action
+- The evaluator builds on ideas constructively: could this work? If not, what variant would? "This wouldn't work because X, but Y would work"
+- The evaluator can promote (viable → work item), rework (rewrite the insight with improvements for a future elf), or dismiss (genuinely inapplicable → delete with a note — this should be the exception)
 - Good evaluation improves ideas, not just filters them — the raw insight is a seed, the evaluator develops it
-- The separation between generating insights (divergent) and evaluating them (convergent) is deliberate — different mental states, different invocations
-- Frequency is configurable via `insightFrequency` in config.yaml (default ~30% of explore cycles)
+- The separation between generating insights (divergent) and evaluating them (convergent) is deliberate — different mental states, different invocations, different dispositions
+- The insight evaluator is NOT the prioritise elf — the prioritise elf is pragmatic and would kill most creative ideas
 
 ### 2.7 The wiki drives work
 - The wiki is the source of truth — agents read it to understand project intent

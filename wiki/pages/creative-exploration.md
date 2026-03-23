@@ -22,23 +22,26 @@ Most of the time: nothing useful. That's fine. Brainstorming has a low hit rate.
 
 ## How It Works
 
-### In the explore phase
+### The `innovate` action
 
-1. The setup script fetches a random Wikipedia article summary via the API:
+Creative exploration is a dedicated action in the behaviour tree, not an optional add-on to explore. When the system reaches innovation tier (all invariants met, health good), the tree routes to `innovate` instead of `explore`.
+
+The setup script prepares a **deterministic creative brief**:
+
+1. Reads the wiki overview pages (`architecture.md`, etc.) to build a summary of what the system is and does
+2. Fetches a random Wikipedia article summary via the API (always — not probabilistic):
    ```
    https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json
    ```
-   Then fetches the extract for that article.
+3. Writes both into `next-action.md` as a mandatory brief
 
-2. The explore prompt includes the article summary alongside the normal assessment instructions.
+The elf receives the system overview and the random concept, and **must** write an insight file. "No connection found" is not acceptable output. Most ideas will be bad — that's fine. The elf is in divergent/creative mode. Its job is to make the connection, not to judge it.
 
-3. If the elf sees a connection, it writes an **insight** to `.shoe-makers/insights/YYYY-MM-DD-NNN.md` with:
-   - The Wikipedia article that prompted it
-   - The connection to the codebase
-   - A concrete proposal for what could change
-   - Why it would be better than the current approach
-
-4. If no connection, the elf moves on to normal exploration. No penalty for finding nothing.
+The insight is written to `.shoe-makers/insights/YYYY-MM-DD-NNN.md` with:
+- The Wikipedia article that prompted it
+- The connection to the system
+- A concrete proposal for what could change
+- Why it would be better than the current approach
 
 ### Insights vs Findings
 
@@ -48,20 +51,24 @@ Insights are different from findings:
 
 Insights go in `.shoe-makers/insights/`, not `.shoe-makers/findings/`. They don't block work or trigger fix-critique actions. They're proposals, not problems.
 
-### Evaluation by a future elf
+### The `evaluate-insight` action
 
-Insights are not acted on immediately. They sit until a future elf encounters them during the prioritise phase. The prioritiser doesn't just triage — it **engages with the idea critically**:
+Insights are not acted on by the elf that wrote them. A separate `evaluate-insight` action fires when insight files exist. This evaluator has a **generous disposition** — its job is to build on ideas, not filter them. It is deliberately separate from the pragmatic `prioritise` action.
+
+The evaluator engages with the idea constructively:
 
 1. **Evaluate**: could this actually work? What are the practical obstacles?
 2. **Build on it**: if the idea as stated wouldn't work, is there a variant that would? The evaluator should say "this wouldn't work because X, but this other idea Y would work" and rewrite accordingly.
 3. **Decide**:
    - **Promote**: the idea (or improved version) is viable → create a work-item.md
    - **Rework**: the core insight is interesting but needs development → rewrite the insight file with the improved version for a future elf to evaluate again
-   - **Dismiss**: not applicable → delete with a note in the shift log
+   - **Dismiss**: genuinely inapplicable → delete with a note in the shift log. This should be the exception, not the default.
 
-The separation between generating an insight and evaluating it is deliberate. The exploring elf is in creative/divergent mode — its job is to make connections without judging them. The prioritising elf is in evaluative/convergent mode — its job is to stress-test, improve, and build on the idea. Good evaluation doesn't just filter ideas, it transforms them.
+The separation between generating an insight and evaluating it is deliberate. The innovate elf is in creative/divergent mode — its job is to make connections without judging them. The evaluate-insight elf is in constructive/convergent mode — its job is to stress-test, improve, and build on the idea. Good evaluation doesn't just filter ideas, it transforms them.
 
 This two-phase process means the creative elf can be wild and speculative (most ideas will be bad, and that's fine), while the evaluating elf applies rigour without killing creativity. The raw insight is never the final form — it's a seed that the evaluator develops into something actionable.
+
+The evaluator is NOT the prioritise elf. The prioritise elf is pragmatic — it optimises for immediate impact and would kill most creative ideas. The evaluate-insight elf has a different disposition: generous, constructive, looking for the version of the idea that works.
 
 ### Example
 
@@ -86,13 +93,10 @@ A future prioritiser reads this, decides it's worth doing, and writes a work-ite
     2026-03-22-002.md
 ```
 
-## Not Every Explore Gets a Lens
+## Innovate Is Not Explore
 
-Random prompting should happen occasionally, not every explore cycle. Perhaps one in three explore invocations includes a Wikipedia article. The rest do normal gap analysis. This keeps the system productive while allowing space for creativity.
+The `innovate` action is separate from `explore`. Explore handles tiers 1 and 2 — finding gaps, surfacing spec-code inconsistencies, writing candidates for pragmatic work. Innovate handles tier 3 — creative improvement when the codebase is already healthy.
 
-The frequency could be configured in `.shoe-makers/config.yaml`:
-```yaml
-insightFrequency: 0.3  # 30% of explore cycles include a random lens
-```
+The key difference: the setup script prepares a **deterministic brief** for innovate. The elf doesn't decide whether to be creative — the brief already frames the question. The elf just has to answer it. This prevents the failure mode where the elf says "nothing to do" because it wasn't given concrete material to react to.
 
 See also: [[behaviour-tree]], [[invariants]], [[verification]]

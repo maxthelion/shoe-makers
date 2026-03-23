@@ -30,7 +30,9 @@ Selector
 ├── [inbox messages?] → Handle inbox (direct)
 ├── [work-item.md exists?] → Execute the work item
 ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
-├── [neither?] → Explore: write candidates.md
+├── [insights exist?] → Evaluate insight (generous disposition)
+├── [innovation tier?] → Innovate: write insight from creative brief
+└── [always] → Explore: write candidates.md
 ```
 
 ### Reactive zone

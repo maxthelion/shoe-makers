@@ -24,7 +24,9 @@ Selector
 ├── [inbox messages?] → Handle inbox (direct prompt)
 ├── [work-item.md exists?] → Execute it
 ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
-├── [neither?] → Explore: write candidates.md
+├── [insights exist?] → Evaluate insight (generous disposition)
+├── [innovation tier?] → Innovate: write insight from creative brief
+└── [always] → Explore: write candidates.md
 ```
 
 ### Reactive zone (top)
@@ -86,16 +88,15 @@ Build things that have been discussed but not actioned. Spec claims that aren't 
 
 The explore elf should surface these as candidates. The prioritise elf should prefer them over test-only or health-only work when the codebase is in good shape.
 
-### Tier 3: Innovation (proactive, creative)
+### Tier 3: Innovation (proactive, creative — dedicated actions)
 
-Actively improve beyond immediate instructions. This is where the Wikipedia creative lens, analogical thinking, and open-ended exploration live. Questions the elf should ask at this tier:
+At tier 3, the tree routes to dedicated `innovate` and `evaluate-insight` actions instead of `explore`. This is where the Wikipedia creative lens and analogical thinking live.
 
-- Could this system be easier to use for its human users?
-- Could it be easier to use by agents?
-- Is there a fundamentally better way to structure this?
-- What would make the morning review delightful instead of just informative?
+The `innovate` action receives a **deterministic creative brief** from the setup script: a summary of the system (from the wiki) and a random Wikipedia article. The elf must write an insight file connecting the two. It cannot opt out — the brief is mandatory and output is mandatory.
 
-The explore elf should **always produce candidates** — even at tier 3. "No impactful work remaining" is not an acceptable output. If invariants are met and the spec is implemented, the elf's job shifts from gap-finding to improvement-finding. Use the creative lens actively, not as an afterthought.
+The `evaluate-insight` action fires when insight files exist. It has a **generous disposition** — separate from the pragmatic `prioritise` action — and builds on ideas rather than filtering them. See [[creative-exploration]] for the full lifecycle.
+
+The explore action only fires at tier 3 as a fallback if neither innovate nor evaluate-insight applies (which shouldn't happen in normal operation).
 
 ### How the tiers interact
 
