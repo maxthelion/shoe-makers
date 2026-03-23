@@ -3,7 +3,7 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { execSync } from "child_process";
 import { join } from "path";
 import { tmpdir } from "os";
-import { readWorldState, checkUnreviewedCommits } from "../state/world";
+import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType } from "../state/world";
 
 describe("readWorldState", () => {
   test("reads current repo world state", async () => {
@@ -99,5 +99,50 @@ describe("checkUnreviewedCommits", () => {
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("readWorkItemSkillType", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-skill-type-"));
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns skill type when skill-type: line is present", async () => {
+    await writeFile(
+      join(tempDir, ".shoe-makers", "state", "work-item.md"),
+      "# Remove unused exports\nskill-type: dead-code\n\n## Context\n...",
+    );
+    const result = await readWorkItemSkillType(tempDir);
+    expect(result).toBe("dead-code");
+  });
+
+  test("returns null when no skill-type line exists", async () => {
+    await writeFile(
+      join(tempDir, ".shoe-makers", "state", "work-item.md"),
+      "# Add tests for prompts\n\n## Context\n...",
+    );
+    const result = await readWorkItemSkillType(tempDir);
+    expect(result).toBeNull();
+  });
+
+  test("does not false-positive on keyword dead-code in title", async () => {
+    await writeFile(
+      join(tempDir, ".shoe-makers", "state", "work-item.md"),
+      "# Add tests for the dead-code prompt\n\n## Context\nThis is about testing, not dead-code removal.\n",
+    );
+    const result = await readWorkItemSkillType(tempDir);
+    expect(result).toBeNull();
+  });
+
+  test("returns null when work-item.md does not exist", async () => {
+    const result = await readWorkItemSkillType(tempDir);
+    expect(result).toBeNull();
   });
 });

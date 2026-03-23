@@ -162,6 +162,7 @@ A previous elf explored the codebase and wrote a candidate list in \`.shoe-maker
 4. Pick ONE candidate — the most impactful, highest-confidence, lowest-risk option
 5. Write \`.shoe-makers/state/work-item.md\` with:
    - A clear title
+   - If the work maps to a specific skill type (e.g. dead-code, implement, fix), add \`skill-type: <type>\` on a line by itself near the top
    - The relevant wiki text (quote it)
    - The relevant code (reference files and line numbers)
    - Exactly what to build or change

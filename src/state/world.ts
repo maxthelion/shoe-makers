@@ -135,14 +135,18 @@ export async function checkHasCandidates(repoRoot: string): Promise<boolean> {
 }
 
 /**
- * Read the skill type from work-item.md header (first 5 lines).
- * Returns the skill type if detected, null otherwise.
+ * Read the skill type from a `skill-type:` metadata line in work-item.md.
+ * Scans the first 10 lines for a line like `skill-type: dead-code`.
+ * Returns the skill type if found, null otherwise.
  */
 export async function readWorkItemSkillType(repoRoot: string): Promise<string | null> {
   try {
     const content = await readFile(join(repoRoot, ".shoe-makers", "state", "work-item.md"), "utf-8");
-    const header = content.split("\n").slice(0, 5).join("\n").toLowerCase();
-    if (header.includes("dead-code") || header.includes("dead code")) return "dead-code";
+    const lines = content.split("\n").slice(0, 10);
+    for (const line of lines) {
+      const match = line.match(/^skill-type:\s*(.+)$/i);
+      if (match) return match[1].trim();
+    }
     return null;
   } catch {
     return null;
