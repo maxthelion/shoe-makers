@@ -1,8 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, writeFile, mkdir } from "fs/promises";
+import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { verify } from "../skills/verify";
+import type { VerifyInput } from "../skills/verify";
 import {
   readBlackboard,
   writeCurrentTask,
@@ -31,18 +32,11 @@ const sampleItem: PriorityItem = {
   risk: "low",
 };
 
+const passingInput: VerifyInput = { testsPass: true, healthScore: null };
+const failingInput: VerifyInput = { testsPass: false, healthScore: null };
+
 beforeEach(async () => {
   tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-verify-"));
-  // Create a minimal bun project with a passing test so `bun test` succeeds
-  await writeFile(
-    join(tempDir, "package.json"),
-    JSON.stringify({ name: "test-project", type: "module" })
-  );
-  await mkdir(join(tempDir, "src/__tests__"), { recursive: true });
-  await writeFile(
-    join(tempDir, "src/__tests__/pass.test.ts"),
-    `import { test, expect } from "bun:test";\ntest("ok", () => { expect(true).toBe(true); });\n`
-  );
 });
 
 afterEach(async () => {
@@ -51,7 +45,7 @@ afterEach(async () => {
 
 describe("verify skill", () => {
   test("throws when no current task exists", async () => {
-    await expect(verify(tempDir)).rejects.toThrow("no current task");
+    await expect(verify(tempDir, passingInput)).rejects.toThrow("no current task");
   });
 
   test("throws when task is still in progress", async () => {
@@ -60,7 +54,7 @@ describe("verify skill", () => {
       priority: sampleItem,
       status: "in-progress",
     });
-    await expect(verify(tempDir)).rejects.toThrow("still in progress");
+    await expect(verify(tempDir, passingInput)).rejects.toThrow("still in progress");
   });
 
   test("passes verification when task is done and tests pass", async () => {
@@ -70,7 +64,7 @@ describe("verify skill", () => {
       status: "done",
     });
 
-    const result = await verify(tempDir);
+    const result = await verify(tempDir, passingInput);
 
     expect(result.testsPass).toBe(true);
     expect(result.reviewPassed).toBe(true);
@@ -86,7 +80,7 @@ describe("verify skill", () => {
       status: "done",
     });
 
-    const result = await verify(tempDir);
+    const result = await verify(tempDir, passingInput);
 
     const bb = await readBlackboard(tempDir);
     expect(bb.verification).toEqual(result);
@@ -100,7 +94,7 @@ describe("verify skill", () => {
     });
     await writePriorities(tempDir, samplePriorities);
 
-    await verify(tempDir);
+    await verify(tempDir, passingInput);
 
     const bb = await readBlackboard(tempDir);
     expect(bb.currentTask).toBeNull();
@@ -115,7 +109,7 @@ describe("verify skill", () => {
       status: "failed",
     });
 
-    const result = await verify(tempDir);
+    const result = await verify(tempDir, passingInput);
 
     expect(result.reviewPassed).toBe(false);
     expect(result.action).toBe("revert");
@@ -130,7 +124,7 @@ describe("verify skill", () => {
     });
     await writePriorities(tempDir, samplePriorities);
 
-    await verify(tempDir);
+    await verify(tempDir, passingInput);
 
     const bb = await readBlackboard(tempDir);
     expect(bb.currentTask).toBeNull();
@@ -138,13 +132,21 @@ describe("verify skill", () => {
   });
 
   test("fails verification when tests fail", async () => {
-    // Create a failing test
-    await mkdir(join(tempDir, "src/__tests__"), { recursive: true });
-    await writeFile(
-      join(tempDir, "src/__tests__/fail.test.ts"),
-      `import { test, expect } from "bun:test";\ntest("fail", () => { expect(1).toBe(2); });\n`
-    );
+    await writeCurrentTask(tempDir, {
+      startedAt: now,
+      priority: sampleItem,
+      status: "done",
+    });
 
+    const result = await verify(tempDir, failingInput);
+
+    expect(result.testsPass).toBe(false);
+    expect(result.reviewPassed).toBe(false);
+    expect(result.action).toBe("revert");
+    expect(result.issues).toContain("Test suite failed.");
+  });
+
+  test("defaults to tests passing when no input provided", async () => {
     await writeCurrentTask(tempDir, {
       startedAt: now,
       priority: sampleItem,
@@ -153,9 +155,7 @@ describe("verify skill", () => {
 
     const result = await verify(tempDir);
 
-    expect(result.testsPass).toBe(false);
-    expect(result.reviewPassed).toBe(false);
-    expect(result.action).toBe("revert");
-    expect(result.issues).toContain("Test suite failed.");
+    expect(result.testsPass).toBe(true);
+    expect(result.reviewPassed).toBe(true);
   });
 });

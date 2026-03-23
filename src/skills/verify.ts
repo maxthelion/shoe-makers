@@ -1,23 +1,29 @@
-import { execSync } from "child_process";
 import type { Verification } from "../types";
 import { readBlackboard, writeVerification, clearCurrentTask, clearPriorities } from "../state/blackboard";
 import { checkHealthRegression } from "../verify/health-regression";
-import { getHealthScore } from "./health-scan";
+
+/**
+ * Input for the verify skill — provided by the scheduler (side-effect boundary).
+ * The verify skill itself is a pure function: no subprocess calls, no I/O beyond
+ * reading/writing the blackboard.
+ */
+export interface VerifyInput {
+  testsPass: boolean;
+  healthScore: number | null;
+}
 
 /**
  * The verify skill: check completed work, then commit or flag for revert.
  *
- * Bootstrap version runs:
- * 1. Test suite (`bun test`)
- * 2. Basic review (checks the task was marked done)
+ * Pure function: receives test results and health score as input from the
+ * scheduler, which handles side effects (running tests, scanning health).
  *
- * The full version (per wiki spec) would also run:
- * - Octoclean diff (health score regression check)
+ * The full version (per wiki spec) would also check:
  * - LLM-based adversarial review
  * - Architectural contract check
  * - Invariant re-check
  */
-export async function verify(repoRoot: string): Promise<Verification> {
+export async function verify(repoRoot: string, input?: VerifyInput): Promise<Verification> {
   const blackboard = await readBlackboard(repoRoot);
 
   if (!blackboard.currentTask) {
@@ -32,8 +38,8 @@ export async function verify(repoRoot: string): Promise<Verification> {
 
   const issues: string[] = [];
 
-  // 1. Run tests
-  const testsPass = runTests(repoRoot);
+  // 1. Check test results (provided by scheduler)
+  const testsPass = input?.testsPass ?? true;
   if (!testsPass) {
     issues.push("Test suite failed.");
   }
@@ -46,7 +52,7 @@ export async function verify(repoRoot: string): Promise<Verification> {
 
   // 3. Health regression check — compare before (assessment) vs after (current)
   const healthBefore = blackboard.assessment?.healthScore ?? null;
-  const healthAfter = await getHealthScore(repoRoot);
+  const healthAfter = input?.healthScore ?? null;
   const healthIssue = checkHealthRegression(healthBefore, healthAfter);
   if (healthIssue) {
     issues.push(healthIssue);
@@ -74,13 +80,4 @@ export async function verify(repoRoot: string): Promise<Verification> {
   await clearPriorities(repoRoot);
 
   return verification;
-}
-
-function runTests(repoRoot: string): boolean {
-  try {
-    execSync("bun test", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
-    return true;
-  } catch {
-    return false;
-  }
 }
