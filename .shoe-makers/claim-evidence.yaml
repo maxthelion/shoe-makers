@@ -820,8 +820,10 @@ spec.observability.the-shift-log-tells-a-narrative-not-just-facts-tried-x-becau:
 spec.observability.findings-persist-in-shoemakersfindings-until-resolved-contex:
   source:
     - [readFindings, shoe-makers/findings]
+    - [archiveResolvedFindings, RESOLVED_PATTERN]
   test:
     - [findings]
+    - [archiveResolvedFindings, resolved, archive]
 
 spec.statelessness-and-resilience.the-branch-is-the-only-state-no-database-no-server-no-persis:
   source:
@@ -1664,8 +1666,10 @@ spec.creative-exploration.insights-go-to-shoemakersinsights-separate-from-findin
   source:
     - [.shoe-makers/insights/]
     - [findings]
+    - [countInsights]
   test:
     - [.shoe-makers/insights/]
+    - [countInsights]
 
 # Prioritise elf reviews insights — promote, defer, dismiss
 spec.creative-exploration.insights-are-reviewed-by-a-future-prioritise-elf-who-decides:
