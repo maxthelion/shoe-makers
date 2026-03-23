@@ -42,7 +42,7 @@ async function countInboxMessages(repoRoot: string): Promise<number> {
 /**
  * Count markdown files in the insights directory.
  */
-async function countInsights(repoRoot: string): Promise<number> {
+export async function countInsights(repoRoot: string): Promise<number> {
   try {
     const files = await readdir(join(repoRoot, ".shoe-makers", "insights"));
     return files.filter((f) => f.endsWith(".md")).length;
@@ -104,21 +104,6 @@ export async function countUnresolvedCritiques(repoRoot: string): Promise<number
       if (!RESOLVED_PATTERN.test(content)) {
         count++;
       }
-    }
-  } catch {}
-  return count;
-}
-
-/**
- * Count pending insight files in .shoe-makers/insights/.
- */
-export async function countInsights(repoRoot: string): Promise<number> {
-  const insightsDir = join(repoRoot, ".shoe-makers", "insights");
-  let count = 0;
-  try {
-    const files = await readdir(insightsDir);
-    for (const file of files) {
-      if (file.endsWith(".md")) count++;
     }
   } catch {}
   return count;
