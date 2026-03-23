@@ -8,7 +8,7 @@ This was detected automatically by the setup script. The fix-critique elf should
 
 ## Investigation
 
-False positive. The shift log change was written by the setup script's `appendToShiftLog()` call, not by the elf. It was included in the innovate commit because the housekeeping auto-commit didn't run before the elf's commit. The shift log entry is standard housekeeping — no elf misbehaviour.
+False positive. The shift log change was written by the setup script's `appendToShiftLog()`, not by the elf. Same recurring pattern as critique 174.
 
 ## Status
 
