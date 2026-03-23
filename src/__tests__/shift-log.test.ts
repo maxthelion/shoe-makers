@@ -88,125 +88,55 @@ describe("appendToShiftLog", () => {
 });
 
 describe("formatTickLog", () => {
-  test("formats a successful tick", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: "assess",
-      skill: "assess",
-      result: "Assessment complete. Tests: pass.",
-      error: null,
+  const base = { branch: "shoemakers/2026-03-21" as const };
+
+  const tickCases: [string, Parameters<typeof formatTickLog>[0], string[], string[]][] = [
+    ["formats a successful tick", { ...base, tickType: "assess", skill: "assess", result: "Assessment complete. Tests: pass.", error: null },
+      ["**Branch**: shoemakers/2026-03-21", "**Decision**: assess", "**Result**: Assessment complete."], ["**Error**"]],
+    ["formats a sleep tick", { ...base, tickType: null, skill: null, result: null, error: null },
+      ["**Decision**: sleep (nothing to do)"], ["**Result**"]],
+    ["formats suggestions", { ...base, tickType: "execute-work-item", skill: "execute-work-item", result: "Implemented init command", error: null, suggestions: ["Fix the plan detection bug next", "Add more test coverage for invariants"] },
+      ["**Suggestions**", "Fix the plan detection bug next", "Add more test coverage for invariants"], []],
+    ["omits suggestions when empty", { ...base, tickType: "assess", skill: "assess", result: "Done", error: null, suggestions: [] },
+      [], ["Suggestions"]],
+    ["omits suggestions when not provided", { ...base, tickType: "assess", skill: "assess", result: "Done", error: null },
+      [], ["Suggestions"]],
+    ["formats an error tick", { ...base, tickType: "work", skill: "work", result: null, error: "No priority items to work on." },
+      ["**Decision**: work", "**Error**: No priority items to work on."], []],
+    ["includes tree trace when provided", { ...base, tickType: "explore", skill: "explore", result: "Done", error: null, trace: "  ✗ tests-failing\n  ✓ explore → explore" },
+      ["**Tree trace**", "✗ tests-failing", "✓ explore → explore"], []],
+    ["omits tree trace when not provided", { ...base, tickType: "explore", skill: "explore", result: "Done", error: null },
+      [], ["Tree trace"]],
+  ];
+
+  for (const [label, opts, contains, notContains] of tickCases) {
+    test(label, () => {
+      const log = formatTickLog(opts);
+      for (const s of contains) expect(log).toContain(s);
+      for (const s of notContains) expect(log).not.toContain(s);
     });
-
-    expect(log).toContain("**Branch**: shoemakers/2026-03-21");
-    expect(log).toContain("**Decision**: assess");
-    expect(log).toContain("**Result**: Assessment complete.");
-    expect(log).not.toContain("**Error**");
-  });
-
-  test("formats a sleep tick", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: null,
-      skill: null,
-      result: null,
-      error: null,
-    });
-
-    expect(log).toContain("**Decision**: sleep (nothing to do)");
-    expect(log).not.toContain("**Result**");
-  });
-
-  test("formats suggestions for next priorities", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: "execute-work-item",
-      skill: "execute-work-item",
-      result: "Implemented init command",
-      error: null,
-      suggestions: ["Fix the plan detection bug next", "Add more test coverage for invariants"],
-    });
-
-    expect(log).toContain("**Suggestions**");
-    expect(log).toContain("Fix the plan detection bug next");
-    expect(log).toContain("Add more test coverage for invariants");
-  });
-
-  test("omits suggestions when empty", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: "assess",
-      skill: "assess",
-      result: "Done",
-      error: null,
-      suggestions: [],
-    });
-
-    expect(log).not.toContain("Suggestions");
-  });
-
-  test("omits suggestions when not provided", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: "assess",
-      skill: "assess",
-      result: "Done",
-      error: null,
-    });
-
-    expect(log).not.toContain("Suggestions");
-  });
-
-  test("formats an error tick", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: "work",
-      skill: "work",
-      result: null,
-      error: "No priority items to work on.",
-    });
-
-    expect(log).toContain("**Decision**: work");
-    expect(log).toContain("**Error**: No priority items to work on.");
-  });
-
-  test("includes tree trace when provided", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: "explore",
-      skill: "explore",
-      result: "Done",
-      error: null,
-      trace: "  ✗ tests-failing\n  ✓ explore → explore",
-    });
-
-    expect(log).toContain("**Tree trace**");
-    expect(log).toContain("✗ tests-failing");
-    expect(log).toContain("✓ explore → explore");
-  });
-
-  test("omits tree trace when not provided", () => {
-    const log = formatTickLog({
-      branch: "shoemakers/2026-03-21",
-      tickType: "explore",
-      skill: "explore",
-      result: "Done",
-      error: null,
-    });
-
-    expect(log).not.toContain("Tree trace");
-  });
+  }
 });
+
+const balancedSummary = {
+  categories: ["fix" as const, "feature" as const],
+  isBalanced: true, totalActions: 5, successCount: 4, errorCount: 1,
+  description: "Improvements across 2 categories: fix, feature",
+};
+const focusedSummary = {
+  categories: ["review" as const],
+  isBalanced: false, totalActions: 3, successCount: 3, errorCount: 0,
+  description: "Improvements across 1 categories: review",
+};
+const emptySummary = {
+  categories: [] as const,
+  isBalanced: false, totalActions: 0, successCount: 0, errorCount: 0,
+  description: "No improvement actions taken",
+};
 
 describe("formatShiftSummary", () => {
   test("includes action counts and categories", () => {
-    const output = formatShiftSummary({
-      categories: ["fix", "feature"],
-      isBalanced: true,
-      totalActions: 5,
-      successCount: 4,
-      errorCount: 1,
-      description: "Improvements across 2 categories: fix, feature",
-    });
+    const output = formatShiftSummary(balancedSummary);
     expect(output).toContain("Shift Summary");
     expect(output).toContain("5 (4 success, 1 error)");
     expect(output).toContain("fix, feature");
@@ -214,27 +144,13 @@ describe("formatShiftSummary", () => {
   });
 
   test("shows focused when not balanced", () => {
-    const output = formatShiftSummary({
-      categories: ["review"],
-      isBalanced: false,
-      totalActions: 3,
-      successCount: 3,
-      errorCount: 0,
-      description: "Improvements across 1 categories: review",
-    });
+    const output = formatShiftSummary(focusedSummary);
     expect(output).toContain("focused on review");
     expect(output).not.toContain("balanced");
   });
 
   test("handles empty categories", () => {
-    const output = formatShiftSummary({
-      categories: [],
-      isBalanced: false,
-      totalActions: 0,
-      successCount: 0,
-      errorCount: 0,
-      description: "No improvement actions taken",
-    });
+    const output = formatShiftSummary(emptySummary);
     expect(output).toContain("none");
     expect(output).toContain("No improvement actions taken");
   });
@@ -242,14 +158,7 @@ describe("formatShiftSummary", () => {
 
 describe("formatDashboard", () => {
   test("includes action counts and balance in blockquote", () => {
-    const output = formatDashboard({
-      categories: ["fix", "feature"],
-      isBalanced: true,
-      totalActions: 5,
-      successCount: 4,
-      errorCount: 1,
-      description: "Improvements across 2 categories: fix, feature",
-    });
+    const output = formatDashboard(balancedSummary);
     expect(output).toContain("> **Shift Dashboard**");
     expect(output).toContain("5 actions, 4 success, 1 error");
     expect(output).toContain("Categories: fix, feature");
@@ -258,27 +167,13 @@ describe("formatDashboard", () => {
   });
 
   test("shows focused when not balanced", () => {
-    const output = formatDashboard({
-      categories: ["review"],
-      isBalanced: false,
-      totalActions: 3,
-      successCount: 3,
-      errorCount: 0,
-      description: "Improvements across 1 categories: review",
-    });
+    const output = formatDashboard(focusedSummary);
     expect(output).toContain("Focused on review");
     expect(output).not.toContain("Balanced");
   });
 
   test("handles zero actions", () => {
-    const output = formatDashboard({
-      categories: [],
-      isBalanced: false,
-      totalActions: 0,
-      successCount: 0,
-      errorCount: 0,
-      description: "No improvement actions taken",
-    });
+    const output = formatDashboard(emptySummary);
     expect(output).toContain("0 actions, 0 success, 0 errors");
     expect(output).toContain("Categories: none");
     expect(output).toContain("> No improvement actions taken");
@@ -286,18 +181,9 @@ describe("formatDashboard", () => {
 });
 
 describe("prependShiftDashboard", () => {
-  const summary = {
-    categories: ["fix" as const, "feature" as const],
-    isBalanced: true,
-    totalActions: 5,
-    successCount: 4,
-    errorCount: 1,
-    description: "Improvements across 2 categories: fix, feature",
-  };
-
   test("inserts dashboard after header", async () => {
     await appendToShiftLog(tempDir, "First entry.");
-    await prependShiftDashboard(tempDir, summary);
+    await prependShiftDashboard(tempDir, balancedSummary);
 
     const today = new Date().toISOString().slice(0, 10);
     const content = await readFile(
@@ -313,8 +199,8 @@ describe("prependShiftDashboard", () => {
 
   test("is idempotent — calling twice produces one dashboard", async () => {
     await appendToShiftLog(tempDir, "Entry.");
-    await prependShiftDashboard(tempDir, summary);
-    await prependShiftDashboard(tempDir, summary);
+    await prependShiftDashboard(tempDir, balancedSummary);
+    await prependShiftDashboard(tempDir, balancedSummary);
 
     const today = new Date().toISOString().slice(0, 10);
     const content = await readFile(
@@ -327,7 +213,6 @@ describe("prependShiftDashboard", () => {
   });
 
   test("does nothing when no log file exists", async () => {
-    // Should not throw
-    await prependShiftDashboard(tempDir, summary);
+    await prependShiftDashboard(tempDir, balancedSummary);
   });
 });
