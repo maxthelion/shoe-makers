@@ -10,13 +10,15 @@ Shoe-makers uses a **behaviour tree** inspired by game AI. Each scheduled invoca
 
 ```
 Selector
-├── [tests failing?]        → Fix tests
+├── [tests failing?]         → Fix tests
 ├── [unresolved critiques?]  → Fix issues flagged by reviewer
 ├── [unreviewed commits?]    → Adversarial review of previous elf's work
+├── [uncommitted changes?]   → Review uncommitted work
 ├── [inbox messages?]        → Handle human instructions
+├── [dead-code work-item?]   → Remove dead code
 ├── [work-item.md exists?]   → Execute the detailed work item
 ├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
-├── [neither?]               → Explore: assess the codebase, write candidates.md
+├── [always true]            → Explore: assess the codebase, write candidates.md
 ```
 
 **Reactive conditions** (top) handle urgent work with direct prompts. **Three-phase orchestration** (bottom) handles proactive work across separate invocations:
