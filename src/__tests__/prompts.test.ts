@@ -410,4 +410,32 @@ describe("explore and prioritise tier switching", () => {
     const promptNoGaps = generatePrompt("explore", stateNoGaps);
     expect(promptNoGaps).not.toContain("unimplemented spec claim");
   });
+
+  test("explore Hygiene tier includes top spec gap descriptions", () => {
+    const state = makeStateWithGaps(3, 0);
+    const prompt = generatePrompt("explore", state);
+    // freshAssessment has topSpecGaps with description "gap"
+    expect(prompt).toContain("gap");
+    expect(prompt).toContain("Top invariant gaps");
+  });
+
+  test("explore Innovation tier includes health score in codebase snapshot", () => {
+    const state = makeStateWithGaps(0, 0);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("Codebase snapshot");
+    expect(prompt).toContain("Health:");
+  });
+
+  test("prioritise includes top spec gap descriptions when gaps exist", () => {
+    const state = makeStateWithGaps(3, 0);
+    const prompt = generatePrompt("prioritise", state);
+    expect(prompt).toContain("Top invariant gaps");
+    expect(prompt).toContain("gap");
+  });
+
+  test("prioritise does not include gap details when no gaps", () => {
+    const state = makeStateWithGaps(0, 0);
+    const prompt = generatePrompt("prioritise", state);
+    expect(prompt).not.toContain("Top invariant gaps");
+  });
 });

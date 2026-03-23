@@ -39,6 +39,27 @@ function formatSkillSection(skill: SkillDefinition): string {
 }
 
 /**
+ * Format top spec gaps as a bullet list for prompts.
+ */
+function formatTopGaps(assessment: WorldState["blackboard"]["assessment"]): string {
+  const gaps = assessment?.invariants?.topSpecGaps ?? [];
+  if (gaps.length === 0) return "";
+  const items = gaps.slice(0, 5).map(g => `- ${g.description} (${g.group})`).join("\n");
+  return `\n\nTop invariant gaps:\n${items}`;
+}
+
+/**
+ * Format a codebase snapshot for Innovation-tier explore prompts.
+ */
+function formatCodebaseSnapshot(assessment: WorldState["blackboard"]["assessment"]): string {
+  if (!assessment) return "";
+  const health = assessment.healthScore != null ? `${assessment.healthScore}/100` : "unknown";
+  const worst = assessment.worstFiles.slice(0, 3).map(f => `${f.path} (${f.score})`).join(", ");
+  const findings = assessment.findings.length;
+  return `\n\n## Codebase snapshot\n\n- Health: ${health}\n- Worst files: ${worst || "none"}\n- Open findings: ${findings}`;
+}
+
+/**
  * Generate a focused prompt for the elf based on the tree's decision.
  *
  * Each action produces a scoped prompt telling the elf exactly what to do.
@@ -154,8 +175,9 @@ You ARE permitted to delete test files that test removed features.${skillSection
       const pSpecOnlyCount = pInv?.specifiedOnly ?? 0;
       const pHasGaps = pSpecOnlyCount > 0 || pUntestedCount >= 5;
 
+      const pGapDetails = formatTopGaps(state.blackboard.assessment);
       const pTierGuidance = pHasGaps
-        ? `The codebase has ${pSpecOnlyCount} unimplemented spec claim(s) and ${pUntestedCount} untested claim(s). Prefer candidates that close these gaps — implementation and test work are both valuable here.`
+        ? `The codebase has ${pSpecOnlyCount} unimplemented spec claim(s) and ${pUntestedCount} untested claim(s). Prefer candidates that close these gaps — implementation and test work are both valuable here.${pGapDetails}`
         : `All invariants are met and test coverage is solid. **Prefer implementation, improvement, and creative work** over writing more tests or polishing what's already clean. Pick the candidate with the highest impact on the system's usefulness — to humans and to agents.`;
 
       return `# Prioritise — Pick a Work Item
@@ -210,13 +232,16 @@ ${article.summary}
 
 Read the codebase through this lens. If anything about this concept suggests a better pattern, structure, or approach for the shoe-makers system, write it up as a candidate. Creative connections are valuable — they're how the system improves beyond its spec.` : "";
 
+      const eGapDetails = formatTopGaps(state.blackboard.assessment);
+      const eSnapshot = formatCodebaseSnapshot(state.blackboard.assessment);
+
       const tierSection = eHasGaps ? `
 ## Current tier: Hygiene / Implementation
 
 The codebase has ${eSpecOnlyCount} unimplemented spec claim(s) and ${eUntestedCount} untested claim(s). Focus on:
 - Spec-code inconsistencies and broken invariants
 - Spec claims that aren't implemented yet
-- Code smells, stale documentation, missing tests for critical paths` : `
+- Code smells, stale documentation, missing tests for critical paths${eGapDetails}` : `
 ## Current tier: Innovation
 
 All invariants are met. Tests pass. Health is good. Your job shifts from **gap-finding to improvement-finding**.
@@ -229,7 +254,7 @@ All invariants are met. Tests pass. Health is good. Your job shifts from **gap-f
 - Are there features the wiki doesn't mention yet that would genuinely help?
 - Could the explore/prioritise/execute cycle itself be improved?
 
-Think like a product owner, not a linter. The codebase being "clean" is not the goal — the goal is a system that produces genuinely useful overnight improvements for the projects it's installed in.`;
+Think like a product owner, not a linter. The codebase being "clean" is not the goal — the goal is a system that produces genuinely useful overnight improvements for the projects it's installed in.${eSnapshot}`;
 
       return `# Explore — Survey and Write Candidates
 
