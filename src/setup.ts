@@ -6,7 +6,7 @@ import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
 import { saveLastAction } from "./state/last-action";
-import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType } from "./state/world";
+import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights } from "./state/world";
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
@@ -180,13 +180,14 @@ async function buildWorldState(
   inboxCount: number,
   config: Config,
 ): Promise<WorldState> {
-  const [uncommitted, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType] = await Promise.all([
+  const [uncommitted, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType, insightCount] = await Promise.all([
     hasUncommittedChanges(repoRoot),
     checkUnreviewedCommits(repoRoot),
     countUnresolvedCritiques(repoRoot),
     checkHasWorkItem(repoRoot),
     checkHasCandidates(repoRoot),
     readWorkItemSkillType(repoRoot),
+    countInsights(repoRoot),
   ]);
 
   const blackboard: Blackboard = {
@@ -205,7 +206,7 @@ async function buildWorldState(
     hasWorkItem,
     hasCandidates,
     workItemSkillType,
-    insightCount: 0,
+    insightCount,
     blackboard,
     config,
   };

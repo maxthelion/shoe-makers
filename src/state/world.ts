@@ -110,6 +110,21 @@ export async function countUnresolvedCritiques(repoRoot: string): Promise<number
 }
 
 /**
+ * Count pending insight files in .shoe-makers/insights/.
+ */
+export async function countInsights(repoRoot: string): Promise<number> {
+  const insightsDir = join(repoRoot, ".shoe-makers", "insights");
+  let count = 0;
+  try {
+    const files = await readdir(insightsDir);
+    for (const file of files) {
+      if (file.endsWith(".md")) count++;
+    }
+  } catch {}
+  return count;
+}
+
+/**
  * Check if .shoe-makers/state/work-item.md exists.
  */
 export async function checkHasWorkItem(repoRoot: string): Promise<boolean> {
