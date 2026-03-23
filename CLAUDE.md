@@ -52,6 +52,7 @@ src/
   config/               — Config loader (config.yaml parsing)
   creative/             — Wikipedia creative lens for explore cycles
   log/                  — Shift log and summary generation
+  utils/                — Shared utility functions
   __tests__/            — Tests
 wiki/
   pages/                — The specification (markdown + frontmatter)
