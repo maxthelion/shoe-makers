@@ -45,7 +45,11 @@ src/
     default-tree.ts     — Default tree definition
   scheduler/            — Tick loop, branch management
   skills/               — Skill implementations
-  verify/               — Verification gate
+  state/                — Blackboard, world state readers
+  verify/               — Invariants pipeline, evidence checking
+  config/               — Config loader (config.yaml parsing)
+  creative/             — Wikipedia creative lens for explore cycles
+  log/                  — Shift log and summary generation
   __tests__/            — Tests
 wiki/
   pages/                — The specification (markdown + frontmatter)
