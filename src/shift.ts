@@ -2,6 +2,7 @@ import { shift, type ShiftStep } from "./scheduler/shift";
 import { loadConfig } from "./config/load-config";
 import { summarizeShift } from "./log/shift-summary";
 import { appendToShiftLog, formatShiftSummary, prependShiftDashboard } from "./log/shift-log";
+import { execSync } from "child_process";
 
 /**
  * Entry point for `bun run shift`.
@@ -37,6 +38,15 @@ async function main() {
   const summary = summarizeShift(result.steps);
   await appendToShiftLog(repoRoot, formatShiftSummary(summary));
   await prependShiftDashboard(repoRoot, summary);
+
+  // Push branch to remote for human review
+  try {
+    const branchName = execSync("git branch --show-current", { cwd: repoRoot, encoding: "utf-8" }).trim();
+    execSync(`git push -u origin ${branchName}`, { cwd: repoRoot, stdio: "pipe" });
+    console.log(`[shoe-makers] Pushed ${branchName} to origin.`);
+  } catch (err) {
+    console.warn(`[shoe-makers] Failed to push branch: ${err instanceof Error ? err.message : err}`);
+  }
 
   if (result.outcome === "action") {
     const lastStep = result.steps[result.steps.length - 1];
