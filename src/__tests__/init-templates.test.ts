@@ -7,15 +7,19 @@ import {
 } from "../init-templates";
 import {
   IMPLEMENT_SKILL,
+  BUG_FIX_SKILL,
+  OCTOCLEAN_FIX_SKILL,
+  DEPENDENCY_UPDATE_SKILL,
+} from "../init-skill-templates-work";
+import {
   FIX_TESTS_SKILL,
+  HEALTH_SKILL,
+  DEAD_CODE_SKILL,
+} from "../init-skill-templates-quality";
+import {
   TEST_COVERAGE_SKILL,
   DOC_SYNC_SKILL,
-  HEALTH_SKILL,
-  OCTOCLEAN_FIX_SKILL,
-  BUG_FIX_SKILL,
-  DEAD_CODE_SKILL,
-  DEPENDENCY_UPDATE_SKILL,
-} from "../init-skill-templates";
+} from "../init-skill-templates-docs";
 
 const SKILL_TEMPLATES = [
   { name: "implement", template: IMPLEMENT_SKILL },
