@@ -362,3 +362,42 @@ describe("critique prompt permission violations", () => {
     expect(prompt).not.toContain("PERMISSION VIOLATIONS");
   });
 });
+
+describe("insight lifecycle in prompts", () => {
+  const article = { title: "Mycelial Networks", summary: "Fungi connect trees underground." };
+
+  test("explore prompt includes creative lens when article provided", () => {
+    const prompt = generatePrompt("explore", makeState(), undefined, article);
+    expect(prompt).toContain("Creative Lens");
+    expect(prompt).toContain("Mycelial Networks");
+    expect(prompt).toContain("Fungi connect trees underground.");
+  });
+
+  test("explore prompt omits creative lens when no article", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).not.toContain("Creative Lens");
+  });
+
+  test("explore prompt mentions writing insights to .shoe-makers/insights/", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("prioritise prompt mentions reading insights from .shoe-makers/insights/", () => {
+    const prompt = generatePrompt("prioritise", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("explore and prioritise reference the same insight path", () => {
+    const explorePrompt = generatePrompt("explore", makeState());
+    const prioritisePrompt = generatePrompt("prioritise", makeState());
+    const insightPath = ".shoe-makers/insights/";
+    expect(explorePrompt).toContain(insightPath);
+    expect(prioritisePrompt).toContain(insightPath);
+  });
+
+  test("explore prompt mentions insight file naming format", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).toContain("YYYY-MM-DD");
+  });
+});
