@@ -1187,9 +1187,12 @@ spec.observability.the-morning-review-should-be-selfcontained-shift-log-finding:
     - [appendToShiftLog]
     - [findings]
     - [formatTickLog]
+    - [formatDashboard, prependShiftDashboard]
   test:
     - [appendToShiftLog, formatTickLog]
     - [findings]
+    - [formatDashboard]
+    - [prependShiftDashboard]
 
 spec.the-wiki-drives-work.the-wiki-is-the-source-of-truth-agents-read-it-to-understand:
   source:
