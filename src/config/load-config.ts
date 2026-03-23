@@ -12,6 +12,7 @@ const KNOWN_KEYS = new Set([
   "max-ticks-per-shift",
   "enabled-skills",
   "insight-frequency",
+  "max-innovation-cycles",
 ]);
 
 const DEFAULTS: Config = {
@@ -22,6 +23,7 @@ const DEFAULTS: Config = {
   maxTicksPerShift: 10,
   enabledSkills: null,
   insightFrequency: 0.3,
+  maxInnovationCycles: 3,
 };
 
 /**
@@ -101,5 +103,6 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
       ? raw["enabled-skills"].split(",").map((s) => s.trim()).filter(Boolean)
       : null,
     insightFrequency: parseInsightFrequency(raw["insight-frequency"]),
+    maxInnovationCycles: intOrDefault("max-innovation-cycles", DEFAULTS.maxInnovationCycles),
   };
 }

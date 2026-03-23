@@ -25,6 +25,7 @@ describe("loadConfig", () => {
       maxTicksPerShift: 10,
       enabledSkills: null,
       insightFrequency: 0.3,
+      maxInnovationCycles: 3,
     });
   });
 
@@ -50,6 +51,7 @@ describe("loadConfig", () => {
       maxTicksPerShift: 10,
       enabledSkills: null,
       insightFrequency: 0.3,
+      maxInnovationCycles: 3,
     });
   });
 

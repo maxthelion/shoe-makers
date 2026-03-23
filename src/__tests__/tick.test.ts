@@ -129,4 +129,50 @@ describe("tick", () => {
     expect(result.timestamp).toBeTruthy();
     expect(result.branch).toBe("shoemakers/2026-03-21");
   });
+
+  test("routes to explore instead of innovate when innovation cycle cap reached", () => {
+    const result = tick(makeState({
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0, reviewLoopCount: 0, innovationCycleCount: 5 },
+        },
+      },
+      config: {
+        branchPrefix: "shoemakers",
+        tickInterval: 5,
+        wikiDir: "wiki",
+        assessmentStaleAfter: 30,
+        maxTicksPerShift: 10,
+        enabledSkills: null,
+        insightFrequency: 0.3,
+        maxInnovationCycles: 3,
+      },
+    }));
+    expect(result.action).toBe("explore");
+  });
+
+  test("routes to innovate when below innovation cycle cap", () => {
+    const result = tick(makeState({
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0, reviewLoopCount: 0, innovationCycleCount: 2 },
+        },
+      },
+      config: {
+        branchPrefix: "shoemakers",
+        tickInterval: 5,
+        wikiDir: "wiki",
+        assessmentStaleAfter: 30,
+        maxTicksPerShift: 10,
+        enabledSkills: null,
+        insightFrequency: 0.3,
+        maxInnovationCycles: 3,
+      },
+    }));
+    expect(result.action).toBe("innovate");
+  });
 });

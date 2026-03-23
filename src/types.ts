@@ -72,7 +72,7 @@ export interface Assessment {
   typecheckPass?: boolean | null;
   recentGitActivity: string[];
   /** Process patterns from current shift (reactive ratio, review loops) */
-  processPatterns?: { reactiveRatio: number; reviewLoopCount: number };
+  processPatterns?: { reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number };
 }
 
 /** A finding from .shoe-makers/findings/ */
@@ -191,4 +191,6 @@ export interface Config {
   enabledSkills: string[] | null;
   /** Fraction of explore cycles that include a Wikipedia creative lens (0.0–1.0) */
   insightFrequency: number;
+  /** Maximum innovation cycles per shift before routing to explore (default: 3) */
+  maxInnovationCycles: number;
 }

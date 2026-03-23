@@ -87,4 +87,14 @@ describe("computeProcessPatterns", () => {
     const patterns = computeProcessPatterns(["explore", "prioritise", "execute-work-item"]);
     expect(patterns.reactiveRatio).toBe(0.0);
   });
+
+  test("counts innovation cycles", () => {
+    const patterns = computeProcessPatterns(["innovate", "evaluate-insight", "critique", "innovate", "evaluate-insight"]);
+    expect(patterns.innovationCycleCount).toBe(2);
+  });
+
+  test("returns 0 innovation cycles when none present", () => {
+    const patterns = computeProcessPatterns(["explore", "prioritise", "execute-work-item"]);
+    expect(patterns.innovationCycleCount).toBe(0);
+  });
 });

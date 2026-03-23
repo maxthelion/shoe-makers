@@ -250,7 +250,7 @@ describe("explore prompt process temperature", () => {
         ...emptyBlackboard(),
         assessment: {
           ...freshAssessment,
-          processPatterns: { reactiveRatio, reviewLoopCount },
+          processPatterns: { reactiveRatio, reviewLoopCount, innovationCycleCount: 0 },
         },
       },
     };

@@ -58,7 +58,11 @@ function hasInsights(state: WorldState): boolean {
 }
 
 function innovationTier(state: WorldState): boolean {
-  return isInnovationTier(state.blackboard.assessment);
+  if (!isInnovationTier(state.blackboard.assessment)) return false;
+  // Cap innovation cycles per shift to avoid diminishing-returns loops
+  const maxCycles = state.config?.maxInnovationCycles ?? 3;
+  const cycleCount = state.blackboard.assessment?.processPatterns?.innovationCycleCount ?? 0;
+  return cycleCount < maxCycles;
 }
 
 function alwaysTrue(_state: WorldState): boolean {
