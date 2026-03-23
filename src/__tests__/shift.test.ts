@@ -69,6 +69,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      insightCount: 0,
       blackboard: {
         ...emptyBlackboard(),
         assessment: { ...freshAssessment, testsPass: false },
@@ -100,6 +101,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      insightCount: 0,
       blackboard: {
         ...emptyBlackboard(),
         assessment: freshAssessment,
@@ -116,6 +118,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: true,
       workItemSkillType: null,
+      insightCount: 0,
       blackboard: {
         ...emptyBlackboard(),
         assessment: freshAssessment,
@@ -146,6 +149,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      insightCount: 0,
       blackboard: emptyBlackboard(),
     };
 

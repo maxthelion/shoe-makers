@@ -24,6 +24,9 @@ describe("readWorldState", () => {
     // Inbox count should be a number
     expect(typeof state.inboxCount).toBe("number");
 
+    // Insight count should be a number
+    expect(typeof state.insightCount).toBe("number");
+
     // Gatekeeping fields should exist
     expect(typeof state.hasUnreviewedCommits).toBe("boolean");
     expect(typeof state.unresolvedCritiqueCount).toBe("number");

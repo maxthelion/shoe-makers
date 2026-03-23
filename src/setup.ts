@@ -197,6 +197,7 @@ async function buildWorldState(
     hasWorkItem,
     hasCandidates,
     workItemSkillType,
+    insightCount: 0,
     blackboard,
     config,
   };

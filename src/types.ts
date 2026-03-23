@@ -146,6 +146,8 @@ export interface WorldState {
   hasCandidates: boolean;
   /** The skill type of the current work item, or null if no work item or unknown type */
   workItemSkillType: string | null;
+  /** Number of insight files in .shoe-makers/insights/ */
+  insightCount: number;
   /** Configuration (optional — defaults used if absent) */
   config?: Config;
 }

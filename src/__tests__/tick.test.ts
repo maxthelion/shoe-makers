@@ -40,6 +40,7 @@ function makeState(overrides: Partial<WorldState> = {}): WorldState {
     hasWorkItem: false,
     hasCandidates: false,
     workItemSkillType: null,
+    insightCount: 0,
     blackboard: {
       ...emptyBlackboard(),
       assessment: freshAssessment,

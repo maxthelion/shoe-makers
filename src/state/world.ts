@@ -39,6 +39,18 @@ async function countInboxMessages(repoRoot: string): Promise<number> {
 }
 
 /**
+ * Count markdown files in the insights directory.
+ */
+async function countInsights(repoRoot: string): Promise<number> {
+  try {
+    const files = await readdir(join(repoRoot, ".shoe-makers", "insights"));
+    return files.filter((f) => f.endsWith(".md")).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Check if there are commits since the last reviewed commit.
  * If no marker file exists, all commits are considered unreviewed.
  */
@@ -141,7 +153,7 @@ export async function readWorkItemSkillType(repoRoot: string): Promise<string | 
  * Read the full world state: git info + blackboard + inbox count.
  */
 export async function readWorldState(repoRoot: string): Promise<WorldState> {
-  const [branch, dirty, blackboard, config, inboxCount, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType] = await Promise.all([
+  const [branch, dirty, blackboard, config, inboxCount, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType, insightCount] = await Promise.all([
     getCurrentBranch(repoRoot),
     hasUncommittedChanges(repoRoot),
     readBlackboard(repoRoot),
@@ -152,6 +164,7 @@ export async function readWorldState(repoRoot: string): Promise<WorldState> {
     checkHasWorkItem(repoRoot),
     checkHasCandidates(repoRoot),
     readWorkItemSkillType(repoRoot),
+    countInsights(repoRoot),
   ]);
 
   return {
@@ -164,6 +177,7 @@ export async function readWorldState(repoRoot: string): Promise<WorldState> {
     hasWorkItem,
     hasCandidates,
     workItemSkillType,
+    insightCount,
     config,
   };
 }
