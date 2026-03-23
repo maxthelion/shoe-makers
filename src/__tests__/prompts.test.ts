@@ -109,6 +109,20 @@ describe("generatePrompt", () => {
     expect(prompt).toContain("accurately");
   });
 
+  test("explore prompt mentions writing insights", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+    expect(prompt).toContain("proposals, not problems");
+  });
+
+  test("prioritise prompt mentions reviewing insights", () => {
+    const prompt = generatePrompt("prioritise", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+    expect(prompt).toContain("Promote");
+    expect(prompt).toContain("Defer");
+    expect(prompt).toContain("Dismiss");
+  });
+
   test("each action returns a non-empty prompt", () => {
     const state = makeState();
     for (const action of allActions) {
@@ -211,7 +225,6 @@ describe("explore prompt creative lens", () => {
   test("does NOT include creative lens when no article provided", () => {
     const prompt = generatePrompt("explore", makeState());
     expect(prompt).not.toContain("## Creative Lens");
-    expect(prompt).not.toContain("insights/");
   });
 
   test("creative lens is only added for explore action", () => {

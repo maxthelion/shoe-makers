@@ -153,8 +153,12 @@ A previous elf explored the codebase and wrote a candidate list in \`.shoe-maker
 
 1. Read \`.shoe-makers/state/candidates.md\`
 2. For the top candidates, read the relevant wiki pages and source files to understand the context
-3. Pick ONE candidate — the most impactful, highest-confidence, lowest-risk option
-4. Write \`.shoe-makers/state/work-item.md\` with:
+3. Read \`.shoe-makers/insights/\` — for each insight, decide:
+   - **Promote**: worth doing now → include as a candidate in your ranking
+   - **Defer**: interesting but not a priority → leave it for a future elf
+   - **Dismiss**: not applicable → delete it and note why in the shift log
+4. Pick ONE candidate — the most impactful, highest-confidence, lowest-risk option
+5. Write \`.shoe-makers/state/work-item.md\` with:
    - A clear title
    - The relevant wiki text (quote it)
    - The relevant code (reference files and line numbers)
@@ -162,8 +166,8 @@ A previous elf explored the codebase and wrote a candidate list in \`.shoe-maker
    - Which patterns to follow
    - What tests to write
    - What NOT to change
-5. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
-6. Commit both changes
+6. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
+7. Commit both changes
 
 Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."${OFF_LIMITS}`;
 
@@ -216,7 +220,9 @@ Write \`.shoe-makers/state/candidates.md\` with a ranked list of possible work i
 
 Include 3-5 candidates, ranked by impact. Be specific — reference file paths, wiki pages, and invariant IDs.
 
-Commit \`candidates.md\` when done.${lensSection}${OFF_LIMITS}`;
+Commit \`candidates.md\` when done.
+
+If you discover a creative insight — a non-obvious connection or a fundamentally better approach — write it to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\`. Insights are different from findings: they're proposals, not problems.${lensSection}${OFF_LIMITS}`;
     }
   }
 }

@@ -1646,6 +1646,44 @@ spec.project-documentation.the-explore-step-checks-whether-the-readme-is-accurat
     - [explore]
     - [README]
 
+# Elf writes insights during explore — prompt instructs to write to insights/
+spec.creative-exploration.the-elf-reads-the-codebase-through-the-lens-and-writes-an-in:
+  source:
+    - [insights/]
+    - [insight]
+    - [proposals, not problems]
+  test:
+    - [insight]
+
+# Insights go to .shoe-makers/insights/ — separate from findings
+spec.creative-exploration.insights-go-to-shoemakersinsights-separate-from-findings-the:
+  source:
+    - [.shoe-makers/insights/]
+    - [findings]
+  test:
+    - [insight]
+
+# Prioritise elf reviews insights — promote, defer, dismiss
+spec.creative-exploration.insights-are-reviewed-by-a-future-prioritise-elf-who-decides:
+  source:
+    - [insights/]
+    - [Promote]
+    - [Defer]
+    - [Dismiss]
+  test:
+    - [insight]
+    - [prioritise]
+
+# Separation between generating and acting on insights
+spec.creative-exploration.the-separation-between-generating-insights-divergentcreative:
+  source:
+    - [explore]
+    - [prioritise]
+    - [insights/]
+  test:
+    - [explore]
+    - [prioritise]
+
 # CHANGELOG — protocol instructs elves to maintain it
 spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-changelog-:
   source:
