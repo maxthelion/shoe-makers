@@ -64,6 +64,16 @@ const ROLE_MAP: Record<ActionType, RolePermissions> = {
     canWrite: [".shoe-makers/state/"],
     cannotWrite: [...ALWAYS_FORBIDDEN, "src/", "wiki/"],
   },
+  innovate: {
+    role: "innovator",
+    canWrite: [".shoe-makers/insights/"],
+    cannotWrite: [...ALWAYS_FORBIDDEN, "src/", "wiki/"],
+  },
+  "evaluate-insight": {
+    role: "insight-evaluator",
+    canWrite: [".shoe-makers/insights/", ".shoe-makers/state/", ".shoe-makers/log/"],
+    cannotWrite: [...ALWAYS_FORBIDDEN, "src/", "wiki/"],
+  },
   explore: {
     role: "explorer",
     canWrite: [".shoe-makers/state/", ".shoe-makers/findings/"],

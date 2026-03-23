@@ -63,10 +63,10 @@ describe("tick", () => {
     expect(result.action).toBe("fix-tests");
   });
 
-  test("returns explore when everything is current", () => {
+  test("returns innovate when everything is current (innovation tier)", () => {
     const result = tick(makeState());
-    expect(result.action).toBe("explore");
-    expect(result.skill).toBe("explore");
+    expect(result.action).toBe("innovate");
+    expect(result.skill).toBe("innovate");
   });
 
   test("returns review when there are uncommitted changes", () => {

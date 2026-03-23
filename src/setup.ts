@@ -82,10 +82,20 @@ async function main() {
     console.log(`[setup] Tree trace:\n${formatTrace(trace)}`);
   }
 
-  // Fetch a Wikipedia article for creative exploration (explore actions only)
+  // Fetch a Wikipedia article for creative exploration
+  // For innovate: always fetch (deterministic creative brief)
+  // For explore: probabilistic based on config
   let article: { title: string; summary: string } | undefined;
-  if (skill === "explore" && shouldIncludeLens(config.insightFrequency)) {
+  if (skill === "innovate") {
     article = (await fetchRandomArticle()) ?? undefined;
+  } else if (skill === "explore" && shouldIncludeLens(config.insightFrequency)) {
+    article = (await fetchRandomArticle()) ?? undefined;
+  }
+
+  // Read wiki overview for innovate action
+  let wikiSummary: string | undefined;
+  if (skill === "innovate") {
+    wikiSummary = await readWikiOverview(repoRoot);
   }
 
   // Detect permission violations for critique actions
@@ -101,7 +111,7 @@ async function main() {
     }
   }
 
-  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations);
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary);
 
   const stateDir = join(repoRoot, ".shoe-makers", "state");
   await mkdir(stateDir, { recursive: true });
@@ -316,6 +326,7 @@ export function formatAction(
   loadedSkills?: Map<string, SkillDefinition>,
   article?: { title: string; summary: string },
   permissionViolations?: string[],
+  wikiSummary?: string,
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -335,7 +346,7 @@ Run \`bun run setup\` again to get your next action.
 
   if (skill) {
     const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, actionType === "explore" ? article : undefined, permissionViolations);
+    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary);
     return `${prompt}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}
@@ -348,6 +359,30 @@ Run \`bun run setup\` again to get your next action.
 
 The tree found no applicable action. This shouldn't happen — check the tree definition.
 `;
+}
+
+/**
+ * Read wiki overview pages for the innovate creative brief.
+ * Reads architecture.md and other key overview pages to build a system summary.
+ */
+export async function readWikiOverview(repoRoot: string): Promise<string> {
+  const overviewFiles = ["architecture.md", "behaviour-tree.md", "pure-function-agents.md"];
+  const sections: string[] = [];
+
+  for (const file of overviewFiles) {
+    try {
+      const content = await readFile(join(repoRoot, "wiki", "pages", file), "utf-8");
+      // Strip frontmatter
+      const stripped = content.replace(/^---[\s\S]*?---\n*/, "");
+      sections.push(stripped.trim());
+    } catch {
+      // File doesn't exist — skip
+    }
+  }
+
+  return sections.length > 0
+    ? sections.join("\n\n---\n\n")
+    : "Shoe-makers is a behaviour tree system that runs autonomous AI agents to improve codebases overnight.";
 }
 
 if (import.meta.main) {

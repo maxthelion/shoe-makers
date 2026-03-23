@@ -9,8 +9,8 @@ describe("default tree structure", () => {
     expect(defaultTree.name).toBe("root");
   });
 
-  test("has exactly 9 children", () => {
-    expect(defaultTree.children).toHaveLength(9);
+  test("has exactly 11 children", () => {
+    expect(defaultTree.children).toHaveLength(11);
   });
 
   test("each child is a sequence with condition + action", () => {
@@ -29,10 +29,12 @@ describe("default tree structure", () => {
     "unreviewed-commits",
     "unverified-work",
     "inbox-messages",
-    // Three-phase orchestration (positions 5-8)
+    // Three-phase orchestration (positions 5-10)
     "dead-code-work",
     "work-item",
     "candidates",
+    "insights",
+    "innovation-tier",
     "explore",
   ];
 
@@ -55,6 +57,8 @@ describe("default tree structure", () => {
       "dead-code-work",
       "work-item",
       "candidates",
+      "insights",
+      "innovation-tier",
       "explore",
     ]);
   });

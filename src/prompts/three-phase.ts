@@ -1,6 +1,6 @@
 import type { WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
-import { OFF_LIMITS, formatTopGaps, formatCodebaseSnapshot, formatSkillCatalog, determineTier } from "./helpers";
+import { OFF_LIMITS, formatTopGaps, formatCodebaseSnapshot, formatSkillCatalog, determineTier, isInnovationTier } from "./helpers";
 
 /**
  * Build the explore prompt with tier-specific guidance.
@@ -25,7 +25,6 @@ ${article.summary}
 Read the codebase through this lens. If anything about this concept suggests a better pattern, structure, or approach for the shoe-makers system, write it up as a candidate. Creative connections are valuable — they're how the system improves beyond its spec.` : "";
 
   const gapDetails = formatTopGaps(state.blackboard.assessment);
-  const snapshot = formatCodebaseSnapshot(state.blackboard.assessment);
 
   const tierSection = tier.hasGaps ? `
 ## Current tier: Hygiene / Implementation
@@ -34,19 +33,9 @@ The codebase has ${tier.specOnlyCount} unimplemented spec claim(s) and ${tier.un
 - Spec-code inconsistencies and broken invariants
 - Spec claims that aren't implemented yet
 - Code smells, stale documentation, missing tests for critical paths${gapDetails}` : `
-## Current tier: Innovation
+## Current tier: No major gaps detected
 
-All invariants are met. Tests pass. Health is good. Your job shifts from **gap-finding to improvement-finding**.
-
-"No impactful work remaining" is NOT an acceptable output. There is always work to do. At this tier, ask:
-- Could this system be easier to use for its human users?
-- Could it be easier to use by agents?
-- Is there a fundamentally better way to structure any part of this?
-- What would make the morning review delightful instead of just informative?
-- Are there features the wiki doesn't mention yet that would genuinely help?
-- Could the explore/prioritise/execute cycle itself be improved?
-
-Think like a product owner, not a linter. The codebase being "clean" is not the goal — the goal is a system that produces genuinely useful overnight improvements for the projects it's installed in.${snapshot}`;
+Survey the codebase for issues that the invariants may not cover: code smells, stale documentation, missing tests, spec-code inconsistencies.`;
 
   return `# Explore — Survey and Write Candidates
 
@@ -110,14 +99,8 @@ ${tierGuidance}
 
 1. Read \`.shoe-makers/state/candidates.md\`
 2. For the top candidates, read the relevant wiki pages and source files to understand the context
-3. Read \`.shoe-makers/insights/\` — for each insight, engage with the idea critically:
-   - Could this actually work? What are the practical obstacles?
-   - If the idea as stated wouldn't work, is there a **variant** that would? Write the improved version.
-   - If the core insight is sound but the proposal is wrong, say "this wouldn't work because X, but Y would work" and rewrite as a viable candidate.
-   - Then decide: **Promote** (viable → include as a candidate), **Rework** (rewrite the insight file with your improved version for a future elf), or **Dismiss** (not applicable → delete with a note in the shift log).
-   - Your job is not just to judge — it's to build on the idea. The explore elf was in creative mode. You're in evaluative mode. Good evaluation improves ideas, not just filters them.
-4. Pick ONE candidate — the most impactful option
-5. Write \`.shoe-makers/state/work-item.md\` with:
+3. Pick ONE candidate — the most impactful option
+4. Write \`.shoe-makers/state/work-item.md\` with:
    - A clear title
    - If the work maps to a specific skill type (e.g. dead-code, implement, fix), add \`skill-type: <type>\` on a line by itself near the top
    - The relevant wiki text (quote it)
@@ -127,8 +110,8 @@ ${tierGuidance}
    - What tests to write
    - What NOT to change
    - A brief "## Decision Rationale" explaining why this candidate was chosen over the others
-6. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
-7. Commit both changes
+5. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
+6. Commit both changes
 
 Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."${OFF_LIMITS}`;
 }
@@ -163,4 +146,73 @@ A work item in \`.shoe-makers/state/work-item.md\` describes dead code to remove
 6. Delete \`.shoe-makers/state/work-item.md\`
 
 You ARE permitted to delete test files that test removed features.${skillSection}${OFF_LIMITS}`;
+}
+
+/**
+ * Build the innovate prompt — deterministic creative brief with wiki summary + Wikipedia article.
+ */
+export function buildInnovatePrompt(
+  wikiSummary: string,
+  article: { title: string; summary: string },
+): string {
+  return `# Innovate — Creative Insight from Random Conceptual Collision
+
+You are in **divergent/creative mode**. Your job is to make a connection between a random concept and the shoe-makers system. Most ideas will be bad — that's fine. Your job is to make the connection, not to judge it.
+
+## The System
+
+${wikiSummary}
+
+## The Random Concept
+
+**${article.title}**
+
+${article.summary}
+
+## Your Task
+
+Read the shoe-makers codebase through the lens of this concept. Find a connection — however abstract — between the concept and something in the system. Then write a concrete proposal.
+
+You **MUST** write an insight file to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\` (where NNN is a sequence number). "No connection found" is NOT acceptable output. Be creative. Be speculative. A bad idea is better than no idea.
+
+The insight file must contain:
+
+1. **Lens**: the Wikipedia article and what it's about
+2. **Connection**: how it relates to the shoe-makers system
+3. **Proposal**: a concrete change or improvement inspired by the connection
+4. **Why**: why this would be better than the current approach
+
+Commit the insight file when done.${OFF_LIMITS}`;
+}
+
+/**
+ * Build the evaluate-insight prompt — generous evaluator that builds on ideas.
+ */
+export function buildEvaluateInsightPrompt(): string {
+  return `# Evaluate Insight — Build on Creative Ideas
+
+You are in **constructive/convergent mode**. Your job is NOT to filter ideas — it's to make them better. You have a **generous disposition**: look for the version of the idea that works.
+
+## Steps
+
+1. Read the insight file(s) in \`.shoe-makers/insights/\`
+2. For each insight, engage constructively:
+   - Could this actually work? What are the practical obstacles?
+   - If the idea as stated wouldn't work, is there a **variant** that would?
+   - "This wouldn't work because X, but Y would work" is the expected output shape
+3. For each insight, decide:
+   - **Promote**: the idea (or your improved version) is viable → write a \`.shoe-makers/state/work-item.md\` with specific implementation instructions, then delete the insight file
+   - **Rework**: the core insight is interesting but needs development → rewrite the insight file with your improved version for a future elf to evaluate again
+   - **Dismiss**: genuinely inapplicable (this should be the exception, not the default) → delete the insight file and note why in the shift log
+
+You are NOT the prioritise elf. The prioritise elf is pragmatic and would kill most creative ideas. You are generous and constructive — your job is to find the version of each idea that works and develop it.
+
+If you promote an insight to a work item, include:
+- A clear title
+- The original insight and your improved version
+- Specific files to modify
+- What tests to write
+- What patterns to follow
+
+Commit your changes when done.${OFF_LIMITS}`;
 }

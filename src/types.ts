@@ -33,6 +33,8 @@ export type ActionType =
   | "execute-work-item"
   | "dead-code"
   | "prioritise"
+  | "innovate"
+  | "evaluate-insight"
   | "explore";
 
 

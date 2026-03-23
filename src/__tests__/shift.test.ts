@@ -62,7 +62,7 @@ describe("shift runner", () => {
   test("loops through explore and then stops on next action", async () => {
     const skillLog: string[] = [];
 
-    // Tick 1: nothing to do → explore
+    // Tick 1: no assessment → explore (not innovation tier)
     const state1: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
@@ -73,10 +73,7 @@ describe("shift runner", () => {
       hasCandidates: false,
       workItemSkillType: null,
       insightCount: 0,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
+      blackboard: emptyBlackboard(),
     };
 
     // Tick 2: after explore wrote candidates.md → prioritise
@@ -90,10 +87,7 @@ describe("shift runner", () => {
       hasCandidates: true,
       workItemSkillType: null,
       insightCount: 0,
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: freshAssessment,
-      },
+      blackboard: emptyBlackboard(),
     };
 
     const result = await shift(tempDir, {

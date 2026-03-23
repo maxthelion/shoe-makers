@@ -51,6 +51,8 @@ const allActions: ActionType[] = [
   "execute-work-item",
   "dead-code",
   "prioritise",
+  "innovate",
+  "evaluate-insight",
   "explore",
 ];
 
@@ -89,7 +91,6 @@ describe("generatePrompt", () => {
     ["execute-work-item prompt tells elf to read work-item.md", "execute-work-item", ["work-item.md", "Delete"]],
     ["prioritise prompt tells elf to read candidates and write work-item", "prioritise", ["candidates.md", "work-item.md", "Delete"]],
     ["prioritise prompt mentions skill-type metadata", "prioritise", ["skill-type:"]],
-    ["prioritise prompt mentions reviewing insights", "prioritise", [".shoe-makers/insights/", "Promote", "Rework", "Dismiss"]],
     ["prioritise prompt asks for decision rationale", "prioritise", ["Decision Rationale"]],
     ["explore prompt tells elf to write candidates.md", "explore", ["candidates.md", "ranked"]],
     ["explore prompt mentions README accuracy check", "explore", ["README.md", "accurately"]],
@@ -266,16 +267,11 @@ describe("explore and prioritise tier switching", () => {
   }
 
   const tierCases: [string, ActionType, () => WorldState, string[], string[]][] = [
-    ["explore shows Innovation tier when no gaps", "explore", () => makeStateWithGaps(0, 0), ["Innovation", "improvement-finding"], []],
+    ["explore shows no-gaps tier when no gaps", "explore", () => makeStateWithGaps(0, 0), ["No major gaps"], []],
     ["explore shows Hygiene/Implementation tier when spec gaps exist", "explore", () => makeStateWithGaps(5, 0), ["Hygiene / Implementation", "unimplemented spec claim"], []],
-    ["explore Innovation tier says No impactful work remaining is not acceptable", "explore", () => makeStateWithGaps(0, 0), ["No impactful work remaining", "NOT an acceptable output"], []],
-    ["explore Innovation tier asks if system could be easier for humans", "explore", () => makeStateWithGaps(0, 0), ["easier to use"], []],
     ["prioritise shows gap guidance when spec gaps exist", "prioritise", () => makeStateWithGaps(5, 0), ["unimplemented spec claim"], []],
     ["prioritise shows innovation guidance when no gaps", "prioritise", () => makeStateWithGaps(0, 0), ["highest impact"], []],
-    ["prioritise prompt includes insight evaluation with promote/rework/dismiss", "prioritise", () => makeState(), ["Promote", "Rework", "Dismiss", "improves ideas"], []],
-    ["prioritise prompt asks evaluator to engage critically with insights", "prioritise", () => makeState(), ["engage with the idea critically", "creative mode", "evaluative mode"], []],
     ["explore Hygiene tier includes top spec gap descriptions", "explore", () => makeStateWithGaps(3, 0), ["gap", "Top invariant gaps"], []],
-    ["explore Innovation tier includes health score in codebase snapshot", "explore", () => makeStateWithGaps(0, 0), ["Codebase snapshot", "Health:"], []],
     ["prioritise includes top spec gap descriptions when gaps exist", "prioritise", () => makeStateWithGaps(3, 0), ["Top invariant gaps", "gap"], []],
     ["prioritise does not include gap details when no gaps", "prioritise", () => makeStateWithGaps(0, 0), [], ["Top invariant gaps"]],
   ];
@@ -324,6 +320,8 @@ describe("parseActionTypeFromPrompt", () => {
     ["# Execute Work Item\n\nText", "execute-work-item"],
     ["# Remove Dead Code\n\nText", "dead-code"],
     ["# Prioritise — Pick a Work Item\n\nText", "prioritise"],
+    ["# Innovate — Creative Insight from Random Conceptual Collision\n\nText", "innovate"],
+    ["# Evaluate Insight — Build on Creative Ideas\n\nText", "evaluate-insight"],
     ["# Explore — Survey and Write Candidates\n\nText", "explore"],
   ];
 
@@ -383,21 +381,92 @@ describe("insight lifecycle in prompts", () => {
     expect(prompt).toContain(".shoe-makers/insights/");
   });
 
-  test("prioritise prompt mentions reading insights from .shoe-makers/insights/", () => {
-    const prompt = generatePrompt("prioritise", makeState());
+  test("evaluate-insight prompt mentions reading insights from .shoe-makers/insights/", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain(".shoe-makers/insights/");
   });
 
-  test("explore and prioritise reference the same insight path", () => {
-    const explorePrompt = generatePrompt("explore", makeState());
-    const prioritisePrompt = generatePrompt("prioritise", makeState());
+  test("innovate and evaluate-insight reference the same insight path", () => {
+    const innovatePrompt = generatePrompt("innovate", makeState());
+    const evaluatePrompt = generatePrompt("evaluate-insight", makeState());
     const insightPath = ".shoe-makers/insights/";
-    expect(explorePrompt).toContain(insightPath);
-    expect(prioritisePrompt).toContain(insightPath);
+    expect(innovatePrompt).toContain(insightPath);
+    expect(evaluatePrompt).toContain(insightPath);
   });
 
   test("explore prompt mentions insight file naming format", () => {
     const prompt = generatePrompt("explore", makeState());
     expect(prompt).toContain("YYYY-MM-DD");
+  });
+});
+
+describe("innovate prompt", () => {
+  const article = { title: "Mycelial Networks", summary: "Fungi connect trees underground via root networks." };
+  const wikiSummary = "Shoe-makers is a behaviour tree system for autonomous overnight codebase improvement.";
+
+  test("includes wiki summary and article", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("Mycelial Networks");
+    expect(prompt).toContain("Fungi connect trees underground");
+    expect(prompt).toContain("behaviour tree system");
+  });
+
+  test("mandates writing an insight file", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("MUST");
+    expect(prompt).toContain(".shoe-makers/insights/");
+    expect(prompt).toContain("YYYY-MM-DD-NNN");
+  });
+
+  test("says no connection found is not acceptable", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("No connection found");
+    expect(prompt).toContain("NOT acceptable");
+  });
+
+  test("mentions divergent/creative mode", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("divergent/creative mode");
+  });
+
+  test("mentions off-limits", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("Off-limits");
+    expect(prompt).toContain("invariants.md");
+  });
+});
+
+describe("evaluate-insight prompt", () => {
+  test("mentions generous disposition", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("generous disposition");
+  });
+
+  test("mentions promote, rework, dismiss actions", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("Promote");
+    expect(prompt).toContain("Rework");
+    expect(prompt).toContain("Dismiss");
+  });
+
+  test("says it is NOT the prioritise elf", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("NOT the prioritise elf");
+  });
+
+  test("mentions constructive/convergent mode", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("constructive/convergent mode");
+  });
+
+  test("mentions reading insights directory", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("mentions off-limits", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("Off-limits");
+    expect(prompt).toContain("invariants.md");
   });
 });

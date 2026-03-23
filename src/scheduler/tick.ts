@@ -23,6 +23,8 @@ const SKILL_TO_ACTION: Record<string, ActionType> = {
   "execute-work-item": "execute-work-item",
   "dead-code": "dead-code",
   prioritise: "prioritise",
+  innovate: "innovate",
+  "evaluate-insight": "evaluate-insight",
   explore: "explore",
 };
 

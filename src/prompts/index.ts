@@ -2,7 +2,7 @@ import type { ActionType, WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { findSkillForAction, formatSkillSection } from "./helpers";
 import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
-import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDeadCodePrompt } from "./three-phase";
+import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDeadCodePrompt, buildInnovatePrompt, buildEvaluateInsightPrompt } from "./three-phase";
 
 export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
 
@@ -18,6 +18,7 @@ export function generatePrompt(
   skills?: Map<string, SkillDefinition>,
   article?: { title: string; summary: string },
   permissionViolations?: string[],
+  wikiSummary?: string,
 ): string {
   const skill = findSkillForAction(action, skills);
   const skillSection = skill ? formatSkillSection(skill) : "";
@@ -39,6 +40,13 @@ export function generatePrompt(
       return buildDeadCodePrompt(skillSection);
     case "prioritise":
       return buildPrioritisePrompt(state);
+    case "innovate":
+      return buildInnovatePrompt(
+        wikiSummary ?? "No wiki summary available.",
+        article ?? { title: "Unknown", summary: "No article fetched." },
+      );
+    case "evaluate-insight":
+      return buildEvaluateInsightPrompt();
     case "explore":
       return buildExplorePrompt(state, skills, article);
   }

@@ -1,4 +1,5 @@
 import type { TreeNode, WorldState } from "../types";
+import { isInnovationTier } from "../prompts/helpers";
 
 /**
  * The behaviour tree — reactive conditions for urgent work,
@@ -13,6 +14,8 @@ import type { TreeNode, WorldState } from "../types";
  * ├── [dead-code work-item?] → Remove dead code
  * ├── [work-item.md exists?] → Execute the work item
  * ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
+ * ├── [insights exist?] → Evaluate insight (generous disposition)
+ * ├── [innovation tier?] → Innovate: write insight from creative brief
  * └── [always true] → Explore: write candidates.md
  */
 
@@ -48,6 +51,14 @@ function hasWorkItem(state: WorldState): boolean {
 
 function hasCandidates(state: WorldState): boolean {
   return state.hasCandidates;
+}
+
+function hasInsights(state: WorldState): boolean {
+  return state.insightCount > 0;
+}
+
+function innovationTier(state: WorldState): boolean {
+  return isInnovationTier(state.blackboard.assessment);
 }
 
 function alwaysTrue(_state: WorldState): boolean {
@@ -87,6 +98,8 @@ export const defaultTree: TreeNode = {
     makeConditionAction("dead-code-work", hasDeadCodeWorkItem, "dead-code"),
     makeConditionAction("work-item", hasWorkItem, "execute-work-item"),
     makeConditionAction("candidates", hasCandidates, "prioritise"),
+    makeConditionAction("insights", hasInsights, "evaluate-insight"),
+    makeConditionAction("innovation-tier", innovationTier, "innovate"),
     makeConditionAction("explore", alwaysTrue, "explore"),
   ],
 };

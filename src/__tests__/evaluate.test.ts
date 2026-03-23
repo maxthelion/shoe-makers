@@ -79,9 +79,9 @@ describe("selector and sequence evaluation", () => {
   });
 
   test("selector falls through when condition fails", () => {
-    // Tests pass, no uncommitted changes, no inbox → falls through to explore
+    // Tests pass, no uncommitted changes, no inbox, innovation tier → falls through to innovate
     const result = evaluate(defaultTree, makeState());
-    expect(result.skill).toBe("explore");
+    expect(result.skill).toBe("innovate");
   });
 });
 
@@ -161,8 +161,9 @@ describe("game-style behaviour tree — routing", () => {
     ["dead-code when work item has dead-code type", { hasWorkItem: true, workItemSkillType: "dead-code" }, "dead-code"],
     ["execute-work-item when work item has null skill type", { hasWorkItem: true, workItemSkillType: null }, "execute-work-item"],
     ["prioritise when candidates exist", { hasCandidates: true }, "prioritise"],
-    ["explore when nothing else matches", {}, "explore"],
-    ["explore when no assessment", { blackboard: emptyBlackboard() }, "explore"],
+    ["evaluate-insight when insights exist", { insightCount: 2 }, "evaluate-insight"],
+    ["innovate when nothing else matches (innovation tier)", {}, "innovate"],
+    ["explore when no assessment (not innovation tier)", { blackboard: emptyBlackboard() }, "explore"],
   ];
 
   for (const [label, overrides, expected] of routingCases) {
@@ -189,16 +190,17 @@ describe("evaluateWithTrace", () => {
     expect(traceResult.skill).toBe(evalResult.skill);
   });
 
-  test("trace records all conditions up to winning one when explore wins", () => {
+  test("trace records all conditions up to winning one when innovate wins (default state is innovation tier)", () => {
     const state = makeState();
     const { trace } = evaluateWithTrace(defaultTree, state);
-    // All conditions fail except the last (alwaysTrue → explore)
-    expect(trace.length).toBe(9);
-    expect(trace[trace.length - 1].passed).toBe(true);
-    expect(trace[trace.length - 1].skill).toBe("explore");
+    // Default state has all invariants met → innovation tier → innovate fires
+    const winner = trace.find(e => e.passed);
+    expect(winner).toBeDefined();
+    expect(winner!.skill).toBe("innovate");
     // All preceding conditions should have failed
-    for (let i = 0; i < trace.length - 1; i++) {
-      expect(trace[i].passed).toBe(false);
+    for (const entry of trace) {
+      if (entry === winner) break;
+      expect(entry.passed).toBe(false);
     }
   });
 
@@ -217,7 +219,7 @@ describe("evaluateWithTrace", () => {
     expect(names).toContain("tests-failing");
     expect(names).toContain("unresolved-critiques");
     expect(names).toContain("unreviewed-commits");
-    expect(names).toContain("explore");
+    expect(names).toContain("innovation-tier");
   });
 
   test("trace for mid-tree match records failed conditions before winner", () => {

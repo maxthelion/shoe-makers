@@ -21,6 +21,8 @@ const TITLE_TO_ACTION: [RegExp, ActionType][] = [
   [/^#\s*Execute Work Item/i, "execute-work-item"],
   [/^#\s*Remove Dead Code/i, "dead-code"],
   [/^#\s*Prioritise/i, "prioritise"],
+  [/^#\s*Innovate/i, "innovate"],
+  [/^#\s*Evaluate Insight/i, "evaluate-insight"],
   [/^#\s*Explore/i, "explore"],
 ];
 
@@ -46,6 +48,8 @@ export const ACTION_TO_SKILL_TYPE: Record<ActionType, string | undefined> = {
   "review": undefined,
   "inbox": undefined,
   "prioritise": undefined,
+  "innovate": undefined,
+  "evaluate-insight": undefined,
   "explore": undefined,
 };
 
@@ -118,4 +122,14 @@ export function determineTier(assessment: WorldState["blackboard"]["assessment"]
   const untestedCount = inv?.implementedUntested ?? 0;
   const specOnlyCount = inv?.specifiedOnly ?? 0;
   return { hasGaps: specOnlyCount > 0 || untestedCount >= 5, specOnlyCount, untestedCount };
+}
+
+/**
+ * Check if the codebase is at innovation tier (all invariants met, health good).
+ * Used by the behaviour tree to route to `innovate` instead of `explore`.
+ * Returns false when no assessment exists — we can't assume innovation tier without data.
+ */
+export function isInnovationTier(assessment: WorldState["blackboard"]["assessment"]): boolean {
+  if (!assessment) return false;
+  return !determineTier(assessment).hasGaps;
 }
