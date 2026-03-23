@@ -70,13 +70,42 @@ This solves the problem of elves getting generic prompts. The prioritiser's enti
 
 After execution, `work-item.md` is consumed (deleted or replaced with a follow-up). After prioritisation, `candidates.md` is consumed. This ensures the cycle advances: explore → prioritise → execute → (explore again when no items remain).
 
-## Priority
+## Hierarchy of Needs
+
+The system follows a hierarchy of needs. Lower tiers must be satisfied before higher tiers become the focus. The reactive tier is enforced by tree order. The proactive tiers are enforced by the explore and prioritise prompts, which receive the current invariant counts and shift behaviour accordingly.
 
 **Reactive conditions** have fixed priority encoded in tree order. Tests always beat critiques, critiques always beat reviews, reviews always beat inbox.
 
-**Proactive work** is prioritised by the prioritise elf using LLM judgement. Health issues, spec gaps, untested code, stale docs, open plans — all appear as candidates. The prioritiser weighs impact, confidence, risk, and balance. A critical doc inconsistency can outrank a trivial feature gap.
+### Tier 1: Hygiene (reactive + proactive)
 
-No hardcoded priority between health/features/tests/docs. The prioritiser decides each cycle.
+Tests passing, critiques resolved, code reviewed, inbox handled. Enforced by tree order — these fire before any proactive work. Also includes: spec-code inconsistencies, code smells, stale documentation, broken invariants. If the codebase is messy, clean it up before building new things.
+
+### Tier 2: Implementation (proactive, directed)
+
+Build things that have been discussed but not actioned. Spec claims that aren't implemented (`specified-only` invariants), wiki plans that are open, features the wiki describes but the code doesn't have. This is directed work — the intent already exists in the spec, it just hasn't been built yet.
+
+The explore elf should surface these as candidates. The prioritise elf should prefer them over test-only or health-only work when the codebase is in good shape.
+
+### Tier 3: Innovation (proactive, creative)
+
+Actively improve beyond immediate instructions. This is where the Wikipedia creative lens, analogical thinking, and open-ended exploration live. Questions the elf should ask at this tier:
+
+- Could this system be easier to use for its human users?
+- Could it be easier to use by agents?
+- Is there a fundamentally better way to structure this?
+- What would make the morning review delightful instead of just informative?
+
+The explore elf should **always produce candidates** — even at tier 3. "No impactful work remaining" is not an acceptable output. If invariants are met and the spec is implemented, the elf's job shifts from gap-finding to improvement-finding. Use the creative lens actively, not as an afterthought.
+
+### How the tiers interact
+
+The explore elf determines which tier the system is currently in by reading the invariant counts and health scores. It then produces candidates appropriate to that tier:
+
+- Many gaps or failures → tier 1 candidates (fixes, cleanups, consistency)
+- Spec claims unimplemented → tier 2 candidates (implementation, wiring)
+- Everything green → tier 3 candidates (UX improvements, creative refactoring, ergonomics for humans and agents)
+
+The prioritise elf receives the same tier signal and picks accordingly. Impact is the primary criterion — not risk-avoidance.
 
 ## Review as Handoff
 

@@ -95,10 +95,19 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - The prioritise step IS the orchestrator — its entire job is to write a really good, specific prompt
 - Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern"
 - It reads the relevant code to understand conventions, reads the wiki to understand intent, and writes instructions the executor can follow without searching
-- This is the LLM judgement step — it weighs impact, confidence, risk, and balance across work types
-- No hardcoded priority between features/tests/docs/health — the prioritiser decides each cycle
+- This is the LLM judgement step — it weighs impact and balance across work types
 
-### 2.5 Creative exploration
+### 2.5 Hierarchy of needs in prioritisation
+- The system follows three tiers: hygiene → implementation → innovation
+- **Tier 1 (Hygiene)**: spec-code inconsistencies, code smells, broken invariants, failing tests, missing test coverage. Handled partly by reactive tree, partly by explore/prioritise when gaps exist.
+- **Tier 2 (Implementation)**: build things discussed but not actioned — unimplemented spec claims, open wiki plans, features described but not coded. Directed work where intent already exists in the spec.
+- **Tier 3 (Innovation)**: actively improve beyond instructions — UX for humans, ergonomics for agents, creative refactoring, fundamentally better approaches. This is where the Wikipedia lens and open-ended exploration live.
+- The explore and prioritise prompts receive invariant counts and shift behaviour based on which tier the system is in
+- "No impactful work remaining" is never acceptable output — at tier 3, the elf's job shifts from gap-finding to improvement-finding
+- At tier 3, elves should ask: could this system be easier for humans to use? Could it be easier for agents to use?
+- Impact is the primary criterion — not risk-avoidance
+
+### 2.6 Creative exploration
 - Some explore cycles include a random Wikipedia article as an analogical lens
 - The elf reads the codebase through the lens and writes an insight if it sees a connection
 - Insights go to `.shoe-makers/insights/`, separate from findings — they're proposals, not problems
@@ -106,7 +115,7 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - The separation between generating insights (divergent/creative) and acting on them (convergent/evaluative) is deliberate — different mental states, different invocations
 - Frequency is configurable via `insightFrequency` in config.yaml (default ~30% of explore cycles)
 
-### 2.6 The wiki drives work
+### 2.7 The wiki drives work
 - The wiki is the source of truth — agents read it to understand project intent
 - Invariants compare wiki claims against code and surface gaps
 - Plans generate work candidates until implemented or marked done/blocked
