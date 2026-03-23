@@ -2,7 +2,7 @@ import { assess, buildSuggestions, archiveResolvedFindings } from "./skills/asse
 import { evaluateWithTrace, formatTrace } from "./tree/evaluate";
 import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
-import { writeFileSync } from "fs";
+import { writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
@@ -153,6 +153,13 @@ export function autoCommitHousekeeping(repoRoot: string): void {
 
     if (!isAllHousekeeping(status)) return;
 
+    // Read the current review marker BEFORE committing
+    const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
+    let previousMarker: string | null = null;
+    try {
+      previousMarker = readFileSync(markerPath, "utf-8").trim();
+    } catch {}
+
     // Stage all housekeeping changes
     for (const prefix of HOUSEKEEPING_PATHS) {
       execSync(`git add "${prefix}"`, { cwd: repoRoot, stdio: "pipe" });
@@ -163,13 +170,22 @@ export function autoCommitHousekeeping(repoRoot: string): void {
       stdio: "pipe",
     });
 
-    // Update the review marker so this commit doesn't trigger critique
     const head = execSync("git rev-parse HEAD", {
       cwd: repoRoot,
       encoding: "utf-8",
     }).trim();
-    const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
-    writeFileSync(markerPath, head);
+
+    // Only advance the marker if the auto-commit is the ONLY unreviewed commit.
+    // This prevents skipping review of code commits made between the old marker
+    // and the auto-commit.
+    const parentOfHead = execSync("git rev-parse HEAD~1", {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+
+    if (previousMarker === parentOfHead) {
+      writeFileSync(markerPath, head);
+    }
 
     console.log("[setup] Auto-committed housekeeping changes");
   } catch {
