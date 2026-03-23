@@ -60,6 +60,11 @@ describe("isFileAllowed", () => {
     expect(isFileAllowed("execute-work-item", ".shoe-makers/state/work-item.md")).toBe(true);
   });
 
+  test("executor can write root-level documentation files", () => {
+    expect(isFileAllowed("execute-work-item", "CHANGELOG.md")).toBe(true);
+    expect(isFileAllowed("execute-work-item", "README.md")).toBe(true);
+  });
+
   test("prioritiser can write state files", () => {
     expect(isFileAllowed("prioritise", ".shoe-makers/state/work-item.md")).toBe(true);
     expect(isFileAllowed("prioritise", ".shoe-makers/state/candidates.md")).toBe(true);

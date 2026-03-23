@@ -51,7 +51,7 @@ const ROLE_MAP: Record<ActionType, RolePermissions> = {
   },
   "execute-work-item": {
     role: "executor",
-    canWrite: ["src/", "wiki/", ".shoe-makers/state/"],
+    canWrite: ["src/", "wiki/", ".shoe-makers/state/", "CHANGELOG.md", "README.md"],
     cannotWrite: [...ALWAYS_FORBIDDEN],
   },
   "dead-code": {
