@@ -196,6 +196,7 @@ Nothing is queued for work. Your job is to survey the entire codebase and produc
 4. Read findings in \`.shoe-makers/findings/\` — any open issues?
 5. Check test coverage — untested paths?
 6. Check code quality — files too complex or duplicated?
+7. Check whether \`README.md\` accurately describes current capabilities — flag any drift as a candidate
 
 Write \`.shoe-makers/state/candidates.md\` with a ranked list of possible work items:
 

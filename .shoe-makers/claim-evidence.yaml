@@ -1627,6 +1627,25 @@ spec.project-documentation.documentation-explains-how-to-include-shoemakers-in-a
   test:
     - [init]
 
+# README reflects current capabilities — explore prompt tells elf to check README accuracy
+spec.project-documentation.the-readme-reflects-current-capabilities-as-described-by-the:
+  source:
+    - [README.md]
+    - [explore]
+  test:
+    - [explore]
+    - [README]
+
+# Explore checks README accuracy — step 7 in explore prompt
+spec.project-documentation.the-explore-step-checks-whether-the-readme-is-accurate-and-f:
+  source:
+    - [README.md]
+    - [explore]
+    - [drift, accurate]
+  test:
+    - [explore]
+    - [README]
+
 # CHANGELOG — protocol instructs elves to maintain it
 spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-changelog-:
   source:

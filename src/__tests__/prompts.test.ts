@@ -103,6 +103,12 @@ describe("generatePrompt", () => {
     expect(prompt).toContain("ranked");
   });
 
+  test("explore prompt mentions README accuracy check", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).toContain("README.md");
+    expect(prompt).toContain("accurately");
+  });
+
   test("each action returns a non-empty prompt", () => {
     const state = makeState();
     for (const action of allActions) {
