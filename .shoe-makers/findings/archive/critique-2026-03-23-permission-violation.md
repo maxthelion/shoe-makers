@@ -2,7 +2,7 @@
 
 The previous elf modified files outside their permitted scope:
 
-- `src/setup.ts`
+- `.shoe-makers/log/2026-03-23.md`
 
 This was detected automatically by the setup script. The fix-critique elf should investigate whether these changes are legitimate and either revert them or explain why they were necessary.
 
@@ -10,4 +10,4 @@ This was detected automatically by the setup script. The fix-critique elf should
 
 Resolved.
 
-False positive — setup.ts was modified during execute-work-item action, not critique. The permission detection compares against a commit range spanning multiple action types. Per critique-128.
+False positive — log file was modified by auto-commit housekeeping (setup script), not by the elf. Same pattern as critique-128. See critique-130 for full analysis.
