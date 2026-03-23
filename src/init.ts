@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile, readdir, stat } from "fs/promises";
+import { mkdir, writeFile, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import {
   PROTOCOL_CONTENT,
@@ -6,6 +6,7 @@ import {
   SCHEDULE_CONTENT,
   INVARIANTS_TEMPLATE,
 } from "./init-templates";
+import { fileExists } from "./utils/fs";
 import {
   IMPLEMENT_SKILL,
   FIX_TESTS_SKILL,
@@ -71,15 +72,6 @@ export async function init(repoRoot: string): Promise<InitResult> {
   }
 
   return { created, skipped };
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export interface BootstrapResult {

@@ -1,9 +1,10 @@
 import { execSync } from "child_process";
-import { readdir, readFile, access } from "fs/promises";
+import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import type { WorldState } from "../types";
 import { readBlackboard } from "./blackboard";
 import { loadConfig } from "../config/load-config";
+import { fileExists } from "../utils/fs";
 
 /**
  * Get the current git branch name.
@@ -106,18 +107,6 @@ export async function countUnresolvedCritiques(repoRoot: string): Promise<number
     }
   } catch {}
   return count;
-}
-
-/**
- * Check if a file exists.
- */
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**
