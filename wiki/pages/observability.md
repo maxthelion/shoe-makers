@@ -3,7 +3,7 @@ title: Observability
 category: architecture
 tags: [observability, logging, findings, journal, continuity]
 summary: How agents leave a trail for future elves and the morning human review — the shift log, findings, and suggestions.
-last-modified-by: user
+last-modified-by: elf
 ---
 
 ## The Problem
@@ -27,10 +27,13 @@ Each agent invocation starts cold. Without observability:
 Each entry records:
 - Timestamp (HH:MM UTC)
 - Which action the tree selected (e.g. fix-tests, implement-spec, explore, critique)
+- The behaviour tree evaluation trace (which conditions were checked and whether they passed)
 - The result of running the action (if any)
 - Errors (if any)
 
 The shift log is automated by `appendToShiftLog()` in `src/log/shift-log.ts` and the setup script. Entries are appended as markdown sections. The shift runner (`src/scheduler/shift.ts`) also produces a `ShiftSummary` that categorises actions into improvement types (fix, feature, test, docs, health, review) and tracks whether improvements are balanced.
+
+The `ShiftSummary` also includes a `TraceAnalysis` that classifies each tick by tree depth: **reactive** (depth 1-2, e.g. tests failing), **routine** (depth 3-4, e.g. critiques or work items), or **explore** (depth 5+, nothing urgent to do). This gives humans visibility into whether the system is operating healthily — a shift that's mostly reactive means things keep breaking, while a shift that's mostly explore means the codebase is stable. The dashboard line looks like: `Tree: 2 reactive, 6 routine, 2 explore | avg depth 4.2`.
 
 This is factual and terse. It's for the human reviewing the branch in the morning and for debugging when something goes wrong.
 
@@ -89,8 +92,9 @@ During **implementation** actions (implement-spec, implement-plan):
 When the human reviews the shoemakers branch, they should be able to:
 
 1. Read the shift log to understand the narrative of the night's work
-2. Scan findings for anything that needs human decision
-3. Review commits with full context for why they were made
+2. Check the tree trace analysis in the dashboard to understand whether the shift was reactive (fixing problems) or proactive (exploring and improving)
+3. Scan findings for anything that needs human decision
+4. Review commits with full context for why they were made
 
 The shift log is the primary interface between the elves and the human.
 
