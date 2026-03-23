@@ -1650,11 +1650,11 @@ spec.project-documentation.the-explore-step-checks-whether-the-readme-is-accurat
 # Elf writes insights during explore — prompt instructs to write to insights/
 spec.creative-exploration.the-elf-reads-the-codebase-through-the-lens-and-writes-an-in:
   source:
-    - [insights/]
-    - [insight]
+    - [.shoe-makers/insights/]
     - [proposals, not problems]
   test:
-    - [insight]
+    - [.shoe-makers/insights/]
+    - [proposals, not problems]
 
 # Insights go to .shoe-makers/insights/ — separate from findings
 spec.creative-exploration.insights-go-to-shoemakersinsights-separate-from-findings-the:
@@ -1662,18 +1662,19 @@ spec.creative-exploration.insights-go-to-shoemakersinsights-separate-from-findin
     - [.shoe-makers/insights/]
     - [findings]
   test:
-    - [insight]
+    - [.shoe-makers/insights/]
 
 # Prioritise elf reviews insights — promote, defer, dismiss
 spec.creative-exploration.insights-are-reviewed-by-a-future-prioritise-elf-who-decides:
   source:
-    - [insights/]
+    - [.shoe-makers/insights/]
     - [Promote]
     - [Defer]
     - [Dismiss]
   test:
-    - [insight]
-    - [prioritise]
+    - [.shoe-makers/insights/]
+    - [Promote]
+    - [Dismiss]
 
 # Separation between generating and acting on insights
 spec.creative-exploration.the-separation-between-generating-insights-divergentcreative:
@@ -1692,6 +1693,7 @@ spec.maintain-a-living-spec.when-wiki-and-code-diverge-the-newer-change-wins-if-
     - [source of truth]
   test:
     - [never revert the wiki]
+    - [source of truth]
 
 # Elves suggest new invariants via findings
 spec.maintain-a-living-spec.when-new-code-exists-without-a-corresponding-invariant-elves:
@@ -1700,10 +1702,12 @@ spec.maintain-a-living-spec.when-new-code-exists-without-a-corresponding-invaria
     - [invariants.md]
   test:
     - [suggesting a new invariant]
+    - [invariants.md]
 
 # CHANGELOG — protocol instructs elves to maintain it
 spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-changelog-:
   source:
     - [PROTOCOL_CONTENT]
+    - [changelog, CHANGELOG]
   test:
     - [PROTOCOL_CONTENT]
