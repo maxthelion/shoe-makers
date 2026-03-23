@@ -6,14 +6,6 @@ import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDea
 
 export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
 
-/** Options for prompt generation that may include pre-computed data */
-export interface PromptOptions {
-  skills?: Map<string, SkillDefinition>;
-  article?: { title: string; summary: string };
-  /** Permission violations detected for the critique action */
-  permissionViolations?: string[];
-}
-
 /**
  * Generate a focused prompt for the elf based on the tree's decision.
  *
