@@ -104,6 +104,54 @@ export function formatTickLog(opts: {
 }
 
 /**
+ * Format a dashboard blockquote for the top of the shift log.
+ */
+export function formatDashboard(summary: ShiftSummary): string {
+  const errorText = summary.errorCount === 1 ? "error" : "errors";
+  const balance = summary.isBalanced ? "Balanced" : `Focused on ${summary.categories[0] || "none"}`;
+  const cats = summary.categories.length > 0 ? summary.categories.join(", ") : "none";
+  const line1 = `> **Shift Dashboard** | ${summary.totalActions} actions, ${summary.successCount} success, ${summary.errorCount} ${errorText} | Categories: ${cats} | ${balance}`;
+  const line2 = `> ${summary.description}`;
+  return line1 + "\n" + line2;
+}
+
+const DASHBOARD_PATTERN = /\n> \*\*Shift Dashboard\*\*[^\n]*\n> [^\n]*/g;
+
+/**
+ * Prepend a dashboard block to today's shift log, right after the header.
+ * Idempotent — replaces any existing dashboard block.
+ */
+export async function prependShiftDashboard(
+  repoRoot: string,
+  summary: ShiftSummary,
+): Promise<void> {
+  const dir = join(repoRoot, LOG_DIR);
+  const filename = `${today()}.md`;
+  const filepath = join(dir, filename);
+
+  let existing = "";
+  try {
+    existing = await readFile(filepath, "utf-8");
+  } catch {
+    return; // No log file = nothing to prepend to
+  }
+
+  const dashboard = formatDashboard(summary);
+
+  // Insert after the first line (# Shift Log — DATE)
+  const firstNewline = existing.indexOf("\n");
+  if (firstNewline === -1) return;
+
+  const header = existing.slice(0, firstNewline);
+  const body = existing.slice(firstNewline);
+
+  // Remove any existing dashboard block (idempotent)
+  const cleaned = body.replace(DASHBOARD_PATTERN, "");
+
+  await writeFile(filepath, header + "\n" + dashboard + cleaned, "utf-8");
+}
+
+/**
  * Format a shift summary as a markdown block for the shift log.
  */
 export function formatShiftSummary(summary: ShiftSummary): string {

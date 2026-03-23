@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, readFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { appendToShiftLog, formatTickLog, formatShiftSummary } from "../log/shift-log";
+import { appendToShiftLog, formatTickLog, formatShiftSummary, formatDashboard, prependShiftDashboard } from "../log/shift-log";
 
 let tempDir: string;
 
@@ -210,5 +210,97 @@ describe("formatShiftSummary", () => {
     });
     expect(output).toContain("none");
     expect(output).toContain("No improvement actions taken");
+  });
+});
+
+describe("formatDashboard", () => {
+  test("includes action counts and balance in blockquote", () => {
+    const output = formatDashboard({
+      categories: ["fix", "feature"],
+      isBalanced: true,
+      totalActions: 5,
+      successCount: 4,
+      errorCount: 1,
+      description: "Improvements across 2 categories: fix, feature",
+    });
+    expect(output).toContain("> **Shift Dashboard**");
+    expect(output).toContain("5 actions, 4 success, 1 error");
+    expect(output).toContain("Categories: fix, feature");
+    expect(output).toContain("Balanced");
+    expect(output).toContain("> Improvements across 2 categories");
+  });
+
+  test("shows focused when not balanced", () => {
+    const output = formatDashboard({
+      categories: ["review"],
+      isBalanced: false,
+      totalActions: 3,
+      successCount: 3,
+      errorCount: 0,
+      description: "Improvements across 1 categories: review",
+    });
+    expect(output).toContain("Focused on review");
+    expect(output).not.toContain("Balanced");
+  });
+
+  test("handles zero actions", () => {
+    const output = formatDashboard({
+      categories: [],
+      isBalanced: false,
+      totalActions: 0,
+      successCount: 0,
+      errorCount: 0,
+      description: "No improvement actions taken",
+    });
+    expect(output).toContain("0 actions, 0 success, 0 errors");
+    expect(output).toContain("Categories: none");
+    expect(output).toContain("> No improvement actions taken");
+  });
+});
+
+describe("prependShiftDashboard", () => {
+  const summary = {
+    categories: ["fix" as const, "feature" as const],
+    isBalanced: true,
+    totalActions: 5,
+    successCount: 4,
+    errorCount: 1,
+    description: "Improvements across 2 categories: fix, feature",
+  };
+
+  test("inserts dashboard after header", async () => {
+    await appendToShiftLog(tempDir, "First entry.");
+    await prependShiftDashboard(tempDir, summary);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8",
+    );
+
+    const headerEnd = content.indexOf("\n");
+    const afterHeader = content.slice(headerEnd + 1, headerEnd + 30);
+    expect(afterHeader).toContain("> **Shift Dashboard**");
+    expect(content).toContain("First entry.");
+  });
+
+  test("is idempotent — calling twice produces one dashboard", async () => {
+    await appendToShiftLog(tempDir, "Entry.");
+    await prependShiftDashboard(tempDir, summary);
+    await prependShiftDashboard(tempDir, summary);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8",
+    );
+
+    const matches = content.match(/> \*\*Shift Dashboard\*\*/g);
+    expect(matches).toHaveLength(1);
+  });
+
+  test("does nothing when no log file exists", async () => {
+    // Should not throw
+    await prependShiftDashboard(tempDir, summary);
   });
 });

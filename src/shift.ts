@@ -1,7 +1,7 @@
 import { shift, type ShiftStep } from "./scheduler/shift";
 import { loadConfig } from "./config/load-config";
 import { summarizeShift } from "./log/shift-summary";
-import { appendToShiftLog, formatShiftSummary } from "./log/shift-log";
+import { appendToShiftLog, formatShiftSummary, prependShiftDashboard } from "./log/shift-log";
 
 /**
  * Entry point for `bun run shift`.
@@ -36,6 +36,7 @@ async function main() {
   // Write shift summary to log
   const summary = summarizeShift(result.steps);
   await appendToShiftLog(repoRoot, formatShiftSummary(summary));
+  await prependShiftDashboard(repoRoot, summary);
 
   if (result.outcome === "action") {
     const lastStep = result.steps[result.steps.length - 1];
