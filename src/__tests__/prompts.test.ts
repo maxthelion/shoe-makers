@@ -112,6 +112,13 @@ describe("generatePrompt", () => {
     expect(prompt).toContain("fix the issues");
   });
 
+  test("inbox prompt includes message count from state", () => {
+    const state = makeState();
+    state.inboxCount = 5;
+    const prompt = generatePrompt("inbox", state);
+    expect(prompt).toContain("5 message(s)");
+  });
+
   test("critique prompt restricts reviewer to findings only", () => {
     const prompt = generatePrompt("critique", makeState());
     expect(prompt).toContain("only write findings");
