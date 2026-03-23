@@ -90,6 +90,7 @@ describe("generatePrompt", () => {
     ["prioritise prompt tells elf to read candidates and write work-item", "prioritise", ["candidates.md", "work-item.md", "Delete"]],
     ["prioritise prompt mentions skill-type metadata", "prioritise", ["skill-type:"]],
     ["prioritise prompt mentions reviewing insights", "prioritise", [".shoe-makers/insights/", "Promote", "Rework", "Dismiss"]],
+    ["prioritise prompt asks for decision rationale", "prioritise", ["Decision Rationale"]],
     ["explore prompt tells elf to write candidates.md", "explore", ["candidates.md", "ranked"]],
     ["explore prompt mentions README accuracy check", "explore", ["README.md", "accurately"]],
     ["explore prompt mentions writing insights", "explore", [".shoe-makers/insights/", "proposals, not problems"]],

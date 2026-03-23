@@ -126,6 +126,7 @@ ${tierGuidance}
    - Which patterns to follow
    - What tests to write
    - What NOT to change
+   - A brief "## Decision Rationale" explaining why this candidate was chosen over the others
 6. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
 7. Commit both changes
 
