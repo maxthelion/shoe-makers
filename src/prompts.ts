@@ -60,6 +60,17 @@ function formatCodebaseSnapshot(assessment: WorldState["blackboard"]["assessment
 }
 
 /**
+ * Format a compact skill catalog for explore/prioritise prompts.
+ */
+function formatSkillCatalog(skills?: Map<string, SkillDefinition>): string {
+  if (!skills || skills.size === 0) return "";
+  const items = [...skills.values()]
+    .map(s => `- **${s.name}** (${s.mapsTo}): ${s.description}`)
+    .join("\n");
+  return `\n\n## Available skills\n\nWhen writing candidates, reference which skill type applies:\n${items}`;
+}
+
+/**
  * Generate a focused prompt for the elf based on the tree's decision.
  *
  * Each action produces a scoped prompt telling the elf exactly what to do.
@@ -270,7 +281,7 @@ ${tierSection}
 5. Check test coverage — untested paths?
 6. Check code quality — files too complex or duplicated?
 7. Check whether \`README.md\` accurately describes current capabilities
-${lensSection}
+${lensSection}${formatSkillCatalog(skills)}
 
 ## Output
 

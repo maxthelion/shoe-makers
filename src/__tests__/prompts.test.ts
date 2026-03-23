@@ -439,3 +439,21 @@ describe("explore and prioritise tier switching", () => {
     expect(prompt).not.toContain("Top invariant gaps");
   });
 });
+
+describe("explore prompt skill catalog", () => {
+  test("includes skill catalog when skills are provided", () => {
+    const skills = makeSkillMap(
+      makeSkill({ name: "implement", mapsTo: "implement", description: "Implement features" }),
+      makeSkill({ name: "fix-tests", mapsTo: "fix", description: "Fix failing tests" }),
+    );
+    const prompt = generatePrompt("explore", makeState(), skills);
+    expect(prompt).toContain("Available skills");
+    expect(prompt).toContain("implement");
+    expect(prompt).toContain("fix-tests");
+  });
+
+  test("omits skill catalog when no skills provided", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).not.toContain("Available skills");
+  });
+});
