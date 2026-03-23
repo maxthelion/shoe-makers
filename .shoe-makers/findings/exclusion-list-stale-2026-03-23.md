@@ -25,3 +25,7 @@ const EXCLUDED_TOP_LEVEL = new Set([
 ```
 
 This is a one-line source change that a health or fix elf can make.
+
+## Status
+
+Resolved.
