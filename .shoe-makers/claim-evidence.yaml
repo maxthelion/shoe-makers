@@ -281,7 +281,7 @@ verification.tdd-enforcement:
     - [cannotWrite, __tests__]
     - [executor, execute-work-item]
   test:
-    - [TDD enforcement]
+    - [permission enforcement]
     - [executor]
 
 verification.invariants-human-only:
@@ -1805,12 +1805,12 @@ spec.creative-exploration.the-explore-elf-reads-the-codebase-through-the-lens-an
   test:
     - [Creative Lens]
 
-# Prioritise elf evaluates insights critically
+# Evaluate-insight elf engages constructively with insights
 spec.creative-exploration.the-prioritise-elf-evaluates-insights-critically-not-just-tr:
   source:
-    - [engage with the idea critically]
+    - [engage constructively]
   test:
-    - [engage with the idea critically]
+    - [evaluate-insight]
 
 # Evaluator can promote, rework, or dismiss
 spec.creative-exploration.the-evaluator-can-promote-viable-work-item-rework-rewrite-th:
@@ -1834,7 +1834,133 @@ spec.creative-exploration.good-evaluation-improves-ideas-not-just-filters-them-t
 spec.creative-exploration.the-separation-between-generating-insights-divergent-and-eva:
   source:
     - [creative mode]
-    - [evaluative mode]
+    - [convergent mode]
   test:
     - [creative mode]
-    - [evaluative mode]
+    - [convergent mode]
+
+# === Section 2.3: Three-phase orchestration — innovate & evaluate-insight ===
+
+# Innovate fires at innovation tier instead of explore
+spec.three-phase-orchestration-bottom-of-tree.innovate-fires-at-innovation-tier-tier-3-instead-of-explore-:
+  source:
+    - [innovationTier, innovate]
+    - [isInnovationTier]
+  test:
+    - [innovate when nothing else matches]
+
+# Evaluate-insight fires when insight files exist
+spec.three-phase-orchestration-bottom-of-tree.evaluateinsight-fires-when-insight-files-exist-generous-eval:
+  source:
+    - [hasInsights, evaluate-insight]
+  test:
+    - [evaluate-insight when insights exist]
+
+# === Section 2.5: Hierarchy of needs — tier 3 ===
+
+# Tier 3 innovation — creative exploration lives here
+spec.hierarchy-of-needs-in-prioritisation.tier-3-innovation-actively-improve-beyond-instructions-ux-fo:
+  source:
+    - [isInnovationTier]
+    - [buildInnovatePrompt]
+  test:
+    - [innovate prompt]
+
+# No impactful work remaining is never acceptable at tier 3
+spec.hierarchy-of-needs-in-prioritisation.no-impactful-work-remaining-is-never-acceptable-output-at-ti:
+  source:
+    - [NOT acceptable]
+  test:
+    - [NOT acceptable]
+
+# At tier 3 elves should ask: could this be easier for humans/agents
+spec.hierarchy-of-needs-in-prioritisation.at-tier-3-elves-should-ask-could-this-system-be-easier-for-h:
+  source:
+    - [buildInnovatePrompt]
+    - [readWikiOverview]
+  test:
+    - [innovate prompt]
+
+# === Section 2.6: Creative exploration — dedicated actions ===
+
+# At innovation tier, tree routes to innovate instead of explore
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.at-innovation-tier-all-invariants-met-health-good-the-tree-r:
+  source:
+    - [isInnovationTier]
+    - [innovationTier, innovate]
+  test:
+    - [innovate when nothing else matches]
+
+# Setup prepares deterministic creative brief
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-setup-script-prepares-a-deterministic-creative-brief-rea:
+  source:
+    - [readWikiOverview]
+    - [fetchRandomArticle]
+  test:
+    - [innovate prompt, wiki summary]
+
+# Innovate elf must write insight file — mandatory
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-innovate-elf-must-write-an-insight-file-output-is-mandat:
+  source:
+    - [MUST]
+    - [NOT acceptable]
+  test:
+    - [MUST]
+    - [NOT acceptable]
+
+# Insights go to .shoe-makers/insights/ — separate from findings
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.insights-go-to-shoemakersinsights-separate-from-findings-the:
+  source:
+    - [.shoe-makers/insights/]
+  test:
+    - [.shoe-makers/insights/]
+
+# Separate evaluate-insight action with generous disposition
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.a-separate-evaluateinsight-action-fires-when-insight-files-e:
+  source:
+    - [evaluate-insight]
+    - [generous disposition]
+  test:
+    - [evaluate-insight]
+    - [generous disposition]
+
+# Evaluator builds on ideas constructively
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-evaluator-builds-on-ideas-constructively-could-this-work:
+  source:
+    - [engage constructively]
+  test:
+    - [evaluate-insight prompt]
+
+# Evaluator can promote, rework, or dismiss
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-evaluator-can-promote-viable-work-item-rework-rewrite-th:
+  source:
+    - [Promote]
+    - [Rework]
+    - [Dismiss]
+  test:
+    - [Promote]
+    - [Rework]
+    - [Dismiss]
+
+# Good evaluation improves ideas
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.good-evaluation-improves-ideas-not-just-filters-them-the-raw:
+  source:
+    - [make them better]
+  test:
+    - [evaluate-insight prompt]
+
+# Separation between divergent and convergent is deliberate
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-separation-between-generating-insights-divergent-and-eva:
+  source:
+    - [divergent/creative mode]
+    - [constructive/convergent mode]
+  test:
+    - [divergent/creative mode]
+    - [constructive/convergent mode]
+
+# Insight evaluator is NOT the prioritise elf
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-insight-evaluator-is-not-the-prioritise-elf-the-prioriti:
+  source:
+    - [NOT the prioritise elf]
+  test:
+    - [NOT the prioritise elf]
