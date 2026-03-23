@@ -71,6 +71,152 @@ function formatSkillCatalog(skills?: Map<string, SkillDefinition>): string {
 }
 
 /**
+ * Determine whether the codebase is in gap-closing or innovation tier.
+ */
+interface TierInfo {
+  hasGaps: boolean;
+  specOnlyCount: number;
+  untestedCount: number;
+}
+
+function determineTier(assessment: WorldState["blackboard"]["assessment"]): TierInfo {
+  const inv = assessment?.invariants;
+  const untestedCount = inv?.implementedUntested ?? 0;
+  const specOnlyCount = inv?.specifiedOnly ?? 0;
+  return { hasGaps: specOnlyCount > 0 || untestedCount >= 5, specOnlyCount, untestedCount };
+}
+
+/**
+ * Build the explore prompt with tier-specific guidance.
+ */
+function buildExplorePrompt(
+  state: WorldState,
+  skills?: Map<string, SkillDefinition>,
+  article?: { title: string; summary: string },
+): string {
+  const tier = determineTier(state.blackboard.assessment);
+
+  const lensSection = article ? `
+
+## Creative Lens
+
+A random concept for analogical thinking:
+
+**${article.title}**
+
+${article.summary}
+
+Read the codebase through this lens. If anything about this concept suggests a better pattern, structure, or approach for the shoe-makers system, write it up as a candidate. Creative connections are valuable — they're how the system improves beyond its spec.` : "";
+
+  const gapDetails = formatTopGaps(state.blackboard.assessment);
+  const snapshot = formatCodebaseSnapshot(state.blackboard.assessment);
+
+  const tierSection = tier.hasGaps ? `
+## Current tier: Hygiene / Implementation
+
+The codebase has ${tier.specOnlyCount} unimplemented spec claim(s) and ${tier.untestedCount} untested claim(s). Focus on:
+- Spec-code inconsistencies and broken invariants
+- Spec claims that aren't implemented yet
+- Code smells, stale documentation, missing tests for critical paths${gapDetails}` : `
+## Current tier: Innovation
+
+All invariants are met. Tests pass. Health is good. Your job shifts from **gap-finding to improvement-finding**.
+
+"No impactful work remaining" is NOT an acceptable output. There is always work to do. At this tier, ask:
+- Could this system be easier to use for its human users?
+- Could it be easier to use by agents?
+- Is there a fundamentally better way to structure any part of this?
+- What would make the morning review delightful instead of just informative?
+- Are there features the wiki doesn't mention yet that would genuinely help?
+- Could the explore/prioritise/execute cycle itself be improved?
+
+Think like a product owner, not a linter. The codebase being "clean" is not the goal — the goal is a system that produces genuinely useful overnight improvements for the projects it's installed in.${snapshot}`;
+
+  return `# Explore — Survey and Write Candidates
+
+Nothing is queued for work. Your job is to survey the codebase and produce a ranked candidate list.
+${tierSection}
+
+## Steps
+
+1. Read wiki pages in \`wiki/pages/\` — what does the spec say should exist?
+2. Read \`.shoe-makers/invariants.md\` — are there gaps?
+3. Read the code in \`src/\` — what's built, what's missing?
+4. Read findings in \`.shoe-makers/findings/\` — any open issues?
+5. Check test coverage — untested paths?
+6. Check code quality — files too complex or duplicated?
+7. Check whether \`README.md\` accurately describes current capabilities
+${lensSection}${formatSkillCatalog(skills)}
+
+## Output
+
+Write \`.shoe-makers/state/candidates.md\` with a ranked list of 3-5 work items:
+
+\`\`\`markdown
+# Candidates
+
+## 1. [Title]
+**Type**: implement | test | fix | health | doc-sync | improve
+**Impact**: high | medium | low
+**Reasoning**: Why this matters, what wiki page specifies it, what code is affected.
+
+## 2. [Title]
+...
+\`\`\`
+
+Be specific — reference file paths, wiki pages, and invariant IDs. You MUST produce at least 3 candidates. Commit \`candidates.md\` when done.
+
+If you discover a creative insight — a non-obvious connection or a fundamentally better approach — write it to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\`. Insights are different from findings: they're proposals, not problems.
+
+If you find code that works but has no matching invariant in \`.shoe-makers/invariants.md\`, write a finding suggesting a new invariant for the human to review.${OFF_LIMITS}`;
+}
+
+/**
+ * Build the prioritise prompt with tier-specific guidance.
+ */
+function buildPrioritisePrompt(state: WorldState): string {
+  const tier = determineTier(state.blackboard.assessment);
+
+  const gapDetails = formatTopGaps(state.blackboard.assessment);
+  const tierGuidance = tier.hasGaps
+    ? `The codebase has ${tier.specOnlyCount} unimplemented spec claim(s) and ${tier.untestedCount} untested claim(s). Prefer candidates that close these gaps — implementation and test work are both valuable here.${gapDetails}`
+    : `All invariants are met and test coverage is solid. **Prefer implementation, improvement, and creative work** over writing more tests or polishing what's already clean. Pick the candidate with the highest impact on the system's usefulness — to humans and to agents.`;
+
+  return `# Prioritise — Pick a Work Item
+
+A previous elf explored the codebase and wrote a candidate list in \`.shoe-makers/state/candidates.md\`. Your job is to pick the most impactful candidate and write a detailed work item.
+
+## Current state
+
+${tierGuidance}
+
+## Steps
+
+1. Read \`.shoe-makers/state/candidates.md\`
+2. For the top candidates, read the relevant wiki pages and source files to understand the context
+3. Read \`.shoe-makers/insights/\` — for each insight, engage with the idea critically:
+   - Could this actually work? What are the practical obstacles?
+   - If the idea as stated wouldn't work, is there a **variant** that would? Write the improved version.
+   - If the core insight is sound but the proposal is wrong, say "this wouldn't work because X, but Y would work" and rewrite as a viable candidate.
+   - Then decide: **Promote** (viable → include as a candidate), **Rework** (rewrite the insight file with your improved version for a future elf), or **Dismiss** (not applicable → delete with a note in the shift log).
+   - Your job is not just to judge — it's to build on the idea. The explore elf was in creative mode. You're in evaluative mode. Good evaluation improves ideas, not just filters them.
+4. Pick ONE candidate — the most impactful option
+5. Write \`.shoe-makers/state/work-item.md\` with:
+   - A clear title
+   - If the work maps to a specific skill type (e.g. dead-code, implement, fix), add \`skill-type: <type>\` on a line by itself near the top
+   - The relevant wiki text (quote it)
+   - The relevant code (reference files and line numbers)
+   - Exactly what to build or change
+   - Which patterns to follow
+   - What tests to write
+   - What NOT to change
+6. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
+7. Commit both changes
+
+Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."${OFF_LIMITS}`;
+}
+
+/**
  * Generate a focused prompt for the elf based on the tree's decision.
  *
  * Each action produces a scoped prompt telling the elf exactly what to do.
@@ -180,130 +326,10 @@ A work item in \`.shoe-makers/state/work-item.md\` describes dead code to remove
 
 You ARE permitted to delete test files that test removed features.${skillSection}${OFF_LIMITS}`;
 
-    case "prioritise": {
-      const pInv = state.blackboard.assessment?.invariants;
-      const pUntestedCount = pInv?.implementedUntested ?? 0;
-      const pSpecOnlyCount = pInv?.specifiedOnly ?? 0;
-      const pHasGaps = pSpecOnlyCount > 0 || pUntestedCount >= 5;
+    case "prioritise":
+      return buildPrioritisePrompt(state);
 
-      const pGapDetails = formatTopGaps(state.blackboard.assessment);
-      const pTierGuidance = pHasGaps
-        ? `The codebase has ${pSpecOnlyCount} unimplemented spec claim(s) and ${pUntestedCount} untested claim(s). Prefer candidates that close these gaps — implementation and test work are both valuable here.${pGapDetails}`
-        : `All invariants are met and test coverage is solid. **Prefer implementation, improvement, and creative work** over writing more tests or polishing what's already clean. Pick the candidate with the highest impact on the system's usefulness — to humans and to agents.`;
-
-      return `# Prioritise — Pick a Work Item
-
-A previous elf explored the codebase and wrote a candidate list in \`.shoe-makers/state/candidates.md\`. Your job is to pick the most impactful candidate and write a detailed work item.
-
-## Current state
-
-${pTierGuidance}
-
-## Steps
-
-1. Read \`.shoe-makers/state/candidates.md\`
-2. For the top candidates, read the relevant wiki pages and source files to understand the context
-3. Read \`.shoe-makers/insights/\` — for each insight, engage with the idea critically:
-   - Could this actually work? What are the practical obstacles?
-   - If the idea as stated wouldn't work, is there a **variant** that would? Write the improved version.
-   - If the core insight is sound but the proposal is wrong, say "this wouldn't work because X, but Y would work" and rewrite as a viable candidate.
-   - Then decide: **Promote** (viable → include as a candidate), **Rework** (rewrite the insight file with your improved version for a future elf), or **Dismiss** (not applicable → delete with a note in the shift log).
-   - Your job is not just to judge — it's to build on the idea. The explore elf was in creative mode. You're in evaluative mode. Good evaluation improves ideas, not just filters them.
-4. Pick ONE candidate — the most impactful option
-5. Write \`.shoe-makers/state/work-item.md\` with:
-   - A clear title
-   - If the work maps to a specific skill type (e.g. dead-code, implement, fix), add \`skill-type: <type>\` on a line by itself near the top
-   - The relevant wiki text (quote it)
-   - The relevant code (reference files and line numbers)
-   - Exactly what to build or change
-   - Which patterns to follow
-   - What tests to write
-   - What NOT to change
-6. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
-7. Commit both changes
-
-Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."${OFF_LIMITS}`;
-    }
-
-    case "explore": {
-      const eInv = state.blackboard.assessment?.invariants;
-      const eUntestedCount = eInv?.implementedUntested ?? 0;
-      const eSpecOnlyCount = eInv?.specifiedOnly ?? 0;
-      const eHasGaps = eSpecOnlyCount > 0 || eUntestedCount >= 5;
-
-      const lensSection = article ? `
-
-## Creative Lens
-
-A random concept for analogical thinking:
-
-**${article.title}**
-
-${article.summary}
-
-Read the codebase through this lens. If anything about this concept suggests a better pattern, structure, or approach for the shoe-makers system, write it up as a candidate. Creative connections are valuable — they're how the system improves beyond its spec.` : "";
-
-      const eGapDetails = formatTopGaps(state.blackboard.assessment);
-      const eSnapshot = formatCodebaseSnapshot(state.blackboard.assessment);
-
-      const tierSection = eHasGaps ? `
-## Current tier: Hygiene / Implementation
-
-The codebase has ${eSpecOnlyCount} unimplemented spec claim(s) and ${eUntestedCount} untested claim(s). Focus on:
-- Spec-code inconsistencies and broken invariants
-- Spec claims that aren't implemented yet
-- Code smells, stale documentation, missing tests for critical paths${eGapDetails}` : `
-## Current tier: Innovation
-
-All invariants are met. Tests pass. Health is good. Your job shifts from **gap-finding to improvement-finding**.
-
-"No impactful work remaining" is NOT an acceptable output. There is always work to do. At this tier, ask:
-- Could this system be easier to use for its human users?
-- Could it be easier to use by agents?
-- Is there a fundamentally better way to structure any part of this?
-- What would make the morning review delightful instead of just informative?
-- Are there features the wiki doesn't mention yet that would genuinely help?
-- Could the explore/prioritise/execute cycle itself be improved?
-
-Think like a product owner, not a linter. The codebase being "clean" is not the goal — the goal is a system that produces genuinely useful overnight improvements for the projects it's installed in.${eSnapshot}`;
-
-      return `# Explore — Survey and Write Candidates
-
-Nothing is queued for work. Your job is to survey the codebase and produce a ranked candidate list.
-${tierSection}
-
-## Steps
-
-1. Read wiki pages in \`wiki/pages/\` — what does the spec say should exist?
-2. Read \`.shoe-makers/invariants.md\` — are there gaps?
-3. Read the code in \`src/\` — what's built, what's missing?
-4. Read findings in \`.shoe-makers/findings/\` — any open issues?
-5. Check test coverage — untested paths?
-6. Check code quality — files too complex or duplicated?
-7. Check whether \`README.md\` accurately describes current capabilities
-${lensSection}${formatSkillCatalog(skills)}
-
-## Output
-
-Write \`.shoe-makers/state/candidates.md\` with a ranked list of 3-5 work items:
-
-\`\`\`markdown
-# Candidates
-
-## 1. [Title]
-**Type**: implement | test | fix | health | doc-sync | improve
-**Impact**: high | medium | low
-**Reasoning**: Why this matters, what wiki page specifies it, what code is affected.
-
-## 2. [Title]
-...
-\`\`\`
-
-Be specific — reference file paths, wiki pages, and invariant IDs. You MUST produce at least 3 candidates. Commit \`candidates.md\` when done.
-
-If you discover a creative insight — a non-obvious connection or a fundamentally better approach — write it to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\`. Insights are different from findings: they're proposals, not problems.
-
-If you find code that works but has no matching invariant in \`.shoe-makers/invariants.md\`, write a finding suggesting a new invariant for the human to review.${OFF_LIMITS}`;
-    }
+    case "explore":
+      return buildExplorePrompt(state, skills, article);
   }
 }
