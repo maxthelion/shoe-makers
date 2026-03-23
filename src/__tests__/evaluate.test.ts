@@ -50,6 +50,10 @@ function makeState(overrides: Partial<WorldState> = {}): WorldState {
   };
 }
 
+function failingTestsBlackboard(): Blackboard {
+  return { ...emptyBlackboard(), assessment: { ...freshAssessment, testsPass: false } };
+}
+
 describe("evaluate edge cases", () => {
   test("selector with no successful children returns failure", () => {
     const result = evaluate(
@@ -113,10 +117,7 @@ describe("selector and sequence evaluation", () => {
     const result = evaluate(
       defaultTree,
       makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: { ...freshAssessment, testsPass: false },
-        },
+        blackboard: failingTestsBlackboard(),
       })
     );
     expect(result.skill).toBe("fix-tests");
@@ -190,135 +191,46 @@ describe("cross-elf gatekeeping", () => {
       defaultTree,
       makeState({
         unresolvedCritiqueCount: 1,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: { ...freshAssessment, testsPass: false },
-        },
+        blackboard: failingTestsBlackboard(),
       })
     );
     expect(result.skill).toBe("fix-tests");
   });
 });
 
-describe("game-style behaviour tree", () => {
-  test("returns fix-tests when tests are failing", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: { ...freshAssessment, testsPass: false },
-        },
-      })
-    );
-    expect(result.skill).toBe("fix-tests");
-  });
+describe("game-style behaviour tree — routing", () => {
+  const routingCases: [string, Partial<WorldState>, string][] = [
+    ["fix-tests when tests failing", { blackboard: failingTestsBlackboard() }, "fix-tests"],
+    ["review when uncommitted changes", { hasUncommittedChanges: true }, "review"],
+    ["inbox when inbox messages", { inboxCount: 2 }, "inbox"],
+    ["execute-work-item when work-item exists", { hasWorkItem: true }, "execute-work-item"],
+    ["dead-code when work item has dead-code type", { hasWorkItem: true, workItemSkillType: "dead-code" }, "dead-code"],
+    ["execute-work-item when work item has null skill type", { hasWorkItem: true, workItemSkillType: null }, "execute-work-item"],
+    ["prioritise when candidates exist", { hasCandidates: true }, "prioritise"],
+    ["explore when nothing else matches", {}, "explore"],
+    ["explore when no assessment", { blackboard: emptyBlackboard() }, "explore"],
+  ];
 
-  test("returns review when there are uncommitted changes", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({ hasUncommittedChanges: true })
-    );
-    expect(result.skill).toBe("review");
-  });
+  for (const [label, overrides, expected] of routingCases) {
+    test(`returns ${label}`, () => {
+      const result = evaluate(defaultTree, makeState(overrides));
+      expect(result.skill).toBe(expected);
+    });
+  }
+});
 
-  test("fix-tests takes priority over review", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        hasUncommittedChanges: true,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: { ...freshAssessment, testsPass: false },
-        },
-      })
-    );
-    expect(result.skill).toBe("fix-tests");
-  });
+describe("game-style behaviour tree — priority ordering", () => {
+  const priorityCases: [string, Partial<WorldState>, string][] = [
+    ["fix-tests over review", { hasUncommittedChanges: true, blackboard: failingTestsBlackboard() }, "fix-tests"],
+    ["work-item over candidates", { hasWorkItem: true, hasCandidates: true }, "execute-work-item"],
+    ["inbox over work-item", { inboxCount: 1, hasWorkItem: true }, "inbox"],
+    ["fix-tests over everything", { hasUncommittedChanges: true, inboxCount: 3, hasWorkItem: true, hasCandidates: true, blackboard: failingTestsBlackboard() }, "fix-tests"],
+  ];
 
-  test("returns inbox when there are inbox messages", () => {
-    const result = evaluate(defaultTree, makeState({ inboxCount: 2 }));
-    expect(result.skill).toBe("inbox");
-  });
-
-  test("returns execute-work-item when work-item.md exists", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({ hasWorkItem: true })
-    );
-    expect(result.skill).toBe("execute-work-item");
-  });
-
-  test("returns dead-code when work item has dead-code skill type", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({ hasWorkItem: true, workItemSkillType: "dead-code" })
-    );
-    expect(result.skill).toBe("dead-code");
-  });
-
-  test("returns execute-work-item when work item has non-dead-code skill type", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({ hasWorkItem: true, workItemSkillType: null })
-    );
-    expect(result.skill).toBe("execute-work-item");
-  });
-
-  test("returns prioritise when candidates.md exists", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({ hasCandidates: true })
-    );
-    expect(result.skill).toBe("prioritise");
-  });
-
-  test("work-item takes priority over candidates", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({ hasWorkItem: true, hasCandidates: true })
-    );
-    expect(result.skill).toBe("execute-work-item");
-  });
-
-  test("inbox takes priority over work-item", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({ inboxCount: 1, hasWorkItem: true })
-    );
-    expect(result.skill).toBe("inbox");
-  });
-
-  test("returns explore when nothing else matches", () => {
-    const result = evaluate(defaultTree, makeState());
-    expect(result.skill).toBe("explore");
-  });
-
-  test("priority order: tests > critiques > reviews > uncommitted > inbox > work-item > candidates > explore", () => {
-    // Everything is wrong at once — should return fix-tests (highest priority)
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        hasUncommittedChanges: true,
-        inboxCount: 3,
-        hasWorkItem: true,
-        hasCandidates: true,
-        blackboard: {
-          ...emptyBlackboard(),
-          assessment: { ...freshAssessment, testsPass: false },
-        },
-      })
-    );
-    expect(result.skill).toBe("fix-tests");
-  });
-
-  test("no assessment falls through to explore", () => {
-    const result = evaluate(
-      defaultTree,
-      makeState({
-        blackboard: emptyBlackboard(),
-      })
-    );
-    expect(result.skill).toBe("explore");
-  });
+  for (const [label, overrides, expected] of priorityCases) {
+    test(`${label}`, () => {
+      const result = evaluate(defaultTree, makeState(overrides));
+      expect(result.skill).toBe(expected);
+    });
+  }
 });
