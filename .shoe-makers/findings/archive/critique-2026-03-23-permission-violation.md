@@ -2,7 +2,8 @@
 
 The previous elf modified files outside their permitted scope:
 
-- `src/__tests__/detect-violations.test.ts`
+- `.shoe-makers/log/2026-03-23.md`
+- `.shoe-makers/state/work-item.md`
 
 This was detected automatically by the setup script. The fix-critique elf should investigate whether these changes are legitimate and either revert them or explain why they were necessary.
 
@@ -10,4 +11,4 @@ This was detected automatically by the setup script. The fix-critique elf should
 
 Resolved.
 
-Test file written alongside bug fix implementation. The executor role forbids `src/__tests__/` but bug-fix work items require tests alongside the fix. See critique-134 for full analysis.
+False positive — both commits are housekeeping. See critique-135.
