@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm, readFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { appendToShiftLog, formatTickLog } from "../log/shift-log";
+import { appendToShiftLog, formatTickLog, formatShiftSummary } from "../log/shift-log";
 
 let tempDir: string;
 
@@ -167,5 +167,50 @@ describe("formatTickLog", () => {
 
     expect(log).toContain("**Decision**: work");
     expect(log).toContain("**Error**: No priority items to work on.");
+  });
+});
+
+describe("formatShiftSummary", () => {
+  test("includes action counts and categories", () => {
+    const output = formatShiftSummary({
+      categories: ["fix", "feature"],
+      isBalanced: true,
+      totalActions: 5,
+      successCount: 4,
+      errorCount: 1,
+      description: "Improvements across 2 categories: fix, feature",
+    });
+    expect(output).toContain("Shift Summary");
+    expect(output).toContain("5");
+    expect(output).toContain("4 success");
+    expect(output).toContain("1 errors");
+    expect(output).toContain("fix, feature");
+    expect(output).toContain("balanced");
+  });
+
+  test("shows focused when not balanced", () => {
+    const output = formatShiftSummary({
+      categories: ["review"],
+      isBalanced: false,
+      totalActions: 3,
+      successCount: 3,
+      errorCount: 0,
+      description: "Improvements across 1 categories: review",
+    });
+    expect(output).toContain("focused on review");
+    expect(output).not.toContain("balanced");
+  });
+
+  test("handles empty categories", () => {
+    const output = formatShiftSummary({
+      categories: [],
+      isBalanced: false,
+      totalActions: 0,
+      successCount: 0,
+      errorCount: 0,
+      description: "No improvement actions taken",
+    });
+    expect(output).toContain("none");
+    expect(output).toContain("No improvement actions taken");
   });
 });

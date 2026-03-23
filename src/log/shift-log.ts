@@ -1,5 +1,6 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import type { ShiftSummary } from "./shift-summary";
 
 const LOG_DIR = ".shoe-makers/log";
 
@@ -99,5 +100,21 @@ export function formatTickLog(opts: {
     }
   }
 
+  return lines.join("\n");
+}
+
+/**
+ * Format a shift summary as a markdown block for the shift log.
+ */
+export function formatShiftSummary(summary: ShiftSummary): string {
+  const lines: string[] = [];
+  lines.push("---");
+  lines.push("");
+  lines.push("## Shift Summary");
+  lines.push("");
+  lines.push(`- **Actions**: ${summary.totalActions} (${summary.successCount} success, ${summary.errorCount} errors)`);
+  lines.push(`- **Categories**: ${summary.categories.length > 0 ? summary.categories.join(", ") : "none"}`);
+  lines.push(`- **Balance**: ${summary.isBalanced ? "balanced" : "focused on " + (summary.categories[0] || "none")}`);
+  lines.push(`- ${summary.description}`);
   return lines.join("\n");
 }
