@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { checkInvariants } from "../verify/invariants";
-import { extractClaims } from "../verify/extract-claims";
+import { extractClaims, extractInvariantClaims } from "../verify/extract-claims";
 import { parseClaimEvidenceYaml, type EvidenceRule } from "../verify/parse-evidence";
 import { readFile as readFileAsync } from "fs/promises";
 import type { AgentResult } from "../types";
@@ -109,21 +109,17 @@ describe("parseClaimEvidenceYaml", () => {
 
 describe("extractInvariantClaims", () => {
   test("extracts claims from real invariants.md", async () => {
-    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims(process.cwd());
-    // Should find 100+ claims in the real invariants.md
     expect(claims.length).toBeGreaterThanOrEqual(100);
   });
 
   test("each claim has a unique ID", async () => {
-    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims(process.cwd());
     const ids = new Set(claims.map((c) => c.id));
     expect(ids.size).toBe(claims.length);
   });
 
   test("all claims belong to a known group", async () => {
-    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims(process.cwd());
     const validGroups = new Set([
       "what-a-user-can-do",
@@ -138,7 +134,6 @@ describe("extractInvariantClaims", () => {
   });
 
   test("returns empty array when no invariants file exists", async () => {
-    const { extractInvariantClaims } = await import("../verify/extract-claims");
     const claims = await extractInvariantClaims("/tmp/nonexistent-repo");
     expect(claims).toEqual([]);
   });
@@ -266,26 +261,10 @@ describe("checkInvariants", () => {
       "  test:",
       "    - [LLMPrioritiser]",
     ].join("\n") + "\n");
-    // Implement the evaluator but not the LLM prioritiser
+    // Implement the evaluator claim but not the LLM prioritiser
     await writeSourceFile(
       "tree/evaluate.ts",
       'export function evaluate(node: any) { return "success"; }'
-    );
-    await writeSourceFile(
-      "tree/default-tree.ts",
-      'export function isAssessmentStale() { return true; }\nexport function isPrioritisationStale() { return true; }'
-    );
-    await writeSourceFile(
-      "state/blackboard.ts",
-      'export function readBlackboard() { return {}; }\nexport function writeAssessment() {}'
-    );
-    await writeSourceFile(
-      "skills/prioritise.ts",
-      'export function rankCandidates(c: any[]) { return c; }'
-    );
-    await writeSourceFile(
-      "scheduler/tick.ts",
-      'function tick() { evaluate(defaultTree, state); }'
     );
     await writeTestFile(
       "__tests__/evaluate.test.ts",
@@ -293,9 +272,7 @@ describe("checkInvariants", () => {
     );
 
     const result = await checkInvariants(tempDir);
-    // Some claims should be implemented (evaluate exists with tests)
     expect(result.implementedTested).toBeGreaterThanOrEqual(1);
-    // Some claims should have different statuses (implemented vs specified-only)
     const total = result.implementedTested + result.implementedUntested + result.specifiedOnly;
     expect(total).toBeGreaterThanOrEqual(1);
   });
