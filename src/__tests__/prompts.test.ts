@@ -325,17 +325,23 @@ describe("explore prompt creative lens", () => {
 
 describe("explore and prioritise tier switching", () => {
   function makeStateWithGaps(specifiedOnly: number, implementedUntested: number): WorldState {
+    const baseInv = freshAssessment.invariants!;
+    const inv = {
+      specifiedOnly,
+      implementedUntested,
+      implementedTested: baseInv.implementedTested,
+      unspecified: baseInv.unspecified,
+      topSpecGaps: baseInv.topSpecGaps,
+      topUntested: baseInv.topUntested,
+      topUnspecified: baseInv.topUnspecified,
+    };
     return {
       ...makeState(),
       blackboard: {
         ...emptyBlackboard(),
         assessment: {
           ...freshAssessment,
-          invariants: {
-            ...freshAssessment.invariants,
-            specifiedOnly,
-            implementedUntested,
-          },
+          invariants: inv,
         },
       },
     };
