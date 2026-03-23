@@ -105,7 +105,7 @@ function classifyClaim(
 
 /** Top-level files excluded from unspecified-directory detection. */
 const EXCLUDED_TOP_LEVEL = new Set([
-  "types.ts", "index.ts", "tick.ts", "shift.ts", "task.ts", "setup.ts", "prompts.ts",
+  "types.ts", "index.ts", "tick.ts", "shift.ts", "task.ts", "setup.ts", "prompts",
   "init.ts", "init-templates.ts", "init-skill-templates-work.ts",
   "init-skill-templates-quality.ts", "init-skill-templates-docs.ts", "run-init.ts", "schedule.ts",
   "utils",
