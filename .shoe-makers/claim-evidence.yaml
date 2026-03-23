@@ -1720,7 +1720,7 @@ spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-cha
 # Prioritiser weighs impact and balance
 spec.the-prioritiser-writes-the-real-prompt.this-is-the-llm-judgement-step-it-weighs-impact-and-balance-:
   source:
-    - [pTierGuidance]
+    - [tierGuidance]
     - [highest impact]
   test:
     - [highest impact]
@@ -1761,8 +1761,7 @@ spec.hierarchy-of-needs-in-prioritisation.tier-3-innovation-actively-improve-bey
 spec.hierarchy-of-needs-in-prioritisation.the-explore-and-prioritise-prompts-receive-invariant-counts-:
   source:
     - [specifiedOnly]
-    - [eHasGaps]
-    - [pHasGaps]
+    - [hasGaps]
   test:
     - [unimplemented spec claim]
     - [determine tier]
@@ -1787,7 +1786,7 @@ spec.hierarchy-of-needs-in-prioritisation.at-tier-3-elves-should-ask-could-this-
 spec.hierarchy-of-needs-in-prioritisation.impact-is-the-primary-criterion-not-riskavoidance:
   source:
     - [highest impact]
-    - [pTierGuidance]
+    - [tierGuidance]
   test:
     - [highest impact]
     - [innovation guidance when no gaps]
