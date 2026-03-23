@@ -1594,11 +1594,12 @@ spec.maintain-a-living-spec.shoemakersinvariantsmd-is-always-authoritative-regar
   test:
     - [extractInvariantClaims]
 
-# Wikipedia random article — code exists but not yet wired into explore
+# Wikipedia random article — implemented in src/creative/wikipedia.ts
 spec.creative-exploration.some-explore-cycles-include-a-random-wikipedia-article-as-an:
   source:
     - [fetchRandomArticle]
     - [shouldIncludeLens]
+    - [creative/wikipedia]
   test:
     - [fetchRandomArticle, shouldIncludeLens, wikipedia]
 
