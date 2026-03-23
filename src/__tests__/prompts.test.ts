@@ -77,43 +77,41 @@ describe("generatePrompt", () => {
     }
   });
 
-  test("fix-critique prompt tells elf to read critique findings", () => {
-    expectPromptContains("fix-critique", makeState(), [".shoe-makers/findings/", "critique-"]);
-  });
+  const promptCases: [string, ActionType, string[]][] = [
+    ["fix-critique prompt tells elf to read critique findings", "fix-critique", [".shoe-makers/findings/", "critique-"]],
+    ["fix-critique prompt tells elf to mark critiques as resolved", "fix-critique", ["## Status", "Resolved."]],
+    ["fix-critique prompt tells elf NOT to delete critique files", "fix-critique", ["Do NOT delete the critique files"]],
+    ["fix-critique prompt tells elf to run bun test", "fix-critique", ["bun test"]],
+    ["review prompt tells elf to run git diff", "review", ["git diff"]],
+    ["review prompt checks correctness, tests, and spec alignment", "review", ["Correctness", "Tests", "Spec alignment"]],
+    ["review prompt tells elf to commit if good or fix if not", "review", ["commit them", "fix the issues"]],
+    ["critique prompt restricts reviewer to findings only", "critique", ["only write findings"]],
+    ["execute-work-item prompt tells elf to read work-item.md", "execute-work-item", ["work-item.md", "Delete"]],
+    ["prioritise prompt tells elf to read candidates and write work-item", "prioritise", ["candidates.md", "work-item.md", "Delete"]],
+    ["prioritise prompt mentions skill-type metadata", "prioritise", ["skill-type:"]],
+    ["prioritise prompt mentions reviewing insights", "prioritise", [".shoe-makers/insights/", "Promote", "Rework", "Dismiss"]],
+    ["explore prompt tells elf to write candidates.md", "explore", ["candidates.md", "ranked"]],
+    ["explore prompt mentions README accuracy check", "explore", ["README.md", "accurately"]],
+    ["explore prompt mentions writing insights", "explore", [".shoe-makers/insights/", "proposals, not problems"]],
+    ["explore prompt mentions suggesting new invariants", "explore", ["suggesting a new invariant"]],
+    ["execute prompt mentions never reverting the wiki", "execute-work-item", ["never revert the wiki", "source of truth"]],
+    ["dead-code prompt tells elf to read work-item.md", "dead-code", ["work-item.md"]],
+    ["dead-code prompt tells elf to verify with grep", "dead-code", ["grep"]],
+    ["dead-code prompt permits deleting test files", "dead-code", ["You ARE permitted to delete test files"]],
+    ["dead-code prompt tells elf to run bun test", "dead-code", ["bun test"]],
+  ];
 
-  test("fix-critique prompt tells elf to mark critiques as resolved", () => {
-    expectPromptContains("fix-critique", makeState(), ["## Status", "Resolved."]);
-  });
-
-  test("fix-critique prompt tells elf NOT to delete critique files", () => {
-    expectPromptContains("fix-critique", makeState(), ["Do NOT delete the critique files"]);
-  });
-
-  test("fix-critique prompt tells elf to run bun test", () => {
-    expectPromptContains("fix-critique", makeState(), ["bun test"]);
-  });
-
-  test("review prompt tells elf to run git diff", () => {
-    expectPromptContains("review", makeState(), ["git diff"]);
-  });
-
-  test("review prompt checks correctness, tests, and spec alignment", () => {
-    expectPromptContains("review", makeState(), ["Correctness", "Tests", "Spec alignment"]);
-  });
-
-  test("review prompt tells elf to commit if good or fix if not", () => {
-    expectPromptContains("review", makeState(), ["commit them", "fix the issues"]);
-  });
+  for (const [label, action, contains] of promptCases) {
+    test(label, () => {
+      expectPromptContains(action, makeState(), contains);
+    });
+  }
 
   test("inbox prompt includes message count from state", () => {
     const state = makeState();
     state.inboxCount = 5;
     const prompt = generatePrompt("inbox", state);
     expect(prompt).toContain("5 message(s)");
-  });
-
-  test("critique prompt restricts reviewer to findings only", () => {
-    expectPromptContains("critique", makeState(), ["only write findings"]);
   });
 
   test("critique prompt tells reviewer to update marker AFTER committing", () => {
@@ -123,58 +121,6 @@ describe("generatePrompt", () => {
     expect(commitStep).toBeGreaterThan(-1);
     expect(markerStep).toBeGreaterThan(-1);
     expect(markerStep).toBeGreaterThan(commitStep);
-  });
-
-  test("execute-work-item prompt tells elf to read work-item.md", () => {
-    expectPromptContains("execute-work-item", makeState(), ["work-item.md", "Delete"]);
-  });
-
-  test("prioritise prompt tells elf to read candidates and write work-item", () => {
-    expectPromptContains("prioritise", makeState(), ["candidates.md", "work-item.md", "Delete"]);
-  });
-
-  test("prioritise prompt mentions skill-type metadata", () => {
-    expectPromptContains("prioritise", makeState(), ["skill-type:"]);
-  });
-
-  test("explore prompt tells elf to write candidates.md", () => {
-    expectPromptContains("explore", makeState(), ["candidates.md", "ranked"]);
-  });
-
-  test("explore prompt mentions README accuracy check", () => {
-    expectPromptContains("explore", makeState(), ["README.md", "accurately"]);
-  });
-
-  test("explore prompt mentions writing insights", () => {
-    expectPromptContains("explore", makeState(), [".shoe-makers/insights/", "proposals, not problems"]);
-  });
-
-  test("explore prompt mentions suggesting new invariants", () => {
-    expectPromptContains("explore", makeState(), ["suggesting a new invariant"]);
-  });
-
-  test("execute prompt mentions never reverting the wiki", () => {
-    expectPromptContains("execute-work-item", makeState(), ["never revert the wiki", "source of truth"]);
-  });
-
-  test("dead-code prompt tells elf to read work-item.md", () => {
-    expectPromptContains("dead-code", makeState(), ["work-item.md"]);
-  });
-
-  test("dead-code prompt tells elf to verify with grep", () => {
-    expectPromptContains("dead-code", makeState(), ["grep"]);
-  });
-
-  test("dead-code prompt permits deleting test files", () => {
-    expectPromptContains("dead-code", makeState(), ["You ARE permitted to delete test files"]);
-  });
-
-  test("dead-code prompt tells elf to run bun test", () => {
-    expectPromptContains("dead-code", makeState(), ["bun test"]);
-  });
-
-  test("prioritise prompt mentions reviewing insights", () => {
-    expectPromptContains("prioritise", makeState(), [".shoe-makers/insights/", "Promote", "Rework", "Dismiss"]);
   });
 
   test("each action returns a non-empty prompt", () => {
