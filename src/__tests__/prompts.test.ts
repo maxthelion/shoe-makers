@@ -146,6 +146,11 @@ describe("generatePrompt", () => {
     expect(prompt).toContain("Delete");
   });
 
+  test("prioritise prompt mentions skill-type metadata", () => {
+    const prompt = generatePrompt("prioritise", makeState());
+    expect(prompt).toContain("skill-type:");
+  });
+
   test("explore prompt tells elf to write candidates.md", () => {
     const prompt = generatePrompt("explore", makeState());
     expect(prompt).toContain("candidates.md");
