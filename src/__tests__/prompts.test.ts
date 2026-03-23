@@ -54,6 +54,19 @@ const allActions: ActionType[] = [
   "explore",
 ];
 
+function expectPromptContains(
+  action: ActionType,
+  state: WorldState,
+  contains: string[],
+  notContains: string[] = [],
+  skills?: Map<string, SkillDefinition>,
+): string {
+  const prompt = generatePrompt(action, state, skills);
+  for (const s of contains) expect(prompt).toContain(s);
+  for (const s of notContains) expect(prompt).not.toContain(s);
+  return prompt;
+}
+
 describe("generatePrompt", () => {
   test("all actions mention invariants.md is off-limits", () => {
     const state = makeState();
@@ -65,43 +78,31 @@ describe("generatePrompt", () => {
   });
 
   test("fix-critique prompt tells elf to read critique findings", () => {
-    const prompt = generatePrompt("fix-critique", makeState());
-    expect(prompt).toContain(".shoe-makers/findings/");
-    expect(prompt).toContain("critique-");
+    expectPromptContains("fix-critique", makeState(), [".shoe-makers/findings/", "critique-"]);
   });
 
   test("fix-critique prompt tells elf to mark critiques as resolved", () => {
-    const prompt = generatePrompt("fix-critique", makeState());
-    expect(prompt).toContain("## Status");
-    expect(prompt).toContain("Resolved.");
+    expectPromptContains("fix-critique", makeState(), ["## Status", "Resolved."]);
   });
 
   test("fix-critique prompt tells elf NOT to delete critique files", () => {
-    const prompt = generatePrompt("fix-critique", makeState());
-    expect(prompt).toContain("Do NOT delete the critique files");
+    expectPromptContains("fix-critique", makeState(), ["Do NOT delete the critique files"]);
   });
 
   test("fix-critique prompt tells elf to run bun test", () => {
-    const prompt = generatePrompt("fix-critique", makeState());
-    expect(prompt).toContain("bun test");
+    expectPromptContains("fix-critique", makeState(), ["bun test"]);
   });
 
   test("review prompt tells elf to run git diff", () => {
-    const prompt = generatePrompt("review", makeState());
-    expect(prompt).toContain("git diff");
+    expectPromptContains("review", makeState(), ["git diff"]);
   });
 
   test("review prompt checks correctness, tests, and spec alignment", () => {
-    const prompt = generatePrompt("review", makeState());
-    expect(prompt).toContain("Correctness");
-    expect(prompt).toContain("Tests");
-    expect(prompt).toContain("Spec alignment");
+    expectPromptContains("review", makeState(), ["Correctness", "Tests", "Spec alignment"]);
   });
 
   test("review prompt tells elf to commit if good or fix if not", () => {
-    const prompt = generatePrompt("review", makeState());
-    expect(prompt).toContain("commit them");
-    expect(prompt).toContain("fix the issues");
+    expectPromptContains("review", makeState(), ["commit them", "fix the issues"]);
   });
 
   test("inbox prompt includes message count from state", () => {
@@ -112,8 +113,7 @@ describe("generatePrompt", () => {
   });
 
   test("critique prompt restricts reviewer to findings only", () => {
-    const prompt = generatePrompt("critique", makeState());
-    expect(prompt).toContain("only write findings");
+    expectPromptContains("critique", makeState(), ["only write findings"]);
   });
 
   test("critique prompt tells reviewer to update marker AFTER committing", () => {
@@ -126,78 +126,55 @@ describe("generatePrompt", () => {
   });
 
   test("execute-work-item prompt tells elf to read work-item.md", () => {
-    const prompt = generatePrompt("execute-work-item", makeState());
-    expect(prompt).toContain("work-item.md");
-    expect(prompt).toContain("Delete");
+    expectPromptContains("execute-work-item", makeState(), ["work-item.md", "Delete"]);
   });
 
   test("prioritise prompt tells elf to read candidates and write work-item", () => {
-    const prompt = generatePrompt("prioritise", makeState());
-    expect(prompt).toContain("candidates.md");
-    expect(prompt).toContain("work-item.md");
-    expect(prompt).toContain("Delete");
+    expectPromptContains("prioritise", makeState(), ["candidates.md", "work-item.md", "Delete"]);
   });
 
   test("prioritise prompt mentions skill-type metadata", () => {
-    const prompt = generatePrompt("prioritise", makeState());
-    expect(prompt).toContain("skill-type:");
+    expectPromptContains("prioritise", makeState(), ["skill-type:"]);
   });
 
   test("explore prompt tells elf to write candidates.md", () => {
-    const prompt = generatePrompt("explore", makeState());
-    expect(prompt).toContain("candidates.md");
-    expect(prompt).toContain("ranked");
+    expectPromptContains("explore", makeState(), ["candidates.md", "ranked"]);
   });
 
   test("explore prompt mentions README accuracy check", () => {
-    const prompt = generatePrompt("explore", makeState());
-    expect(prompt).toContain("README.md");
-    expect(prompt).toContain("accurately");
+    expectPromptContains("explore", makeState(), ["README.md", "accurately"]);
   });
 
   test("explore prompt mentions writing insights", () => {
-    const prompt = generatePrompt("explore", makeState());
-    expect(prompt).toContain(".shoe-makers/insights/");
-    expect(prompt).toContain("proposals, not problems");
+    expectPromptContains("explore", makeState(), [".shoe-makers/insights/", "proposals, not problems"]);
   });
 
   test("explore prompt mentions suggesting new invariants", () => {
-    const prompt = generatePrompt("explore", makeState());
-    expect(prompt).toContain("suggesting a new invariant");
+    expectPromptContains("explore", makeState(), ["suggesting a new invariant"]);
   });
 
   test("execute prompt mentions never reverting the wiki", () => {
-    const prompt = generatePrompt("execute-work-item", makeState());
-    expect(prompt).toContain("never revert the wiki");
-    expect(prompt).toContain("source of truth");
+    expectPromptContains("execute-work-item", makeState(), ["never revert the wiki", "source of truth"]);
   });
 
   test("dead-code prompt tells elf to read work-item.md", () => {
-    const prompt = generatePrompt("dead-code", makeState());
-    expect(prompt).toContain("work-item.md");
+    expectPromptContains("dead-code", makeState(), ["work-item.md"]);
   });
 
   test("dead-code prompt tells elf to verify with grep", () => {
-    const prompt = generatePrompt("dead-code", makeState());
-    expect(prompt).toContain("grep");
+    expectPromptContains("dead-code", makeState(), ["grep"]);
   });
 
   test("dead-code prompt permits deleting test files", () => {
-    const prompt = generatePrompt("dead-code", makeState());
-    expect(prompt).toContain("You ARE permitted to delete test files");
+    expectPromptContains("dead-code", makeState(), ["You ARE permitted to delete test files"]);
   });
 
   test("dead-code prompt tells elf to run bun test", () => {
-    const prompt = generatePrompt("dead-code", makeState());
-    expect(prompt).toContain("bun test");
+    expectPromptContains("dead-code", makeState(), ["bun test"]);
   });
 
   test("prioritise prompt mentions reviewing insights", () => {
-    const prompt = generatePrompt("prioritise", makeState());
-    expect(prompt).toContain(".shoe-makers/insights/");
-    expect(prompt).toContain("Promote");
-    expect(prompt).toContain("Rework");
-    expect(prompt).toContain("Dismiss");
+    expectPromptContains("prioritise", makeState(), [".shoe-makers/insights/", "Promote", "Rework", "Dismiss"]);
   });
 
   test("each action returns a non-empty prompt", () => {
@@ -244,20 +221,15 @@ describe("generatePrompt includes skill content for work actions", () => {
   const skills = makeSkillMap(implementSkill, fixTestsSkill);
 
   test("fix-tests prompt includes fix-tests skill body", () => {
-    const prompt = generatePrompt("fix-tests", makeState(), skills);
-    expect(prompt).toContain("Run bun test, read failures, fix them");
-    expect(prompt).toContain("All tests pass");
+    expectPromptContains("fix-tests", makeState(), ["Run bun test, read failures, fix them", "All tests pass"], [], skills);
   });
 
   test("execute-work-item prompt includes implement skill body", () => {
-    const prompt = generatePrompt("execute-work-item", makeState(), skills);
-    expect(prompt).toContain("Read the wiki");
-    expect(prompt).toContain("Verification criteria");
+    expectPromptContains("execute-work-item", makeState(), ["Read the wiki", "Verification criteria"], [], skills);
   });
 
   test("skill content is in a clearly marked section", () => {
-    const prompt = generatePrompt("execute-work-item", makeState(), skills);
-    expect(prompt).toContain("## Skill: implement");
+    expectPromptContains("execute-work-item", makeState(), ["## Skill: implement"], [], skills);
   });
 
   test("dead-code prompt includes dead-code skill body when provided", () => {
@@ -273,8 +245,7 @@ describe("generatePrompt includes skill content for work actions", () => {
   });
 
   test("non-work actions ignore skills (critique, review, explore)", () => {
-    const prompt = generatePrompt("critique", makeState(), skills);
-    expect(prompt).not.toContain("## Skill:");
+    expectPromptContains("critique", makeState(), [], ["## Skill:"], skills);
   });
 });
 
@@ -312,13 +283,11 @@ describe("explore prompt creative lens", () => {
   });
 
   test("does NOT include creative lens when no article provided", () => {
-    const prompt = generatePrompt("explore", makeState());
-    expect(prompt).not.toContain("## Creative Lens");
+    expectPromptContains("explore", makeState(), [], ["## Creative Lens"]);
   });
 
   test("creative lens is only added for explore action", () => {
-    const article = { title: "Test", summary: "A".repeat(100) };
-    const prompt = generatePrompt("fix-tests", makeState(), undefined, article);
+    const prompt = generatePrompt("fix-tests", makeState(), undefined, { title: "Test", summary: "A".repeat(100) });
     expect(prompt).not.toContain("## Creative Lens");
   });
 });
@@ -348,57 +317,35 @@ describe("explore and prioritise tier switching", () => {
   }
 
   test("explore shows Innovation tier when no gaps", () => {
-    const state = makeStateWithGaps(0, 0);
-    const prompt = generatePrompt("explore", state);
-    expect(prompt).toContain("Innovation");
-    expect(prompt).toContain("improvement-finding");
+    expectPromptContains("explore", makeStateWithGaps(0, 0), ["Innovation", "improvement-finding"]);
   });
 
   test("explore shows Hygiene/Implementation tier when spec gaps exist", () => {
-    const state = makeStateWithGaps(5, 0);
-    const prompt = generatePrompt("explore", state);
-    expect(prompt).toContain("Hygiene / Implementation");
-    expect(prompt).toContain("unimplemented spec claim");
+    expectPromptContains("explore", makeStateWithGaps(5, 0), ["Hygiene / Implementation", "unimplemented spec claim"]);
   });
 
   test("explore Innovation tier says No impactful work remaining is not acceptable", () => {
-    const state = makeStateWithGaps(0, 0);
-    const prompt = generatePrompt("explore", state);
-    expect(prompt).toContain("No impactful work remaining");
-    expect(prompt).toContain("NOT an acceptable output");
+    expectPromptContains("explore", makeStateWithGaps(0, 0), ["No impactful work remaining", "NOT an acceptable output"]);
   });
 
   test("explore Innovation tier asks if system could be easier for humans", () => {
-    const state = makeStateWithGaps(0, 0);
-    const prompt = generatePrompt("explore", state);
-    expect(prompt).toContain("easier to use");
+    expectPromptContains("explore", makeStateWithGaps(0, 0), ["easier to use"]);
   });
 
   test("prioritise shows gap guidance when spec gaps exist", () => {
-    const state = makeStateWithGaps(5, 0);
-    const prompt = generatePrompt("prioritise", state);
-    expect(prompt).toContain("unimplemented spec claim");
+    expectPromptContains("prioritise", makeStateWithGaps(5, 0), ["unimplemented spec claim"]);
   });
 
   test("prioritise shows innovation guidance when no gaps", () => {
-    const state = makeStateWithGaps(0, 0);
-    const prompt = generatePrompt("prioritise", state);
-    expect(prompt).toContain("highest impact");
+    expectPromptContains("prioritise", makeStateWithGaps(0, 0), ["highest impact"]);
   });
 
   test("prioritise prompt includes insight evaluation with promote/rework/dismiss", () => {
-    const prompt = generatePrompt("prioritise", makeState());
-    expect(prompt).toContain("Promote");
-    expect(prompt).toContain("Rework");
-    expect(prompt).toContain("Dismiss");
-    expect(prompt).toContain("improves ideas");
+    expectPromptContains("prioritise", makeState(), ["Promote", "Rework", "Dismiss", "improves ideas"]);
   });
 
   test("prioritise prompt asks evaluator to engage critically with insights", () => {
-    const prompt = generatePrompt("prioritise", makeState());
-    expect(prompt).toContain("engage with the idea critically");
-    expect(prompt).toContain("creative mode");
-    expect(prompt).toContain("evaluative mode");
+    expectPromptContains("prioritise", makeState(), ["engage with the idea critically", "creative mode", "evaluative mode"]);
   });
 
   test("explore uses specifiedOnly count to determine tier", () => {
@@ -412,31 +359,19 @@ describe("explore and prioritise tier switching", () => {
   });
 
   test("explore Hygiene tier includes top spec gap descriptions", () => {
-    const state = makeStateWithGaps(3, 0);
-    const prompt = generatePrompt("explore", state);
-    // freshAssessment has topSpecGaps with description "gap"
-    expect(prompt).toContain("gap");
-    expect(prompt).toContain("Top invariant gaps");
+    expectPromptContains("explore", makeStateWithGaps(3, 0), ["gap", "Top invariant gaps"]);
   });
 
   test("explore Innovation tier includes health score in codebase snapshot", () => {
-    const state = makeStateWithGaps(0, 0);
-    const prompt = generatePrompt("explore", state);
-    expect(prompt).toContain("Codebase snapshot");
-    expect(prompt).toContain("Health:");
+    expectPromptContains("explore", makeStateWithGaps(0, 0), ["Codebase snapshot", "Health:"]);
   });
 
   test("prioritise includes top spec gap descriptions when gaps exist", () => {
-    const state = makeStateWithGaps(3, 0);
-    const prompt = generatePrompt("prioritise", state);
-    expect(prompt).toContain("Top invariant gaps");
-    expect(prompt).toContain("gap");
+    expectPromptContains("prioritise", makeStateWithGaps(3, 0), ["Top invariant gaps", "gap"]);
   });
 
   test("prioritise does not include gap details when no gaps", () => {
-    const state = makeStateWithGaps(0, 0);
-    const prompt = generatePrompt("prioritise", state);
-    expect(prompt).not.toContain("Top invariant gaps");
+    expectPromptContains("prioritise", makeStateWithGaps(0, 0), [], ["Top invariant gaps"]);
   });
 });
 
@@ -453,7 +388,6 @@ describe("explore prompt skill catalog", () => {
   });
 
   test("omits skill catalog when no skills provided", () => {
-    const prompt = generatePrompt("explore", makeState());
-    expect(prompt).not.toContain("Available skills");
+    expectPromptContains("explore", makeState(), [], ["Available skills"]);
   });
 });
