@@ -24,4 +24,4 @@ Human should update section 2.3 of `.shoe-makers/invariants.md` to match the act
 
 ## Status
 
-Open — requires human action.
+Resolved. The three-phase orchestration model (candidates.md → work-item.md → execute) has been implemented since this finding was written. The invariants.md references are now accurate.
