@@ -47,10 +47,13 @@ async function main() {
   // 1. Branch setup
   const branchName = ensureBranch(repoRoot);
 
-  // 2. Archive resolved findings, then run assessment
+  // 2. Archive resolved findings, auto-commit, then run assessment
   const archived = await archiveResolvedFindings(repoRoot);
   if (archived.length > 0) {
     console.log(`[setup] Archived ${archived.length} resolved finding(s)`);
+    // Auto-commit archive changes BEFORE tree evaluation so they don't
+    // appear as uncommitted work in the world state
+    autoCommitHousekeeping(repoRoot);
   }
 
   console.log("[setup] Running assessment...");
