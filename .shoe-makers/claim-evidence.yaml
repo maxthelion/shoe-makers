@@ -25,7 +25,7 @@ behaviour-tree.sequence-runs-in-order:
 
 behaviour-tree.re-evaluates-from-scratch:
   source:
-    - ["evaluate(defaultTree", "evaluate(node"]
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree", "evaluate(node"]
   test:
     - ["evaluate("]
 
@@ -499,7 +499,7 @@ spec.set-up-and-go.it-works-without-editing-configyaml-sensible-defaults-for-ev:
 
 spec.the-reactive-tree.the-behaviour-tree-is-evaluated-every-tick-reevaluates-from-:
   source:
-    - ["evaluate(defaultTree", "evaluate(node"]
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree", "evaluate(node"]
   test:
     - ["evaluate("]
 
@@ -534,7 +534,7 @@ spec.the-reactive-tree.the-system-almost-never-sleeps-an-explore-action-at-the-b
 spec.the-reactive-tree.if-an-agent-crashes-the-next-tick-sees-the-same-world-and-re:
   source:
     - [readWorldState]
-    - ["evaluate(defaultTree"]
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree"]
   test:
     - [error, "stops on error"]
 
@@ -840,13 +840,13 @@ spec.statelessness-and-resilience.blackboard-files-shoemakersstate-are-ephemeral
 spec.statelessness-and-resilience.the-system-can-be-interrupted-at-any-point-and-resume-correc:
   source:
     - [readWorldState]
-    - ["evaluate(defaultTree"]
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree"]
   test:
     - [readWorldState]
 
 spec.statelessness-and-resilience.the-behaviour-tree-reevaluates-from-scratch-no-state-machine:
   source:
-    - ["evaluate(defaultTree", "evaluate(node"]
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree", "evaluate(node"]
   test:
     - ["evaluate("]
 
@@ -1128,7 +1128,7 @@ spec.statelessness-and-resilience.deleting-the-branch-resets-everything-cleanly:
 
 spec.statelessness-and-resilience.no-task-tracking-no-locks-no-leases-the-classes-of-bugs-that:
   source:
-    - ["evaluate(defaultTree"]
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree"]
     - [readWorldState]
   test:
     - ["evaluate("]
@@ -1445,7 +1445,7 @@ spec.one-invocation-one-action-one-exit.each-scheduled-invocation-does-one-thing
 
 spec.one-invocation-one-action-one-exit.the-behaviour-tree-evaluates-from-scratch-each-invocation-ca:
   source:
-    - ["evaluate(defaultTree", "evaluate(node"]
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree", "evaluate(node"]
     - [getState]
   test:
     - ["evaluate("]
