@@ -24,10 +24,14 @@ Read the critique findings in \`.shoe-makers/findings/\` (files starting with \`
 Do NOT delete the critique files — mark them as resolved so the review trail is preserved.${OFF_LIMITS}`;
 }
 
-export function buildCritiquePrompt(): string {
+export function buildCritiquePrompt(permissionViolations?: string[]): string {
+  const violationWarning = permissionViolations && permissionViolations.length > 0
+    ? `\n\n**⚠ PERMISSION VIOLATIONS DETECTED:**\nThe previous elf modified files outside their permitted scope:\n${permissionViolations.map(f => `- \`${f}\``).join("\n")}\n\nThis is a serious issue. Include it prominently in your critique.\n`
+    : "";
+
   return `# Adversarial Review — Critique Previous Elf's Work
 
-There are commits since the last review that need adversarial scrutiny. You are the reviewer, not the author.
+There are commits since the last review that need adversarial scrutiny. You are the reviewer, not the author.${violationWarning}
 
 1. Read \`.shoe-makers/state/last-action.md\` to understand what rules the previous elf was given
 2. Read \`.shoe-makers/state/last-reviewed-commit\` to find the last reviewed commit hash

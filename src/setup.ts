@@ -4,11 +4,12 @@ import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
-import { generatePrompt } from "./prompts";
-import { saveLastAction } from "./state/last-action";
+import { generatePrompt, parseActionTypeFromPrompt } from "./prompts";
+import { saveLastAction, readLastAction } from "./state/last-action";
 import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights } from "./state/world";
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
+import { checkPermissionViolations } from "./verify/permissions";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
 import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
@@ -82,7 +83,12 @@ async function main() {
     article = (await fetchRandomArticle()) ?? undefined;
   }
 
-  const action = formatAction(skill, state, inboxMessages, loadedSkills, article);
+  // Detect permission violations for critique actions
+  const permissionViolations = skill === "critique"
+    ? await detectPermissionViolations(repoRoot)
+    : undefined;
+
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations);
 
   const stateDir = join(repoRoot, ".shoe-makers", "state");
   await mkdir(stateDir, { recursive: true });
@@ -219,6 +225,7 @@ export function formatAction(
   inboxMessages: { file: string; content: string }[],
   loadedSkills?: Map<string, SkillDefinition>,
   article?: { title: string; summary: string },
+  permissionViolations?: string[],
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -238,7 +245,7 @@ Run \`bun run setup\` again to get your next action.
 
   if (skill) {
     const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, actionType === "explore" ? article : undefined);
+    const prompt = generatePrompt(actionType, state, loadedSkills, actionType === "explore" ? article : undefined, permissionViolations);
     return `${prompt}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}
@@ -251,6 +258,46 @@ Run \`bun run setup\` again to get your next action.
 
 The tree found no applicable action. This shouldn't happen — check the tree definition.
 `;
+}
+
+/**
+ * Detect permission violations by the previous elf.
+ * Reads last-action.md to determine the action type, then checks
+ * changed files since last-reviewed-commit against that role's permissions.
+ */
+async function detectPermissionViolations(repoRoot: string): Promise<string[] | undefined> {
+  try {
+    const lastAction = await readLastAction(repoRoot);
+    if (!lastAction) return undefined;
+
+    const actionType = parseActionTypeFromPrompt(lastAction);
+    if (!actionType) return undefined;
+
+    // Read last-reviewed-commit to get the diff range
+    const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
+    let lastReviewed: string;
+    try {
+      const raw = (await readFile(markerPath, "utf-8")).trim();
+      if (!/^[0-9a-f]{7,40}$/.test(raw)) return undefined;
+      lastReviewed = raw;
+    } catch {
+      return undefined;
+    }
+
+    // Get changed files since last review
+    const changedFilesRaw = execSync(`git diff --name-only ${lastReviewed}..HEAD`, {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+
+    if (!changedFilesRaw) return [];
+
+    const changedFiles = changedFilesRaw.split("\n").filter(f => f.length > 0);
+    const violations = checkPermissionViolations(actionType, changedFiles);
+    return violations;
+  } catch {
+    return undefined;
+  }
 }
 
 if (import.meta.main) {

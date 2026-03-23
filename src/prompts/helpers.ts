@@ -8,6 +8,34 @@ export const OFF_LIMITS = `
 - \`.shoe-makers/invariants.md\` — only humans maintain the spec claims
 - \`.shoe-makers/state/\` — managed by the scheduler, not agents (except candidates.md and work-item.md which you write as part of the three-phase cycle)`;
 
+/**
+ * Maps prompt title keywords to ActionType for parsing last-action.md.
+ * Used by permission enforcement to determine what role the previous elf had.
+ */
+const TITLE_TO_ACTION: [RegExp, ActionType][] = [
+  [/^#\s*Fix Failing Tests/i, "fix-tests"],
+  [/^#\s*Fix Unresolved Critiques/i, "fix-critique"],
+  [/^#\s*Adversarial Review/i, "critique"],
+  [/^#\s*Review Uncommitted Work/i, "review"],
+  [/^#\s*Inbox Messages/i, "inbox"],
+  [/^#\s*Execute Work Item/i, "execute-work-item"],
+  [/^#\s*Remove Dead Code/i, "dead-code"],
+  [/^#\s*Prioritise/i, "prioritise"],
+  [/^#\s*Explore/i, "explore"],
+];
+
+/**
+ * Parse the ActionType from a prompt's first line (title).
+ * Returns null if the title doesn't match any known action.
+ */
+export function parseActionTypeFromPrompt(promptText: string): ActionType | null {
+  const firstLine = promptText.split("\n")[0];
+  for (const [pattern, action] of TITLE_TO_ACTION) {
+    if (pattern.test(firstLine)) return action;
+  }
+  return null;
+}
+
 /** Maps action types to skill mapsTo values for work actions */
 export const ACTION_TO_SKILL_TYPE: Record<ActionType, string | undefined> = {
   "fix-tests": "fix",

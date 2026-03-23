@@ -4,7 +4,15 @@ import { findSkillForAction, formatSkillSection } from "./helpers";
 import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
 import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDeadCodePrompt } from "./three-phase";
 
-export { ACTION_TO_SKILL_TYPE } from "./helpers";
+export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
+
+/** Options for prompt generation that may include pre-computed data */
+export interface PromptOptions {
+  skills?: Map<string, SkillDefinition>;
+  article?: { title: string; summary: string };
+  /** Permission violations detected for the critique action */
+  permissionViolations?: string[];
+}
 
 /**
  * Generate a focused prompt for the elf based on the tree's decision.
@@ -17,6 +25,7 @@ export function generatePrompt(
   state: WorldState,
   skills?: Map<string, SkillDefinition>,
   article?: { title: string; summary: string },
+  permissionViolations?: string[],
 ): string {
   const skill = findSkillForAction(action, skills);
   const skillSection = skill ? formatSkillSection(skill) : "";
@@ -27,7 +36,7 @@ export function generatePrompt(
     case "fix-critique":
       return buildFixCritiquePrompt();
     case "critique":
-      return buildCritiquePrompt();
+      return buildCritiquePrompt(permissionViolations);
     case "review":
       return buildReviewPrompt();
     case "inbox":
