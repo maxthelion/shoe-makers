@@ -149,9 +149,9 @@ export function autoCommitHousekeeping(repoRoot: string): void {
     const status = execSync("git status --porcelain", {
       cwd: repoRoot,
       encoding: "utf-8",
-    }).trim();
+    });
 
-    if (!status || !isAllHousekeeping(status)) return;
+    if (!isAllHousekeeping(status)) return;
 
     // Stage all housekeeping changes
     for (const prefix of HOUSEKEEPING_PATHS) {

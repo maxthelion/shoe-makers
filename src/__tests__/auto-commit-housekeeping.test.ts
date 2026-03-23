@@ -48,4 +48,14 @@ describe("isAllHousekeeping", () => {
     const status = " M .shoe-makers/state/assessment.json";
     expect(isAllHousekeeping(status)).toBe(false);
   });
+
+  test("handles trailing newline from git status output", () => {
+    const status = " M .shoe-makers/log/2026-03-23.md\n";
+    expect(isAllHousekeeping(status)).toBe(true);
+  });
+
+  test("handles multi-line output with trailing newline", () => {
+    const status = " M .shoe-makers/log/2026-03-23.md\n D .shoe-makers/findings/old.md\n";
+    expect(isAllHousekeeping(status)).toBe(true);
+  });
 });
