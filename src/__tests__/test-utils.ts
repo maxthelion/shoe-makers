@@ -1,5 +1,53 @@
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
+import type { WorldState, Blackboard, Assessment } from "../types";
+
+export function emptyBlackboard(): Blackboard {
+  return {
+    assessment: null,
+    priorities: null,
+    currentTask: null,
+    verification: null,
+  };
+}
+
+export const freshAssessment: Assessment = {
+  timestamp: new Date().toISOString(),
+  invariants: {
+    specifiedOnly: 0,
+    implementedUntested: 0,
+    implementedTested: 50,
+    unspecified: 0,
+    topSpecGaps: [],
+    topUntested: [],
+    topUnspecified: [],
+  },
+  healthScore: 80,
+  worstFiles: [],
+  openPlans: [],
+  findings: [],
+  testsPass: true,
+  recentGitActivity: [],
+};
+
+export function makeState(overrides: Partial<WorldState> = {}): WorldState {
+  return {
+    branch: "shoemakers/2026-03-21",
+    hasUncommittedChanges: false,
+    inboxCount: 0,
+    hasUnreviewedCommits: false,
+    unresolvedCritiqueCount: 0,
+    hasWorkItem: false,
+    hasCandidates: false,
+    workItemSkillType: null,
+    insightCount: 0,
+    blackboard: {
+      ...emptyBlackboard(),
+      assessment: freshAssessment,
+    },
+    ...overrides,
+  };
+}
 
 /**
  * Write a wiki page with frontmatter to a temp dir.

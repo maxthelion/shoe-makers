@@ -3,20 +3,12 @@ import { mkdtemp, rm, mkdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { shift } from "../scheduler/shift";
-import type { WorldState, Blackboard, Assessment } from "../types";
+import type { WorldState, Assessment } from "../types";
+import { emptyBlackboard } from "./test-utils";
 
 let tempDir: string;
 
 const now = new Date().toISOString();
-
-function emptyBlackboard(): Blackboard {
-  return {
-    assessment: null,
-    priorities: null,
-    currentTask: null,
-    verification: null,
-  };
-}
 
 const freshAssessment: Assessment = {
   timestamp: now,

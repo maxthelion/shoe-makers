@@ -1,17 +1,9 @@
 import { describe, test, expect } from "bun:test";
 import { generatePrompt, ACTION_TO_SKILL_TYPE } from "../prompts";
-import type { ActionType, WorldState, Blackboard, Assessment } from "../types";
+import type { ActionType, WorldState, Assessment } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { loadSkills } from "../skills/registry";
-
-function emptyBlackboard(): Blackboard {
-  return {
-    assessment: null,
-    priorities: null,
-    currentTask: null,
-    verification: null,
-  };
-}
+import { emptyBlackboard } from "./test-utils";
 
 const freshAssessment: Assessment = {
   timestamp: new Date().toISOString(),

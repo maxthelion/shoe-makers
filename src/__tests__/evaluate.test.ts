@@ -1,54 +1,8 @@
 import { describe, test, expect } from "bun:test";
 import { evaluate } from "../tree/evaluate";
 import { defaultTree } from "../tree/default-tree";
-import type { WorldState, Blackboard, Assessment, Config } from "../types";
-
-function emptyBlackboard(): Blackboard {
-  return {
-    assessment: null,
-    priorities: null,
-    currentTask: null,
-    verification: null,
-  };
-}
-
-const freshAssessment: Assessment = {
-  timestamp: new Date().toISOString(),
-  invariants: {
-    specifiedOnly: 0,
-    implementedUntested: 0,
-    implementedTested: 50,
-    unspecified: 0,
-    topSpecGaps: [],
-    topUntested: [],
-    topUnspecified: [],
-  },
-  healthScore: 80,
-  worstFiles: [],
-  openPlans: [],
-  findings: [],
-  testsPass: true,
-  recentGitActivity: [],
-};
-
-function makeState(overrides: Partial<WorldState> = {}): WorldState {
-  return {
-    branch: "shoemakers/2026-03-21",
-    hasUncommittedChanges: false,
-    inboxCount: 0,
-    hasUnreviewedCommits: false,
-    unresolvedCritiqueCount: 0,
-    hasWorkItem: false,
-    hasCandidates: false,
-    workItemSkillType: null,
-    insightCount: 0,
-    blackboard: {
-      ...emptyBlackboard(),
-      assessment: freshAssessment,
-    },
-    ...overrides,
-  };
-}
+import type { WorldState, Blackboard, Config } from "../types";
+import { emptyBlackboard, freshAssessment, makeState } from "./test-utils";
 
 function failingTestsBlackboard(): Blackboard {
   return { ...emptyBlackboard(), assessment: { ...freshAssessment, testsPass: false } };
