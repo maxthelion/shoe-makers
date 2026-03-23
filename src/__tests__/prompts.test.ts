@@ -72,6 +72,46 @@ describe("generatePrompt", () => {
     }
   });
 
+  test("fix-critique prompt tells elf to read critique findings", () => {
+    const prompt = generatePrompt("fix-critique", makeState());
+    expect(prompt).toContain(".shoe-makers/findings/");
+    expect(prompt).toContain("critique-");
+  });
+
+  test("fix-critique prompt tells elf to mark critiques as resolved", () => {
+    const prompt = generatePrompt("fix-critique", makeState());
+    expect(prompt).toContain("## Status");
+    expect(prompt).toContain("Resolved.");
+  });
+
+  test("fix-critique prompt tells elf NOT to delete critique files", () => {
+    const prompt = generatePrompt("fix-critique", makeState());
+    expect(prompt).toContain("Do NOT delete the critique files");
+  });
+
+  test("fix-critique prompt tells elf to run bun test", () => {
+    const prompt = generatePrompt("fix-critique", makeState());
+    expect(prompt).toContain("bun test");
+  });
+
+  test("review prompt tells elf to run git diff", () => {
+    const prompt = generatePrompt("review", makeState());
+    expect(prompt).toContain("git diff");
+  });
+
+  test("review prompt checks correctness, tests, and spec alignment", () => {
+    const prompt = generatePrompt("review", makeState());
+    expect(prompt).toContain("Correctness");
+    expect(prompt).toContain("Tests");
+    expect(prompt).toContain("Spec alignment");
+  });
+
+  test("review prompt tells elf to commit if good or fix if not", () => {
+    const prompt = generatePrompt("review", makeState());
+    expect(prompt).toContain("commit them");
+    expect(prompt).toContain("fix the issues");
+  });
+
   test("critique prompt restricts reviewer to findings only", () => {
     const prompt = generatePrompt("critique", makeState());
     expect(prompt).toContain("only write findings");
