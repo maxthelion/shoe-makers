@@ -1583,3 +1583,53 @@ spec.the-wiki-drives-work.changes-to-the-wiki-surface-as-new-invariant-gaps-elve
     - [extractClaims, extractInvariantClaims]
   test:
     - [checkInvariants]
+
+# === invariants added 2026-03-22 (creative exploration, project docs, wiki authority) ===
+
+# invariants.md authoritative — system reads it as canonical claims
+spec.maintain-a-living-spec.shoemakersinvariantsmd-is-always-authoritative-regardless-of:
+  source:
+    - [extractInvariantClaims]
+    - [invariants.md]
+  test:
+    - [extractInvariantClaims]
+
+# Wikipedia random article — code exists but not yet wired into explore
+spec.creative-exploration.some-explore-cycles-include-a-random-wikipedia-article-as-an:
+  source:
+    - [fetchRandomArticle]
+    - [shouldIncludeLens]
+  test:
+    - [fetchRandomArticle, shouldIncludeLens, wikipedia]
+
+# insightFrequency configurable — function exists with default 0.3
+spec.creative-exploration.frequency-is-configurable-via-insightfrequency-in-configyaml:
+  source:
+    - [shouldIncludeLens]
+    - ["0.3"]
+  test:
+    - [shouldIncludeLens, insightFrequency]
+
+# README describes project — content verified in README.md
+spec.project-documentation.the-readme-describes-what-the-project-does-how-to-install-it:
+  source:
+    - [README.md]
+    - [PROTOCOL_CONTENT]
+  test:
+    - [README, init]
+
+# Integration documentation — init scaffolds the files that integration.md documents
+spec.project-documentation.documentation-explains-how-to-include-shoemakers-in-another-:
+  source:
+    - [async function init]
+    - [protocol.md]
+    - [config.yaml]
+  test:
+    - [init]
+
+# CHANGELOG — protocol instructs elves to maintain it
+spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-changelog-:
+  source:
+    - [PROTOCOL_CONTENT]
+  test:
+    - [PROTOCOL_CONTENT]
