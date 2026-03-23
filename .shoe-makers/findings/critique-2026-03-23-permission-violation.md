@@ -6,3 +6,9 @@ The previous elf modified files outside their permitted scope:
 - `.shoe-makers/state/candidates.md`
 
 This was detected automatically by the setup script. The fix-critique elf should investigate whether these changes are legitimate and either revert them or explain why they were necessary.
+
+## Status
+
+Resolved.
+
+False positive — both files were modified by housekeeping, not by the elf. Log was auto-committed by setup; candidates.md was cleaned up as part of lifecycle. See critique-133.
