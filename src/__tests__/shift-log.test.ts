@@ -3,6 +3,7 @@ import { mkdtemp, rm, readFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { appendToShiftLog, formatTickLog, formatShiftSummary, formatDashboard, prependShiftDashboard } from "../log/shift-log";
+import type { ImprovementCategory } from "../log/shift-summary";
 
 let tempDir: string;
 
@@ -129,7 +130,7 @@ const focusedSummary = {
   description: "Improvements across 1 categories: review",
 };
 const emptySummary = {
-  categories: [] as const,
+  categories: [] as ImprovementCategory[],
   isBalanced: false, totalActions: 0, successCount: 0, errorCount: 0,
   description: "No improvement actions taken",
 };
