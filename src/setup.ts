@@ -10,6 +10,7 @@ import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
 import { detectPermissionViolations } from "./verify/detect-violations";
+import { writePermissionViolationFinding } from "./verify/violation-findings";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
 import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
@@ -87,6 +88,14 @@ async function main() {
   const permissionViolations = skill === "critique"
     ? await detectPermissionViolations(repoRoot)
     : undefined;
+
+  // Write a structured finding if permission violations were detected
+  if (permissionViolations && permissionViolations.length > 0) {
+    const findingFile = await writePermissionViolationFinding(repoRoot, permissionViolations);
+    if (findingFile) {
+      console.log(`[setup] Permission violation finding written: ${findingFile}`);
+    }
+  }
 
   const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations);
 
