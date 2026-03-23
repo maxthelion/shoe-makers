@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { evaluate } from "../tree/evaluate";
+import { evaluate, evaluateWithTrace, formatTrace } from "../tree/evaluate";
 import { defaultTree } from "../tree/default-tree";
 import type { WorldState, Blackboard, Config } from "../types";
 import { emptyBlackboard, freshAssessment, makeState } from "./test-utils";
@@ -171,6 +171,92 @@ describe("game-style behaviour tree — routing", () => {
       expect(result.skill).toBe(expected);
     });
   }
+});
+
+describe("evaluateWithTrace", () => {
+  test("returns same skill as evaluate for default state", () => {
+    const state = makeState();
+    const evalResult = evaluate(defaultTree, state);
+    const traceResult = evaluateWithTrace(defaultTree, state);
+    expect(traceResult.skill).toBe(evalResult.skill);
+    expect(traceResult.status).toBe(evalResult.status);
+  });
+
+  test("returns same skill as evaluate when tests failing", () => {
+    const state = makeState({ blackboard: failingTestsBlackboard() });
+    const evalResult = evaluate(defaultTree, state);
+    const traceResult = evaluateWithTrace(defaultTree, state);
+    expect(traceResult.skill).toBe(evalResult.skill);
+  });
+
+  test("trace records all conditions up to winning one when explore wins", () => {
+    const state = makeState();
+    const { trace } = evaluateWithTrace(defaultTree, state);
+    // All conditions fail except the last (alwaysTrue → explore)
+    expect(trace.length).toBe(9);
+    expect(trace[trace.length - 1].passed).toBe(true);
+    expect(trace[trace.length - 1].skill).toBe("explore");
+    // All preceding conditions should have failed
+    for (let i = 0; i < trace.length - 1; i++) {
+      expect(trace[i].passed).toBe(false);
+    }
+  });
+
+  test("trace stops at first passing condition", () => {
+    const state = makeState({ blackboard: failingTestsBlackboard() });
+    const { trace } = evaluateWithTrace(defaultTree, state);
+    expect(trace.length).toBe(1);
+    expect(trace[0].passed).toBe(true);
+    expect(trace[0].skill).toBe("fix-tests");
+  });
+
+  test("trace records correct condition names", () => {
+    const state = makeState();
+    const { trace } = evaluateWithTrace(defaultTree, state);
+    const names = trace.map((e) => e.condition);
+    expect(names).toContain("tests-failing");
+    expect(names).toContain("unresolved-critiques");
+    expect(names).toContain("unreviewed-commits");
+    expect(names).toContain("explore");
+  });
+
+  test("trace for mid-tree match records failed conditions before winner", () => {
+    const state = makeState({ hasWorkItem: true });
+    const { trace } = evaluateWithTrace(defaultTree, state);
+    const winner = trace.find((e) => e.passed);
+    expect(winner).toBeDefined();
+    expect(winner!.skill).toBe("execute-work-item");
+    // Should have failed conditions before the winner
+    const failedBefore = trace.filter((e) => !e.passed);
+    expect(failedBefore.length).toBeGreaterThan(0);
+  });
+});
+
+describe("formatTrace", () => {
+  test("uses check mark for passing condition", () => {
+    const output = formatTrace([{ condition: "tests-failing", passed: true, skill: "fix-tests" }]);
+    expect(output).toContain("✓");
+    expect(output).toContain("tests-failing");
+    expect(output).toContain("→ fix-tests");
+  });
+
+  test("uses cross mark for failing condition", () => {
+    const output = formatTrace([{ condition: "tests-failing", passed: false, skill: "fix-tests" }]);
+    expect(output).toContain("✗");
+    expect(output).toContain("tests-failing");
+    expect(output).not.toContain("→");
+  });
+
+  test("formats multiple entries on separate lines", () => {
+    const output = formatTrace([
+      { condition: "tests-failing", passed: false, skill: "fix-tests" },
+      { condition: "explore", passed: true, skill: "explore" },
+    ]);
+    const lines = output.split("\n");
+    expect(lines.length).toBe(2);
+    expect(lines[0]).toContain("✗");
+    expect(lines[1]).toContain("✓");
+  });
 });
 
 describe("game-style behaviour tree — priority ordering", () => {

@@ -1,5 +1,5 @@
 import { assess, buildSuggestions } from "./skills/assess";
-import { evaluate } from "./tree/evaluate";
+import { evaluateWithTrace, formatTrace } from "./tree/evaluate";
 import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
 import { join } from "path";
@@ -66,7 +66,10 @@ async function main() {
 
   // 5. Load skills (filtered by enabledSkills config) and evaluate the tree
   const loadedSkills = await loadSkills(repoRoot, config.enabledSkills);
-  const { skill } = evaluate(defaultTree, state);
+  const { skill, trace } = evaluateWithTrace(defaultTree, state);
+  if (trace.length > 0) {
+    console.log(`[setup] Tree trace:\n${formatTrace(trace)}`);
+  }
 
   // Fetch a Wikipedia article for creative exploration (explore actions only)
   let article: { title: string; summary: string } | undefined;
