@@ -84,11 +84,8 @@ export function summarizeShift(steps: ShiftStep[]): ShiftSummary {
 
   const categories = [...categorySet];
   const isBalanced = categories.length >= 2;
-  const description = categories.length > 0
-    ? `Improvements across ${categories.length} categories: ${categories.join(", ")}`
-    : "No improvement actions taken";
-
   const traceAnalysis = analyzeTraces(steps);
+  const description = buildDescription(steps, categories, errorCount, traceAnalysis);
 
   return {
     categories,
@@ -99,6 +96,67 @@ export function summarizeShift(steps: ShiftStep[]): ShiftSummary {
     description,
     traceAnalysis,
   };
+}
+
+/** Human-readable labels for action types */
+const ACTION_LABELS: Record<string, string> = {
+  "fix-tests": "test fix",
+  "fix-critique": "critique fix",
+  "dead-code": "dead code removal",
+  "execute-work-item": "feature implementation",
+  "prioritise": "prioritisation",
+  "critique": "review",
+  "review": "review",
+  "inbox": "inbox processing",
+};
+
+/**
+ * Build a narrative description of the shift.
+ *
+ * Describes what happened in order of frequency, notes the arc
+ * if trace data shows a shift from reactive to stable, and mentions errors.
+ */
+function buildDescription(
+  steps: ShiftStep[],
+  categories: ImprovementCategory[],
+  errorCount: number,
+  traceAnalysis?: TraceAnalysis,
+): string {
+  if (categories.length === 0) {
+    return "No improvement actions taken";
+  }
+
+  // Count actions by type (excluding explore)
+  const actionCounts: Record<string, number> = {};
+  for (const step of steps) {
+    const action = step.tick.action;
+    if (!action || action === "explore") continue;
+    actionCounts[action] = (actionCounts[action] ?? 0) + 1;
+  }
+
+  // Build action phrases sorted by count (descending)
+  const phrases = Object.entries(actionCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([action, count]) => {
+      const label = ACTION_LABELS[action] ?? action;
+      return count === 1 ? `1 ${label}` : `${count} ${label}s`;
+    });
+
+  let desc = phrases.join(", ");
+
+  // Add arc narrative from trace analysis
+  if (traceAnalysis && traceAnalysis.reactive > 0 && traceAnalysis.explore > 0) {
+    desc += " — started reactive, then stabilised";
+  }
+
+  // Note errors
+  if (errorCount === 1) {
+    desc += " (1 error)";
+  } else if (errorCount > 1) {
+    desc += ` (${errorCount} errors)`;
+  }
+
+  return desc;
 }
 
 /**
