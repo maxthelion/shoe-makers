@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { readdir, readFile } from "fs/promises";
+import { readdir, readFile, rename, mkdir } from "fs/promises";
 import { join } from "path";
 import type { Assessment, Finding } from "../types";
 import { writeAssessment } from "../state/blackboard";
@@ -71,6 +71,37 @@ async function findOpenPlans(repoRoot: string, wikiDir: string = "wiki"): Promis
   }
 
   return plans;
+}
+
+/** Pattern to detect resolved findings: matches `## Status\nResolved.` */
+const RESOLVED_PATTERN = /^## Status\s*\n\s*Resolved\.?\s*$/mi;
+
+/**
+ * Archive resolved findings by moving them from findings/ to findings/archive/.
+ * Returns the list of archived file names.
+ */
+export async function archiveResolvedFindings(repoRoot: string): Promise<string[]> {
+  const findingsDir = join(repoRoot, ".shoe-makers", "findings");
+  const archiveDir = join(findingsDir, "archive");
+  const archived: string[] = [];
+
+  try {
+    const files = await readdir(findingsDir);
+    for (const file of files) {
+      if (!file.endsWith(".md")) continue;
+      const filePath = join(findingsDir, file);
+      const content = await readFile(filePath, "utf-8");
+      if (RESOLVED_PATTERN.test(content)) {
+        await mkdir(archiveDir, { recursive: true });
+        await rename(filePath, join(archiveDir, file));
+        archived.push(file);
+      }
+    }
+  } catch {
+    // findings directory may not exist
+  }
+
+  return archived;
 }
 
 /**

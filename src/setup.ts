@@ -1,4 +1,4 @@
-import { assess, buildSuggestions } from "./skills/assess";
+import { assess, buildSuggestions, archiveResolvedFindings } from "./skills/assess";
 import { evaluateWithTrace, formatTrace } from "./tree/evaluate";
 import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
@@ -44,7 +44,12 @@ async function main() {
   // 1. Branch setup
   const branchName = ensureBranch(repoRoot);
 
-  // 2. Run assessment (with health regression check)
+  // 2. Archive resolved findings, then run assessment
+  const archived = await archiveResolvedFindings(repoRoot);
+  if (archived.length > 0) {
+    console.log(`[setup] Archived ${archived.length} resolved finding(s)`);
+  }
+
   console.log("[setup] Running assessment...");
   const previousBlackboard = await readBlackboard(repoRoot);
   const healthBefore = previousBlackboard.assessment?.healthScore ?? null;
