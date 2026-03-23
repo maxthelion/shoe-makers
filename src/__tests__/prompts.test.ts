@@ -316,37 +316,26 @@ describe("explore and prioritise tier switching", () => {
     };
   }
 
-  test("explore shows Innovation tier when no gaps", () => {
-    expectPromptContains("explore", makeStateWithGaps(0, 0), ["Innovation", "improvement-finding"]);
-  });
+  const tierCases: [string, ActionType, () => WorldState, string[], string[]][] = [
+    ["explore shows Innovation tier when no gaps", "explore", () => makeStateWithGaps(0, 0), ["Innovation", "improvement-finding"], []],
+    ["explore shows Hygiene/Implementation tier when spec gaps exist", "explore", () => makeStateWithGaps(5, 0), ["Hygiene / Implementation", "unimplemented spec claim"], []],
+    ["explore Innovation tier says No impactful work remaining is not acceptable", "explore", () => makeStateWithGaps(0, 0), ["No impactful work remaining", "NOT an acceptable output"], []],
+    ["explore Innovation tier asks if system could be easier for humans", "explore", () => makeStateWithGaps(0, 0), ["easier to use"], []],
+    ["prioritise shows gap guidance when spec gaps exist", "prioritise", () => makeStateWithGaps(5, 0), ["unimplemented spec claim"], []],
+    ["prioritise shows innovation guidance when no gaps", "prioritise", () => makeStateWithGaps(0, 0), ["highest impact"], []],
+    ["prioritise prompt includes insight evaluation with promote/rework/dismiss", "prioritise", () => makeState(), ["Promote", "Rework", "Dismiss", "improves ideas"], []],
+    ["prioritise prompt asks evaluator to engage critically with insights", "prioritise", () => makeState(), ["engage with the idea critically", "creative mode", "evaluative mode"], []],
+    ["explore Hygiene tier includes top spec gap descriptions", "explore", () => makeStateWithGaps(3, 0), ["gap", "Top invariant gaps"], []],
+    ["explore Innovation tier includes health score in codebase snapshot", "explore", () => makeStateWithGaps(0, 0), ["Codebase snapshot", "Health:"], []],
+    ["prioritise includes top spec gap descriptions when gaps exist", "prioritise", () => makeStateWithGaps(3, 0), ["Top invariant gaps", "gap"], []],
+    ["prioritise does not include gap details when no gaps", "prioritise", () => makeStateWithGaps(0, 0), [], ["Top invariant gaps"]],
+  ];
 
-  test("explore shows Hygiene/Implementation tier when spec gaps exist", () => {
-    expectPromptContains("explore", makeStateWithGaps(5, 0), ["Hygiene / Implementation", "unimplemented spec claim"]);
-  });
-
-  test("explore Innovation tier says No impactful work remaining is not acceptable", () => {
-    expectPromptContains("explore", makeStateWithGaps(0, 0), ["No impactful work remaining", "NOT an acceptable output"]);
-  });
-
-  test("explore Innovation tier asks if system could be easier for humans", () => {
-    expectPromptContains("explore", makeStateWithGaps(0, 0), ["easier to use"]);
-  });
-
-  test("prioritise shows gap guidance when spec gaps exist", () => {
-    expectPromptContains("prioritise", makeStateWithGaps(5, 0), ["unimplemented spec claim"]);
-  });
-
-  test("prioritise shows innovation guidance when no gaps", () => {
-    expectPromptContains("prioritise", makeStateWithGaps(0, 0), ["highest impact"]);
-  });
-
-  test("prioritise prompt includes insight evaluation with promote/rework/dismiss", () => {
-    expectPromptContains("prioritise", makeState(), ["Promote", "Rework", "Dismiss", "improves ideas"]);
-  });
-
-  test("prioritise prompt asks evaluator to engage critically with insights", () => {
-    expectPromptContains("prioritise", makeState(), ["engage with the idea critically", "creative mode", "evaluative mode"]);
-  });
+  for (const [label, action, stateFactory, contains, notContains] of tierCases) {
+    test(label, () => {
+      expectPromptContains(action, stateFactory(), contains, notContains);
+    });
+  }
 
   test("explore uses specifiedOnly count to determine tier", () => {
     const stateWithGaps = makeStateWithGaps(3, 0);
@@ -356,22 +345,6 @@ describe("explore and prioritise tier switching", () => {
     const stateNoGaps = makeStateWithGaps(0, 0);
     const promptNoGaps = generatePrompt("explore", stateNoGaps);
     expect(promptNoGaps).not.toContain("unimplemented spec claim");
-  });
-
-  test("explore Hygiene tier includes top spec gap descriptions", () => {
-    expectPromptContains("explore", makeStateWithGaps(3, 0), ["gap", "Top invariant gaps"]);
-  });
-
-  test("explore Innovation tier includes health score in codebase snapshot", () => {
-    expectPromptContains("explore", makeStateWithGaps(0, 0), ["Codebase snapshot", "Health:"]);
-  });
-
-  test("prioritise includes top spec gap descriptions when gaps exist", () => {
-    expectPromptContains("prioritise", makeStateWithGaps(3, 0), ["Top invariant gaps", "gap"]);
-  });
-
-  test("prioritise does not include gap details when no gaps", () => {
-    expectPromptContains("prioritise", makeStateWithGaps(0, 0), [], ["Top invariant gaps"]);
   });
 });
 
