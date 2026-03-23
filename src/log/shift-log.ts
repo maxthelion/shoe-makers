@@ -74,6 +74,7 @@ export function formatTickLog(opts: {
   result: string | null;
   error: string | null;
   suggestions?: string[];
+  trace?: string;
 }): string {
   const lines: string[] = [];
 
@@ -83,6 +84,10 @@ export function formatTickLog(opts: {
     lines.push(`- **Decision**: ${opts.tickType} (skill: ${opts.skill})`);
   } else {
     lines.push("- **Decision**: sleep (nothing to do)");
+  }
+
+  if (opts.trace) {
+    lines.push(`- **Tree trace**:\n${opts.trace}`);
   }
 
   if (opts.result) {

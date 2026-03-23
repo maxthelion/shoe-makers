@@ -5,6 +5,7 @@ import { runSkill } from "./run-skill";
 import { appendToShiftLog, formatTickLog } from "../log/shift-log";
 import { summarizeShift, type ShiftSummary } from "../log/shift-summary";
 import { buildSuggestions } from "../skills/assess";
+import { formatTrace } from "../tree/evaluate";
 
 /** Result of a single step within a shift */
 export interface ShiftStep {
@@ -117,5 +118,6 @@ function formatEntry(
     result: skillResult,
     error,
     suggestions: buildSuggestions(state.blackboard.assessment),
+    trace: result.trace.length > 0 ? formatTrace(result.trace) : undefined,
   });
 }

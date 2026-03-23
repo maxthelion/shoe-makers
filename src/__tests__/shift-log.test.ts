@@ -168,6 +168,33 @@ describe("formatTickLog", () => {
     expect(log).toContain("**Decision**: work");
     expect(log).toContain("**Error**: No priority items to work on.");
   });
+
+  test("includes tree trace when provided", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: "explore",
+      skill: "explore",
+      result: "Done",
+      error: null,
+      trace: "  ✗ tests-failing\n  ✓ explore → explore",
+    });
+
+    expect(log).toContain("**Tree trace**");
+    expect(log).toContain("✗ tests-failing");
+    expect(log).toContain("✓ explore → explore");
+  });
+
+  test("omits tree trace when not provided", () => {
+    const log = formatTickLog({
+      branch: "shoemakers/2026-03-21",
+      tickType: "explore",
+      skill: "explore",
+      result: "Done",
+      error: null,
+    });
+
+    expect(log).not.toContain("Tree trace");
+  });
 });
 
 describe("formatShiftSummary", () => {

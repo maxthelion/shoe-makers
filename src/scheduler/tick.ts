@@ -1,5 +1,5 @@
 import type { WorldState, ActionType } from "../types";
-import { evaluate } from "../tree/evaluate";
+import { evaluateWithTrace, type TraceEntry } from "../tree/evaluate";
 import { defaultTree } from "../tree/default-tree";
 
 /** Result of a single tick evaluation */
@@ -9,6 +9,8 @@ export interface TickResult {
   skill: string | null;
   /** The action the tree decided on */
   action: ActionType | null;
+  /** Tree evaluation trace showing which conditions were checked */
+  trace: TraceEntry[];
 }
 
 /** Map skill names to action types */
@@ -31,7 +33,7 @@ const SKILL_TO_ACTION: Record<string, ActionType> = {
  * This function is pure — it does not invoke the skill or produce side effects.
  */
 export function tick(state: WorldState): TickResult {
-  const { skill } = evaluate(defaultTree, state);
+  const { skill, trace } = evaluateWithTrace(defaultTree, state);
   const action = skill ? (SKILL_TO_ACTION[skill] ?? null) : null;
 
   return {
@@ -39,5 +41,6 @@ export function tick(state: WorldState): TickResult {
     branch: state.branch,
     skill,
     action,
+    trace,
   };
 }
