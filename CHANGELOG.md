@@ -33,6 +33,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Invariants checker now uses per-claim granularity instead of per-page mapping. System now correctly identifies 6 spec gaps and 2 untested claims instead of reporting 0 gaps and sleeping.
 
 ### Fixed
+- Permission violation detection now filters out auto-commit housekeeping commits — prevents false positives from shift log and archive changes being attributed to elves
+- Executor role can now write test files — TDD enforcement handled by adversarial review instead of file-level glob permissions, fixing false violations on bug-fix work items
 - Plan detection now checks frontmatter `category: plan` instead of filename matching
 - Tick cycle loop: verify clears both currentTask and priorities to prevent infinite work loop
 - Removed no-op `scheduled-tasks` from invariants mapping (page has `category: reference`, was filtered out anyway)
