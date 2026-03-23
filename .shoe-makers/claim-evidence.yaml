@@ -1761,7 +1761,8 @@ spec.hierarchy-of-needs-in-prioritisation.the-explore-and-prioritise-prompts-rec
     - [eHasGaps]
     - [pHasGaps]
   test:
-    - [specifiedOnly]
+    - [unimplemented spec claim]
+    - [determine tier]
 
 # "No impactful work remaining" is never acceptable
 spec.hierarchy-of-needs-in-prioritisation.no-impactful-work-remaining-is-never-acceptable-output-at-ti:
@@ -1786,6 +1787,7 @@ spec.hierarchy-of-needs-in-prioritisation.impact-is-the-primary-criterion-not-ri
     - [pTierGuidance]
   test:
     - [highest impact]
+    - [innovation guidance when no gaps]
 
 # === creative-exploration (insight evaluation) ===
 

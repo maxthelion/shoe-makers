@@ -181,9 +181,7 @@ describe("formatShiftSummary", () => {
       description: "Improvements across 2 categories: fix, feature",
     });
     expect(output).toContain("Shift Summary");
-    expect(output).toContain("5");
-    expect(output).toContain("4 success");
-    expect(output).toContain("1 errors");
+    expect(output).toContain("5 (4 success, 1 error)");
     expect(output).toContain("fix, feature");
     expect(output).toContain("balanced");
   });

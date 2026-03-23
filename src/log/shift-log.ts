@@ -112,7 +112,7 @@ export function formatShiftSummary(summary: ShiftSummary): string {
   lines.push("");
   lines.push("## Shift Summary");
   lines.push("");
-  lines.push(`- **Actions**: ${summary.totalActions} (${summary.successCount} success, ${summary.errorCount} errors)`);
+  lines.push(`- **Actions**: ${summary.totalActions} (${summary.successCount} success, ${summary.errorCount} ${summary.errorCount === 1 ? "error" : "errors"})`);
   lines.push(`- **Categories**: ${summary.categories.length > 0 ? summary.categories.join(", ") : "none"}`);
   lines.push(`- **Balance**: ${summary.isBalanced ? "balanced" : "focused on " + (summary.categories[0] || "none")}`);
   lines.push(`- ${summary.description}`);
