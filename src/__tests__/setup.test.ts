@@ -38,6 +38,7 @@ function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {
     maxTicksPerShift: 10,
     enabledSkills: null,
     insightFrequency: 0.3,
+    maxInnovationCycles: 3,
   };
   const blackboard: Blackboard = {
     assessment: null,
