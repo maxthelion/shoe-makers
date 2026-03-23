@@ -2,8 +2,7 @@
 
 The previous elf modified files outside their permitted scope:
 
-- `.shoe-makers/log/2026-03-23.md`
-- `.shoe-makers/state/work-item.md`
+- `CHANGELOG.md`
 
 This was detected automatically by the setup script. The fix-critique elf should investigate whether these changes are legitimate and either revert them or explain why they were necessary.
 
@@ -11,4 +10,4 @@ This was detected automatically by the setup script. The fix-critique elf should
 
 Resolved.
 
-False positive — both commits are housekeeping. See critique-135.
+Legitimate doc-sync work — CHANGELOG.md isn't in executor's canWrite patterns but was explicitly requested by the work item. See critique-145 for advisory on expanding permissions.
