@@ -29,18 +29,55 @@ export async function detectPermissionViolations(repoRoot: string): Promise<stri
       return undefined;
     }
 
-    // Get changed files since last review
-    const changedFilesRaw = execSync(`git diff --name-only ${lastReviewed}..HEAD`, {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
+    // Get changed files since last review, excluding auto-commit housekeeping
+    const changedFiles = getElfChangedFiles(repoRoot, lastReviewed);
+    if (changedFiles.length === 0) return [];
 
-    if (!changedFilesRaw) return [];
-
-    const changedFiles = changedFilesRaw.split("\n").filter(f => f.length > 0);
     const violations = checkPermissionViolations(actionType, changedFiles);
     return violations;
   } catch {
     return undefined;
   }
+}
+
+const HOUSEKEEPING_PREFIX = "Auto-commit setup housekeeping";
+
+/**
+ * Get files changed by elf commits only, excluding auto-commit housekeeping.
+ * This prevents false-positive permission violations from setup script commits
+ * (shift log entries, archived findings) being attributed to the elf.
+ */
+export function getElfChangedFiles(repoRoot: string, sinceCommit: string): string[] {
+  const commitsRaw = execSync(
+    `git log --format="%H %s" ${sinceCommit}..HEAD`,
+    { cwd: repoRoot, encoding: "utf-8" }
+  ).trim();
+
+  if (!commitsRaw) return [];
+
+  const elfCommitHashes = commitsRaw
+    .split("\n")
+    .filter(line => {
+      const subject = line.substring(line.indexOf(" ") + 1);
+      return !subject.startsWith(HOUSEKEEPING_PREFIX);
+    })
+    .map(line => line.split(" ")[0])
+    .filter(Boolean);
+
+  if (elfCommitHashes.length === 0) return [];
+
+  const changedFiles = new Set<string>();
+  for (const hash of elfCommitHashes) {
+    const files = execSync(`git diff-tree --no-commit-id --name-only -r ${hash}`, {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+    if (files) {
+      for (const f of files.split("\n")) {
+        if (f.length > 0) changedFiles.add(f);
+      }
+    }
+  }
+
+  return [...changedFiles];
 }
