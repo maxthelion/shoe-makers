@@ -11,6 +11,10 @@ import {
   TEST_COVERAGE_SKILL,
   DOC_SYNC_SKILL,
   HEALTH_SKILL,
+  OCTOCLEAN_FIX_SKILL,
+  BUG_FIX_SKILL,
+  DEAD_CODE_SKILL,
+  DEPENDENCY_UPDATE_SKILL,
 } from "../init-skill-templates";
 
 const SKILL_TEMPLATES = [
@@ -19,6 +23,10 @@ const SKILL_TEMPLATES = [
   { name: "test-coverage", template: TEST_COVERAGE_SKILL },
   { name: "doc-sync", template: DOC_SYNC_SKILL },
   { name: "health", template: HEALTH_SKILL },
+  { name: "octoclean-fix", template: OCTOCLEAN_FIX_SKILL },
+  { name: "bug-fix", template: BUG_FIX_SKILL },
+  { name: "dead-code", template: DEAD_CODE_SKILL },
+  { name: "dependency-update", template: DEPENDENCY_UPDATE_SKILL },
 ];
 
 const REQUIRED_FRONTMATTER = ["name:", "description:", "maps-to:", "risk:"];
