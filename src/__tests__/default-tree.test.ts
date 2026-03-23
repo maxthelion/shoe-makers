@@ -1,4 +1,6 @@
 import { describe, test, expect } from "bun:test";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { defaultTree } from "../tree/default-tree";
 
 describe("default tree structure", () => {
@@ -67,5 +69,21 @@ describe("default tree structure", () => {
   test("explore is the last child (fallback)", () => {
     const lastChild = defaultTree.children![defaultTree.children!.length - 1];
     expect(lastChild.name).toBe("explore");
+  });
+
+  test("JSDoc comment lists the correct number of tree entries", () => {
+    const source = readFileSync(
+      join(__dirname, "../tree/default-tree.ts"),
+      "utf-8"
+    );
+    const jsdocMatch = source.match(/\/\*\*[\s\S]*?\*\//);
+    expect(jsdocMatch).not.toBeNull();
+    const jsdoc = jsdocMatch![0];
+
+    // Count lines with tree branch markers (├── or └──)
+    const treeLines = jsdoc.split("\n").filter(
+      (line) => line.includes("├──") || line.includes("└──")
+    );
+    expect(treeLines.length).toBe(defaultTree.children!.length);
   });
 });
