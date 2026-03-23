@@ -1684,6 +1684,22 @@ spec.creative-exploration.the-separation-between-generating-insights-divergentcr
     - [explore]
     - [prioritise]
 
+# Wiki wins over code — execute prompt instructs elves to never revert the wiki
+spec.maintain-a-living-spec.when-wiki-and-code-diverge-the-newer-change-wins-if-the-wiki:
+  source:
+    - [never revert the wiki]
+    - [source of truth]
+  test:
+    - [never revert the wiki]
+
+# Elves suggest new invariants via findings
+spec.maintain-a-living-spec.when-new-code-exists-without-a-corresponding-invariant-elves:
+  source:
+    - [suggesting a new invariant]
+    - [invariants.md]
+  test:
+    - [suggesting a new invariant]
+
 # CHANGELOG — protocol instructs elves to maintain it
 spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-changelog-:
   source:

@@ -115,6 +115,17 @@ describe("generatePrompt", () => {
     expect(prompt).toContain("proposals, not problems");
   });
 
+  test("explore prompt mentions suggesting new invariants", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).toContain("suggesting a new invariant");
+  });
+
+  test("execute prompt mentions never reverting the wiki", () => {
+    const prompt = generatePrompt("execute-work-item", makeState());
+    expect(prompt).toContain("never revert the wiki");
+    expect(prompt).toContain("source of truth");
+  });
+
   test("prioritise prompt mentions reviewing insights", () => {
     const prompt = generatePrompt("prioritise", makeState());
     expect(prompt).toContain(".shoe-makers/insights/");
