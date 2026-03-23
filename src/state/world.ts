@@ -1,10 +1,11 @@
 import { execSync } from "child_process";
-import { readdir, readFile } from "fs/promises";
+import { readdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import type { WorldState } from "../types";
 import { readBlackboard } from "./blackboard";
 import { loadConfig } from "../config/load-config";
 import { fileExists } from "../utils/fs";
+import { getElfChangedFiles } from "../verify/detect-violations";
 
 /**
  * Get the current git branch name.
@@ -77,11 +78,19 @@ export async function checkUnreviewedCommits(repoRoot: string): Promise<boolean>
   }
 
   try {
-    const log = execSync(`git log ${lastReviewed}..HEAD --oneline`, {
+    // Check if there are any elf-authored changes (not just housekeeping)
+    const elfFiles = getElfChangedFiles(repoRoot, lastReviewed);
+    if (elfFiles.length > 0) return true;
+
+    // Only housekeeping commits — advance the review marker and skip review
+    const currentHead = execSync("git rev-parse HEAD", {
       cwd: repoRoot,
       encoding: "utf-8",
     }).trim();
-    return log.length > 0;
+    if (currentHead !== lastReviewed) {
+      await writeFile(markerPath, currentHead);
+    }
+    return false;
   } catch {
     return false;
   }

@@ -70,9 +70,9 @@ describe("checkUnreviewedCommits", () => {
     expect(result).toBe(false);
   });
 
-  test("returns true when commits exist after marker", async () => {
-    // Use a parent commit as the marker — there are definitely commits after it
-    const parent = execSync("git rev-parse HEAD~1", {
+  test("returns true when elf-authored commits exist after marker", async () => {
+    // Find a commit far enough back to include at least one non-housekeeping commit
+    const parent = execSync("git rev-parse HEAD~5", {
       cwd: repoRoot,
       encoding: "utf-8",
     }).trim();
