@@ -322,3 +322,86 @@ describe("explore prompt creative lens", () => {
     expect(prompt).not.toContain("## Creative Lens");
   });
 });
+
+describe("explore and prioritise tier switching", () => {
+  function makeStateWithGaps(specifiedOnly: number, implementedUntested: number): WorldState {
+    return {
+      ...makeState(),
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          invariants: {
+            ...freshAssessment.invariants,
+            specifiedOnly,
+            implementedUntested,
+          },
+        },
+      },
+    };
+  }
+
+  test("explore shows Innovation tier when no gaps", () => {
+    const state = makeStateWithGaps(0, 0);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("Innovation");
+    expect(prompt).toContain("improvement-finding");
+  });
+
+  test("explore shows Hygiene/Implementation tier when spec gaps exist", () => {
+    const state = makeStateWithGaps(5, 0);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("Hygiene / Implementation");
+    expect(prompt).toContain("unimplemented spec claim");
+  });
+
+  test("explore Innovation tier says No impactful work remaining is not acceptable", () => {
+    const state = makeStateWithGaps(0, 0);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("No impactful work remaining");
+    expect(prompt).toContain("NOT an acceptable output");
+  });
+
+  test("explore Innovation tier asks if system could be easier for humans", () => {
+    const state = makeStateWithGaps(0, 0);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("easier to use");
+  });
+
+  test("prioritise shows gap guidance when spec gaps exist", () => {
+    const state = makeStateWithGaps(5, 0);
+    const prompt = generatePrompt("prioritise", state);
+    expect(prompt).toContain("unimplemented spec claim");
+  });
+
+  test("prioritise shows innovation guidance when no gaps", () => {
+    const state = makeStateWithGaps(0, 0);
+    const prompt = generatePrompt("prioritise", state);
+    expect(prompt).toContain("highest impact");
+  });
+
+  test("prioritise prompt includes insight evaluation with promote/rework/dismiss", () => {
+    const prompt = generatePrompt("prioritise", makeState());
+    expect(prompt).toContain("Promote");
+    expect(prompt).toContain("Rework");
+    expect(prompt).toContain("Dismiss");
+    expect(prompt).toContain("improves ideas");
+  });
+
+  test("prioritise prompt asks evaluator to engage critically with insights", () => {
+    const prompt = generatePrompt("prioritise", makeState());
+    expect(prompt).toContain("engage with the idea critically");
+    expect(prompt).toContain("creative mode");
+    expect(prompt).toContain("evaluative mode");
+  });
+
+  test("explore uses specifiedOnly count to determine tier", () => {
+    const stateWithGaps = makeStateWithGaps(3, 0);
+    const promptWithGaps = generatePrompt("explore", stateWithGaps);
+    expect(promptWithGaps).toContain("3 unimplemented spec claim");
+
+    const stateNoGaps = makeStateWithGaps(0, 0);
+    const promptNoGaps = generatePrompt("explore", stateNoGaps);
+    expect(promptNoGaps).not.toContain("unimplemented spec claim");
+  });
+});

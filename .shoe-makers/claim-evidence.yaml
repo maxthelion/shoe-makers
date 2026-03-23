@@ -1711,3 +1711,122 @@ spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-cha
     - [changelog, CHANGELOG]
   test:
     - [PROTOCOL_CONTENT]
+
+# === hierarchy-of-needs (prioritisation wiki page) ===
+
+# Prioritiser weighs impact and balance
+spec.the-prioritiser-writes-the-real-prompt.this-is-the-llm-judgement-step-it-weighs-impact-and-balance-:
+  source:
+    - [pTierGuidance]
+    - [highest impact]
+  test:
+    - [highest impact]
+
+# Three tiers: hygiene → implementation → innovation
+spec.hierarchy-of-needs-in-prioritisation.the-system-follows-three-tiers-hygiene-implementation-innova:
+  source:
+    - [Hygiene]
+    - [Innovation]
+  test:
+    - [Innovation]
+    - [Hygiene]
+
+# Tier 1: hygiene — spec-code inconsistencies, code smells, broken invariants
+spec.hierarchy-of-needs-in-prioritisation.tier-1-hygiene-speccode-inconsistencies-code-smells-broken-i:
+  source:
+    - ["Hygiene / Implementation"]
+  test:
+    - ["Hygiene / Implementation"]
+
+# Tier 2: implementation — build things specified but not built
+spec.hierarchy-of-needs-in-prioritisation.tier-2-implementation-build-things-discussed-but-not-actione:
+  source:
+    - [unimplemented spec claim]
+  test:
+    - [unimplemented spec claim]
+
+# Tier 3: innovation — improve beyond instructions
+spec.hierarchy-of-needs-in-prioritisation.tier-3-innovation-actively-improve-beyond-instructions-ux-fo:
+  source:
+    - [Innovation]
+    - [improvement-finding]
+  test:
+    - [Innovation]
+    - [improvement-finding]
+
+# Explore and prioritise prompts receive invariant counts
+spec.hierarchy-of-needs-in-prioritisation.the-explore-and-prioritise-prompts-receive-invariant-counts-:
+  source:
+    - [specifiedOnly]
+    - [eHasGaps]
+    - [pHasGaps]
+  test:
+    - [specifiedOnly]
+
+# "No impactful work remaining" is never acceptable
+spec.hierarchy-of-needs-in-prioritisation.no-impactful-work-remaining-is-never-acceptable-output-at-ti:
+  source:
+    - ["No impactful work remaining"]
+    - [NOT an acceptable output]
+  test:
+    - ["No impactful work remaining"]
+    - [NOT an acceptable output]
+
+# At tier 3, ask: could this be easier for humans/agents?
+spec.hierarchy-of-needs-in-prioritisation.at-tier-3-elves-should-ask-could-this-system-be-easier-for-h:
+  source:
+    - [easier to use]
+  test:
+    - [easier to use]
+
+# Impact is the primary criterion
+spec.hierarchy-of-needs-in-prioritisation.impact-is-the-primary-criterion-not-riskavoidance:
+  source:
+    - [highest impact]
+    - [pTierGuidance]
+  test:
+    - [highest impact]
+
+# === creative-exploration (insight evaluation) ===
+
+# Explore elf reads codebase through the lens
+spec.creative-exploration.the-explore-elf-reads-the-codebase-through-the-lens-and-writ:
+  source:
+    - [Creative Lens]
+    - [article.title]
+  test:
+    - [Creative Lens]
+
+# Prioritise elf evaluates insights critically
+spec.creative-exploration.the-prioritise-elf-evaluates-insights-critically-not-just-tr:
+  source:
+    - [engage with the idea critically]
+  test:
+    - [engage with the idea critically]
+
+# Evaluator can promote, rework, or dismiss
+spec.creative-exploration.the-evaluator-can-promote-viable-work-item-rework-rewrite-th:
+  source:
+    - [Promote]
+    - [Rework]
+    - [Dismiss]
+  test:
+    - [Promote]
+    - [Rework]
+    - [Dismiss]
+
+# Good evaluation improves ideas, not just filters them
+spec.creative-exploration.good-evaluation-improves-ideas-not-just-filters-them-the-raw:
+  source:
+    - [improves ideas]
+  test:
+    - [improves ideas]
+
+# Separation between divergent (generating) and convergent (evaluating)
+spec.creative-exploration.the-separation-between-generating-insights-divergent-and-eva:
+  source:
+    - [creative mode]
+    - [evaluative mode]
+  test:
+    - [creative mode]
+    - [evaluative mode]
