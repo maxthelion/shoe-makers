@@ -17,7 +17,7 @@ import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
 import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
-import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
+import { fetchArticleForAction } from "./creative/wikipedia";
 import { archiveConsumedStateFiles } from "./archive/state-archive";
 
 /**
@@ -84,21 +84,11 @@ async function main() {
   }
 
   // Fetch a Wikipedia article for creative exploration
-  // For innovate: always fetch (deterministic creative brief)
-  // For explore: probabilistic based on config
-  let article: { title: string; summary: string } | undefined;
-  if (skill === "innovate") {
-    article = (await fetchRandomArticle()) ?? undefined;
-    if (article) {
-      console.log(`[setup] Wikipedia article fetched: "${article.title}"`);
-      await appendToShiftLog(repoRoot, `- **Wikipedia article**: "${article.title}"\n`);
-    } else {
-      console.log("[setup] Wikipedia article fetch failed");
-      await appendToShiftLog(repoRoot, "- **Wikipedia article**: fetch failed — no article available\n");
-    }
-  } else if (skill === "explore" && shouldIncludeLens(config.insightFrequency)) {
-    article = (await fetchRandomArticle()) ?? undefined;
-  }
+  const article = await fetchArticleForAction(
+    skill,
+    config.insightFrequency,
+    (entry) => appendToShiftLog(repoRoot, entry),
+  );
 
   // Read wiki overview for innovate action
   let wikiSummary: string | undefined;

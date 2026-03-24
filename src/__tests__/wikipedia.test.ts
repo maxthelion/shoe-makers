@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { shouldIncludeLens, fetchRandomArticle } from "../creative/wikipedia";
+import { shouldIncludeLens, fetchRandomArticle, fetchArticleForAction } from "../creative/wikipedia";
 
 describe("shouldIncludeLens", () => {
   test("returns false when frequency is 0", () => {
@@ -94,5 +94,88 @@ describe("fetchRandomArticle", () => {
     const result = await fetchRandomArticle();
     expect(result).not.toBeNull();
     expect(result!.summary.length).toBe(1000);
+  });
+});
+
+describe("fetchArticleForAction", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function mockFetch(fn: (...args: Parameters<typeof fetch>) => Promise<Response> | never): void {
+    globalThis.fetch = Object.assign(fn, { preconnect: originalFetch.preconnect }) as typeof fetch;
+  }
+
+  function mockSuccessfulFetch(): void {
+    const longSummary = "A".repeat(200);
+    let callCount = 0;
+    mockFetch(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return new Response(JSON.stringify({
+          query: { random: [{ title: "Mock Article" }] },
+        }));
+      }
+      return new Response(JSON.stringify({
+        query: { pages: { "1": { extract: longSummary } } },
+      }));
+    });
+  }
+
+  test("returns article for innovate skill", async () => {
+    mockSuccessfulFetch();
+    const logs: string[] = [];
+    const result = await fetchArticleForAction("innovate", 0.3, async (e) => { logs.push(e); });
+    expect(result).not.toBeUndefined();
+    expect(result!.title).toBe("Mock Article");
+  });
+
+  test("logs article to shift log on innovate success", async () => {
+    mockSuccessfulFetch();
+    const logs: string[] = [];
+    await fetchArticleForAction("innovate", 0.3, async (e) => { logs.push(e); });
+    expect(logs.length).toBe(1);
+    expect(logs[0]).toContain("Mock Article");
+  });
+
+  test("logs failure to shift log when innovate fetch fails", async () => {
+    mockFetch(() => { throw new Error("Network error"); });
+    const logs: string[] = [];
+    await fetchArticleForAction("innovate", 0.3, async (e) => { logs.push(e); });
+    expect(logs.length).toBe(1);
+    expect(logs[0]).toContain("fetch failed");
+  });
+
+  test("returns undefined for non-creative skills", async () => {
+    mockSuccessfulFetch();
+    const result = await fetchArticleForAction("fix-tests", 0.3, async () => {});
+    expect(result).toBeUndefined();
+  });
+
+  test("returns undefined when skill is null", async () => {
+    const result = await fetchArticleForAction(null, 0.3, async () => {});
+    expect(result).toBeUndefined();
+  });
+
+  test("explore with frequency 1 fetches article", async () => {
+    mockSuccessfulFetch();
+    const result = await fetchArticleForAction("explore", 1, async () => {});
+    expect(result).not.toBeUndefined();
+    expect(result!.title).toBe("Mock Article");
+  });
+
+  test("explore with frequency 0 returns undefined", async () => {
+    mockSuccessfulFetch();
+    const result = await fetchArticleForAction("explore", 0, async () => {});
+    expect(result).toBeUndefined();
+  });
+
+  test("explore does not log to shift log", async () => {
+    mockSuccessfulFetch();
+    const logs: string[] = [];
+    await fetchArticleForAction("explore", 1, async (e) => { logs.push(e); });
+    expect(logs.length).toBe(0);
   });
 });
