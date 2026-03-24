@@ -45,10 +45,10 @@ function runTypecheck(repoRoot: string): boolean | undefined {
     execSync("npx tsc --noEmit", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
     return true;
   } catch (err: unknown) {
-    const stderr = err instanceof Error && "stderr" in err
-      ? String((err as { stderr: unknown }).stderr)
+    const output = err instanceof Error && "stdout" in err
+      ? String((err as { stdout: unknown }).stdout)
       : "";
-    if (stderr.includes("Cannot find type definition file")) {
+    if (output.includes("Cannot find type definition file")) {
       return undefined;
     }
     return false;
