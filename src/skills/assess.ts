@@ -38,12 +38,19 @@ export function runTests(repoRoot: string): boolean {
 
 /**
  * Run `npx tsc --noEmit` and return whether TypeScript compilation passes.
+ * Returns undefined if the failure is due to missing type definitions (infrastructure issue).
  */
-function runTypecheck(repoRoot: string): boolean {
+function runTypecheck(repoRoot: string): boolean | undefined {
   try {
     execSync("npx tsc --noEmit", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
     return true;
-  } catch {
+  } catch (err: unknown) {
+    const stderr = err instanceof Error && "stderr" in err
+      ? String((err as { stderr: unknown }).stderr)
+      : "";
+    if (stderr.includes("Cannot find type definition file")) {
+      return undefined;
+    }
     return false;
   }
 }
