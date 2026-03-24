@@ -1,5 +1,9 @@
 import { describe, test, expect } from "bun:test";
+import { existsSync } from "fs";
+import { join } from "path";
 import { getHealthScore, getHealthResult, parseHealthSnapshot } from "../skills/health-scan";
+
+const octocleanInstalled = existsSync(join(process.cwd(), "node_modules", "octoclean"));
 
 describe("health-scan integration", () => {
   test("getHealthScore returns null for a directory without octoclean", async () => {
@@ -7,7 +11,7 @@ describe("health-scan integration", () => {
     expect(score).toBeNull();
   });
 
-  test("getHealthScore returns a numeric score for the real repo", async () => {
+  test.skipIf(!octocleanInstalled)("getHealthScore returns a numeric score for the real repo", async () => {
     const score = await getHealthScore(process.cwd());
     expect(score).not.toBeNull();
     expect(typeof score).toBe("number");
@@ -20,7 +24,7 @@ describe("health-scan integration", () => {
     expect(result).toBeNull();
   });
 
-  test("getHealthResult returns score and worst files for the real repo", async () => {
+  test.skipIf(!octocleanInstalled)("getHealthResult returns score and worst files for the real repo", async () => {
     const result = await getHealthResult(process.cwd());
     expect(result).not.toBeNull();
     expect(typeof result!.score).toBe("number");
