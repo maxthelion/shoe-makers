@@ -486,6 +486,21 @@ describe("innovate prompt", () => {
     expect(prompt).toContain("Do not use general knowledge");
     expect(prompt).toContain("Start with the Wikipedia article title");
   });
+
+  test("handles missing article gracefully", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
+    expect(prompt).not.toContain("Wikipedia article provided above");
+    expect(prompt).toContain("No Wikipedia article was available");
+    expect(prompt).toContain("Pick your own creative lens");
+    expect(prompt).toContain("MUST");
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("still requires insight file when no article", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
+    expect(prompt).toContain("YYYY-MM-DD-NNN");
+    expect(prompt).toContain("NOT acceptable");
+  });
 });
 
 describe("evaluate-insight prompt", () => {
