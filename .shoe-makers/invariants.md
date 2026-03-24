@@ -113,6 +113,7 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - At innovation tier (all invariants met, health good), the tree routes to `innovate` instead of `explore`
 - The setup script prepares a **deterministic creative brief**: reads wiki overview pages (architecture, etc.) and always fetches a random Wikipedia article — the elf receives both
 - The innovate elf **must** write an insight file — output is mandatory, not optional. "No connection found" is not acceptable
+- The insight file **must** reference the Wikipedia article that was provided as the lens — the connection is between the random concept and the system, not from general knowledge
 - Insights go to `.shoe-makers/insights/`, separate from findings — they're proposals, not problems
 - A separate `evaluate-insight` action fires when insight files exist — it has a **generous disposition**, separate from the pragmatic `prioritise` action
 - The evaluator builds on ideas constructively: could this work? If not, what variant would? "This wouldn't work because X, but Y would work"
@@ -120,6 +121,12 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - Good evaluation improves ideas, not just filters them — the raw insight is a seed, the evaluator develops it
 - The separation between generating insights (divergent) and evaluating them (convergent) is deliberate — different mental states, different invocations, different dispositions
 - The insight evaluator is NOT the prioritise elf — the prioritise elf is pragmatic and would kill most creative ideas
+
+### 2.6.1 Innovate observability
+- The setup script logs which Wikipedia article was fetched (title) to the shift log, or logs that the fetch failed
+- The innovate prompt output (the insight file) must include the Wikipedia article title in the Lens section — if an insight doesn't reference the article, the elf ignored the brief
+- The shift log entry for an innovate tick should include: the Wikipedia article title, whether an insight was written, and the insight filename
+- This observability allows the human to verify in the morning review that the creative pipeline is actually using random outside concepts, not falling back to general knowledge
 
 ### 2.7 The wiki drives work
 - The wiki is the source of truth — agents read it to understand project intent
