@@ -479,6 +479,13 @@ describe("innovate prompt", () => {
     expect(prompt).toContain("Off-limits");
     expect(prompt).toContain("invariants.md");
   });
+
+  test("requires Wikipedia article in Lens section (invariant 2.6.1)", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("use the Wikipedia article");
+    expect(prompt).toContain("Do not use general knowledge");
+    expect(prompt).toContain("Start with the Wikipedia article title");
+  });
 });
 
 describe("evaluate-insight prompt", () => {

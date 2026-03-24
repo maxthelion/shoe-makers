@@ -1964,3 +1964,29 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-in
     - [NOT the prioritise elf]
   test:
     - [NOT the prioritise elf]
+
+# === Section 2.6.1: Innovate observability ===
+
+# Setup logs which Wikipedia article was fetched to the shift log
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-setup-script-logs-which-wikipedia-article-was-fetched-ti:
+  source:
+    - [appendToShiftLog, Wikipedia article]
+    - [article.title]
+    - [fetch failed]
+  test:
+    - [Wikipedia article, shift log]
+
+# Innovate prompt output must include Wikipedia article title in Lens section
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-innovate-prompt-output-the-insight-file-must-include-the-:
+  source:
+    - [MUST use the Wikipedia article]
+    - [Lens, article title]
+  test:
+    - [innovate prompt, Wikipedia article]
+
+# Shift log entry for innovate tick should include article title
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-shift-log-entry-for-an-innovate-tick-should-include-the-:
+  source:
+    - [appendToShiftLog, article.title]
+  test:
+    - [shift log, article]
