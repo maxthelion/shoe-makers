@@ -1977,10 +1977,10 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-se
     - [Wikipedia article, shift log]
 
 # Innovate prompt output must include Wikipedia article title in Lens section
-spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-innovate-prompt-output-the-insight-file-must-include-the-:
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-innovate-prompt-output-the-insight-file-must-include-the:
   source:
-    - [MUST use the Wikipedia article]
-    - [Lens, article title]
+    - [use the Wikipedia article]
+    - [Start with the Wikipedia article title]
   test:
     - [innovate prompt, Wikipedia article]
 
@@ -1990,3 +1990,19 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-sh
     - [appendToShiftLog, article.title]
   test:
     - [shift log, article]
+
+# Insight file must reference the Wikipedia article as the lens
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-insight-file-must-reference-the-wikipedia-article-that-w:
+  source:
+    - [use the Wikipedia article]
+    - [forced serendipity]
+  test:
+    - [use the Wikipedia article]
+
+# Observability allows human to verify creative pipeline uses outside concepts
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.this-observability-allows-the-human-to-verify-in-the-morning:
+  source:
+    - [appendToShiftLog, Wikipedia article]
+    - [fetch failed]
+  test:
+    - [Wikipedia article]
