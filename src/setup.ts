@@ -17,6 +17,7 @@ import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
 import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
+import { verify as commitOrRevert } from "./verify/commit-or-revert";
 import { fetchArticleForAction } from "./creative/wikipedia";
 import { archiveConsumedStateFiles } from "./archive/state-archive";
 import { autoCommitHousekeeping, isAllHousekeeping, HOUSEKEEPING_PATHS } from "./scheduler/housekeeping";
@@ -67,6 +68,25 @@ async function main() {
   if (healthRegression) {
     console.warn(`[setup] WARNING: ${healthRegression}`);
   }
+
+  // Verification gate: revert the elf's last commit if tests fail or health regresses.
+  // Only applies to work actions (not orchestration like explore/prioritise).
+  const WORK_ACTIONS: ActionType[] = ["execute-work-item", "fix-tests", "fix-critique", "dead-code", "continue-work", "inbox"];
+  const prevActionRaw = await readLastAction(repoRoot);
+  const prevActionType = prevActionRaw ? parseActionTypeFromPrompt(prevActionRaw) : null;
+  if (prevActionType && WORK_ACTIONS.includes(prevActionType)) {
+    const gate = commitOrRevert(assessment.testsPass, healthRegression);
+    if (gate.decision === "revert") {
+      console.warn(`[setup] Verification gate: reverting last commit (${gate.reason})`);
+      try {
+        execSync("git revert --no-edit HEAD", { cwd: repoRoot, stdio: "pipe" });
+        await appendToShiftLog(repoRoot, `## ${new Date().toISOString()} — Verification Gate\n\n- Reverted last commit: ${gate.reason}\n`);
+      } catch (e) {
+        console.warn("[setup] Revert failed — manual intervention may be needed");
+      }
+    }
+  }
+
   logAssessment(assessment);
 
   // 3. Read inbox messages
