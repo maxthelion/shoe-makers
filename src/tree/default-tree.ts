@@ -27,15 +27,28 @@ function testsFailing(state: WorldState): boolean {
   return assessment.testsPass === false || assessment.typecheckPass === false;
 }
 
-function inReviewLoop(state: WorldState): boolean {
+function reviewLoopExhausted(state: WorldState): boolean {
   const loopCount = state.blackboard.assessment?.processPatterns?.reviewLoopCount ?? 0;
-  // Only break the loop if we're actually IN a loop right now
-  // (i.e., there are unresolved critiques or unreviewed commits that would cause looping)
+  return loopCount >= 3;
+}
+
+function inReviewLoop(state: WorldState): boolean {
+  // Only fire the breaker if there are no candidates/work-items queued.
+  // When proactive work exists, we suppress critique/fix-critique via
+  // reviewLoopExhausted() and let the tree fall through to prioritise/execute.
+  if (reviewLoopExhausted(state) && (state.hasCandidates || state.hasWorkItem)) {
+    return false;
+  }
   const wouldLoop = state.unresolvedCritiqueCount > 0 || state.hasUnreviewedCommits;
-  return loopCount >= 3 && wouldLoop;
+  return reviewLoopExhausted(state) && wouldLoop;
 }
 
 function hasUnresolvedCritiques(state: WorldState): boolean {
+  // Suppress when review loop is exhausted and proactive work is queued —
+  // let the tree fall through to prioritise/execute instead of looping
+  if (reviewLoopExhausted(state) && (state.hasCandidates || state.hasWorkItem)) {
+    return false;
+  }
   return state.unresolvedCritiqueCount > 0;
 }
 
@@ -44,6 +57,10 @@ function hasPartialWork(state: WorldState): boolean {
 }
 
 function hasUnreviewedCommits(state: WorldState): boolean {
+  // Suppress when review loop is exhausted and proactive work is queued
+  if (reviewLoopExhausted(state) && (state.hasCandidates || state.hasWorkItem)) {
+    return false;
+  }
   return state.hasUnreviewedCommits;
 }
 

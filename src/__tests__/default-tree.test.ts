@@ -146,10 +146,12 @@ describe("review-loop circuit breaker", () => {
     expect(result.skill).toBe("prioritise");
   });
 
-  test("fires when review loop count >= 3 and unreviewed commits exist", () => {
+  test("fires when review loop count >= 3 and unreviewed commits exist but no proactive work queued", () => {
     const state = makeState({
       unresolvedCritiqueCount: 0,
       hasUnreviewedCommits: true,
+      hasCandidates: false,
+      hasWorkItem: false,
       blackboard: {
         ...emptyBlackboard(),
         assessment: {
@@ -160,6 +162,23 @@ describe("review-loop circuit breaker", () => {
     });
     const result = evaluate(defaultTree, state);
     expect(result.skill).toBe("explore");
+  });
+
+  test("does not fire when candidates exist even with unreviewed commits and high loop count", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 0,
+      hasUnreviewedCommits: true,
+      hasCandidates: true,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 5, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("prioritise");
   });
 
   test("tests-failing still takes priority over circuit breaker", () => {
