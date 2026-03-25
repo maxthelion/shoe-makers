@@ -278,7 +278,7 @@ describe("innovate prompt", () => {
   const article = { title: "Mycelial Networks", summary: "Fungi connect trees underground via root networks." };
   const wikiSummary = "Shoe-makers is a behaviour tree system for autonomous overnight codebase improvement.";
 
-  test("with article includes all required content", () => {
+  test("with article: MUST use the Wikipedia article and include all required content", () => {
     const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("Mycelial Networks");
     expect(prompt).toContain("Fungi connect trees underground");
