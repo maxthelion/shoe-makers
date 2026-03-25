@@ -71,8 +71,18 @@ describe("checkUnreviewedCommits", () => {
   });
 
   test("returns true when elf-authored commits exist after marker", async () => {
-    // Find a commit far enough back to include at least one non-housekeeping commit
-    const parent = execSync("git rev-parse HEAD~5", {
+    // Find a commit that touches src/ (non-orchestration), then use its parent as marker
+    const srcCommit = execSync(
+      "git log --format=%H -n 1 -- src/",
+      { cwd: repoRoot, encoding: "utf-8" },
+    ).trim();
+
+    if (!srcCommit) {
+      // No src-touching commits — skip test (shouldn't happen in a real repo)
+      return;
+    }
+
+    const parent = execSync(`git rev-parse ${srcCommit}~1`, {
       cwd: repoRoot,
       encoding: "utf-8",
     }).trim();
