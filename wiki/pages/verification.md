@@ -10,6 +10,20 @@ last-modified-by: elf
 
 Verification is not self-review. The executor and verifier must be different elves with different prompts and different permissions. An elf that writes code should not be the one that reviews it.
 
+## Automated Verification Gate
+
+Before the behaviour tree evaluates, setup runs an automated commit-or-revert check on the previous elf's work. If the previous action was a work action (execute-work-item, fix-tests, fix-critique, dead-code, continue-work, inbox):
+
+1. Run tests — if they fail, revert the last commit
+2. Check health regression — if health dropped significantly, revert the last commit
+3. If both pass, the commit stands and the tree proceeds normally
+
+This gate ensures "what's on the branch passed checks" is mechanically enforced, not just reliant on the adversarial review cycle. The gate fires before the tree evaluation, so a reverted commit never reaches the review stage.
+
+The gate is implemented as a pure function (`src/verify/commit-or-revert.ts`) — it takes test results and health status, returns "commit" or "revert". Setup handles the actual `git revert` side effect.
+
+Orchestration actions (explore, prioritise, innovate, evaluate-insight) are exempt — they only write state files that don't need verification.
+
 ## Roles and Permissions
 
 Each action from the [[behaviour-tree]] has a **role** that determines what the elf is allowed to touch. The elf's prompt includes both the task and the permission boundary.

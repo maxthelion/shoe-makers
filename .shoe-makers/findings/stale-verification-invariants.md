@@ -24,4 +24,4 @@ Human should either:
 
 ## Status
 
-Open — requires human action (elves cannot modify invariants.md).
+Resolved. Commit-or-revert verification gate implemented in `src/verify/commit-or-revert.ts` and wired into `src/setup.ts`. Documentation synced to `wiki/pages/verification.md`, `wiki/pages/architecture.md`, and `README.md`.

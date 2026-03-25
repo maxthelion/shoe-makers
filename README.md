@@ -47,6 +47,7 @@ The wiki (`wiki/pages/`) is the source of truth. Code is derived from the spec, 
 - **Cross-elf gatekeeping**: a different elf reviews each elf's commits adversarially. The reviewer knows what rules the previous elf was given and checks compliance.
 - **Critiques become findings**: blocking issues must be fixed before new work starts.
 - **Tests must pass**: every change, no exceptions.
+- **Automated verification gate**: setup auto-reverts the elf's last commit if tests fail or code health regresses — bad work is caught before the review cycle even starts.
 - **Code health**: octoclean monitors complexity, coverage, and duplication. Health must not regress.
 - **Role-based permissions**: each action type has a role determining what files the elf can write. Reviewers can only write findings. Invariants are human-only.
 

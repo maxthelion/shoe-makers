@@ -12,11 +12,12 @@ Each scheduled invocation does ONE thing and exits. The behaviour tree evaluates
 
 ## The Invocation
 
-1. Setup script evaluates the [[behaviour-tree]] against cached world state
-2. Tree picks the first matching condition
-3. The elf gets a **focused prompt** for that one action
-4. The elf does the work, commits, exits
-5. Next invocation: tree evaluates again from scratch
+1. Setup script runs assessment and the commit-or-revert [[verification]] gate — if the previous elf's work broke tests or regressed health, it's auto-reverted
+2. Setup evaluates the [[behaviour-tree]] against cached world state
+3. Tree picks the first matching condition
+4. The elf gets a **focused prompt** for that one action
+5. The elf does the work, commits, exits
+6. Next invocation: tree evaluates again from scratch
 
 ## The Tree
 
