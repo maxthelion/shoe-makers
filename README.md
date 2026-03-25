@@ -34,8 +34,6 @@ At **innovation tier** (all invariants met, health good), the tree routes to **I
 
 Each phase narrows the context for the next. The prioritiser's job is to write a really good prompt for the executor.
 
-When all invariants are met and code health is good, the system enters the **innovation tier**: prompted with a random Wikipedia article as an analogical lens, the elf writes a creative insight. A separate evaluation phase (generous/convergent disposition) decides whether to promote the insight to a work item, rework it, or dismiss it.
-
 ## The wiki is the spec
 
 The wiki (`wiki/pages/`) is the source of truth. Code is derived from the spec, not the other way around. When wiki and code diverge, check which changed more recently — if the wiki is newer, change the code. Never revert the wiki to match existing code.
