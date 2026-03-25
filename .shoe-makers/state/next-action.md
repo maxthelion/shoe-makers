@@ -1,71 +1,18 @@
-# Explore — Survey and Write Candidates
+# Review Uncommitted Work
 
-Nothing is queued for work. Your job is to survey the codebase and produce a ranked candidate list.
+There are uncommitted changes on the branch. Review them before committing.
 
-## Current tier: No major gaps detected
+Run `git diff` to see the changes. Check against these criteria:
+1. Does the code correctly implement what was asked?
+2. Are there tests for the changes, and do they verify actual behaviour?
+3. Does the change match the wiki spec?
 
-Survey the codebase for issues that the invariants may not cover: code smells, stale documentation, missing tests, spec-code inconsistencies.
-
-## Steps
-
-1. Read wiki pages in `wiki/pages/` — what does the spec say should exist?
-2. Read `.shoe-makers/invariants.md` — are there gaps?
-3. Read the code in `src/` — what's built, what's missing?
-4. Read findings in `.shoe-makers/findings/` — any open issues?
-5. Check test coverage — untested paths?
-6. Check code quality — files too complex or duplicated?
-7. Check whether `README.md` accurately describes current capabilities
-
-
-## Creative Lens
-
-A random concept for analogical thinking:
-
-**Pareto Efficiency**
-
-A state where no one can be made better off without making someone else worse off. It doesn't mean everyone is happy — a distribution where one person has everything is Pareto efficient. The concept reveals that 'optimal' depends entirely on what you're optimising for.
-
-Read the codebase through this lens. If anything about this concept suggests a better pattern, structure, or approach for the shoe-makers system, write it up as a candidate. Creative connections are valuable — they're how the system improves beyond its spec.
-
-## Available skills
-
-When writing candidates, reference which skill type applies:
-- **implement** (implement): Implement a feature specified in the wiki but not yet built.
-- **dead-code** (dead-code): Remove dead code — unused exports, unreachable branches, stale modules.
-- **health** (health): Improve code health scores by reducing complexity and duplication.
-- **doc-sync** (doc-sync): Sync wiki pages with code changes to keep spec accurate.
-- **fix-tests** (fix): Fix failing tests to restore a green build.
-- **test-coverage** (test): Add tests for implemented but untested code paths.
-- **bug-fix** (bug-fix): Fix bugs found in findings, issues, or discovered during exploration.
-- **octoclean-fix** (octoclean-fix): Fix code health issues identified by octoclean — reduce complexity, improve structure.
-- **dependency-update** (dependency-update): Update outdated dependencies, run tests, check for breaking changes.
-
-## Output
-
-Write `.shoe-makers/state/candidates.md` with a ranked list of 3-5 work items:
-
-```markdown
-# Candidates
-
-## 1. [Title]
-**Type**: implement | test | fix | health | doc-sync | improve
-**Impact**: high | medium | low
-**Reasoning**: Why this matters, what wiki page specifies it, what code is affected.
-
-## 2. [Title]
-...
-```
-
-Be specific — reference file paths, wiki pages, and invariant IDs. You MUST produce at least 3 candidates. Commit `candidates.md` when done.
-
-If you discover a creative insight — a non-obvious connection or a fundamentally better approach — write it to `.shoe-makers/insights/YYYY-MM-DD-NNN.md`. Insights are different from findings: they're proposals, not problems.
-
-If you find code that works but has no matching invariant in `.shoe-makers/invariants.md`, write a finding suggesting a new invariant for the human to review.
+If the changes are good, commit them with a descriptive message. If not, fix the issues first.
 
 **Off-limits — do NOT modify these files:**
 - `.shoe-makers/invariants.md` — only humans maintain the spec claims
 - `.shoe-makers/state/` — managed by the scheduler, not agents (except candidates.md and work-item.md which you write as part of the three-phase cycle)
 
-## After exploring
+## After completing
 
 Run `bun run setup` again to get your next action.

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-25T22:06:47.953Z",
+  "timestamp": "2026-03-25T22:11:16.607Z",
   "invariants": {
     "specifiedOnly": 0,
     "implementedUntested": 0,
@@ -42,6 +42,7 @@
   "testsPass": true,
   "typecheckPass": true,
   "recentGitActivity": [
+    "88b699e Explore: write 5 ranked candidates after codebase survey",
     "1c66363 Update shift log and state files after final explore tick",
     "7225562 Remove work-item: tick.test.ts already exists with comprehensive coverage",
     "2f26690 Prioritise: add integration test for tick lifecycle",
@@ -50,11 +51,10 @@
     "001140d Prioritise: split wikipedia.test.ts and world.test.ts",
     "8f3e92b Explore: write candidates for remaining health and coverage work",
     "ebb5809 Split registry.test.ts into parsing and loading test files",
-    "13c91b9 Prioritise: split registry.test.ts into parsing and loading files",
-    "07252c2 Explore: write candidates targeting remaining health improvements"
+    "13c91b9 Prioritise: split registry.test.ts into parsing and loading files"
   ],
   "processPatterns": {
-    "reactiveRatio": 0.3253588516746411,
+    "reactiveRatio": 0.324582338902148,
     "reviewLoopCount": 3,
     "innovationCycleCount": 3
   }
