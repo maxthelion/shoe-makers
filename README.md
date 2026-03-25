@@ -34,6 +34,8 @@ At **innovation tier** (all invariants met, health good), the tree routes to **I
 
 Each phase narrows the context for the next. The prioritiser's job is to write a really good prompt for the executor.
 
+**Partial work** handles the case where an agent runs out of time mid-task. The agent writes a handoff file (`.shoe-makers/state/partial-work.md`) describing what's done and what remains. The next tick detects this and routes to a continue-work agent that picks up where the previous elf left off — no work is lost to timeouts.
+
 ## The wiki is the spec
 
 The wiki (`wiki/pages/`) is the source of truth. Code is derived from the spec, not the other way around. When wiki and code diverge, check which changed more recently — if the wiki is newer, change the code. Never revert the wiki to match existing code.
