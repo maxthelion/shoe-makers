@@ -42,9 +42,7 @@ export type ActionType =
 /** The blackboard — shared state written as files on the branch */
 export interface Blackboard {
   assessment: Assessment | null;
-  priorities?: unknown | null;
   currentTask: CurrentTask | null;
-  verification?: unknown | null;
 }
 
 /** Output of the ASSESS tick */
