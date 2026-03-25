@@ -82,7 +82,7 @@ Work is reviewed before it lands.
 How the system decides what to do — described fully in [[behaviour-tree]].
 
 - Evaluated every tick, re-evaluates from scratch — cannot get stuck
-- A selector with priority-ordered conditions: tests failing → critiques → stale assessment → inbox → plans → spec gaps → untested code → undocumented code → health → explore
+- A selector with priority-ordered conditions: tests failing → review-loop breaker → critiques → partial work → unreviewed commits → uncommitted changes → inbox → dead-code → work-item → candidates → insights → innovation → explore
 - Two levels of priority: macro (tree structure, deterministic) and micro (LLM judgement within each action)
 - The explore action at the bottom surfaces work by refreshing the assessment cache — the system almost never sleeps
 
