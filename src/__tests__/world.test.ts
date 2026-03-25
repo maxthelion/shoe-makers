@@ -179,68 +179,36 @@ describe("readWorkItemSkillType", () => {
   });
 });
 
-describe("checkHasWorkItem", () => {
-  test("returns true when work-item.md exists", async () => {
-    await withTempDir("has-work-item", async (dir) => {
-      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
-      await writeFile(join(dir, ".shoe-makers", "state", "work-item.md"), "# Work item");
-      expect(await checkHasWorkItem(dir)).toBe(true);
-    });
-  });
+const fileExistenceChecks = [
+  { name: "checkHasWorkItem", fn: checkHasWorkItem, file: "work-item.md" },
+  { name: "checkHasCandidates", fn: checkHasCandidates, file: "candidates.md" },
+  { name: "checkHasPartialWork", fn: checkHasPartialWork, file: "partial-work.md" },
+] as const;
 
-  test("returns false when work-item.md does not exist", async () => {
-    await withTempDir("has-work-item", async (dir) => {
-      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
-      expect(await checkHasWorkItem(dir)).toBe(false);
+for (const { name, fn, file } of fileExistenceChecks) {
+  describe(name, () => {
+    test(`returns true when ${file} exists`, async () => {
+      await withTempDir(name, async (dir) => {
+        await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+        await writeFile(join(dir, ".shoe-makers", "state", file), `# ${name}`);
+        expect(await fn(dir)).toBe(true);
+      });
     });
-  });
 
-  test("returns false when state directory does not exist", async () => {
-    await withTempDir("has-work-item", async (dir) => {
-      expect(await checkHasWorkItem(dir)).toBe(false);
+    test(`returns false when ${file} does not exist`, async () => {
+      await withTempDir(name, async (dir) => {
+        await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+        expect(await fn(dir)).toBe(false);
+      });
     });
-  });
-});
 
-describe("checkHasCandidates", () => {
-  test("returns true when candidates.md exists", async () => {
-    await withTempDir("has-candidates", async (dir) => {
-      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
-      await writeFile(join(dir, ".shoe-makers", "state", "candidates.md"), "# Candidates");
-      expect(await checkHasCandidates(dir)).toBe(true);
+    test("returns false when state directory does not exist", async () => {
+      await withTempDir(name, async (dir) => {
+        expect(await fn(dir)).toBe(false);
+      });
     });
   });
-
-  test("returns false when candidates.md does not exist", async () => {
-    await withTempDir("has-candidates", async (dir) => {
-      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
-      expect(await checkHasCandidates(dir)).toBe(false);
-    });
-  });
-});
-
-describe("checkHasPartialWork", () => {
-  test("returns true when partial-work.md exists", async () => {
-    await withTempDir("has-partial-work", async (dir) => {
-      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
-      await writeFile(join(dir, ".shoe-makers", "state", "partial-work.md"), "# Partial work");
-      expect(await checkHasPartialWork(dir)).toBe(true);
-    });
-  });
-
-  test("returns false when partial-work.md does not exist", async () => {
-    await withTempDir("has-partial-work", async (dir) => {
-      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
-      expect(await checkHasPartialWork(dir)).toBe(false);
-    });
-  });
-
-  test("returns false when state directory does not exist", async () => {
-    await withTempDir("has-partial-work", async (dir) => {
-      expect(await checkHasPartialWork(dir)).toBe(false);
-    });
-  });
-});
+}
 
 describe("countInsights", () => {
   test("returns 0 when insights directory does not exist", async () => {
