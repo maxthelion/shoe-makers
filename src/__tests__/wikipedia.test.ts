@@ -64,14 +64,14 @@ describe("fetchRandomArticle", () => {
     mockFetch(() => { throw new Error("Network error"); });
     const result = await fetchRandomArticle();
     expect(result).not.toBeNull();
-    expect(FALLBACK_CONCEPTS).toContainEqual(result);
+    expect(FALLBACK_CONCEPTS).toContainEqual(result!);
   });
 
   test("returns fallback concept when API returns non-OK status", async () => {
     mockFetch(async () => new Response("", { status: 500 }));
     const result = await fetchRandomArticle();
     expect(result).not.toBeNull();
-    expect(FALLBACK_CONCEPTS).toContainEqual(result);
+    expect(FALLBACK_CONCEPTS).toContainEqual(result!);
   });
 
   test("returns fallback concept for stub articles with short extracts", async () => {
@@ -89,7 +89,7 @@ describe("fetchRandomArticle", () => {
     });
     const result = await fetchRandomArticle();
     expect(result).not.toBeNull();
-    expect(FALLBACK_CONCEPTS).toContainEqual(result);
+    expect(FALLBACK_CONCEPTS).toContainEqual(result!);
   });
 
   test("returns title and summary on success", async () => {
