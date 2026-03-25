@@ -80,6 +80,7 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 ### 2.2 Reactive conditions (top of tree, fixed priority)
 - Tests failing? → Fix them (always highest priority, direct prompt)
 - Unresolved critiques? → Fix the flagged issues (direct prompt)
+- Operational signals degraded? → Fix the broken signal source (direct prompt)
 - Unreviewed commits? → Review adversarially (direct prompt)
 - Inbox messages? → Read and act on them (direct prompt)
 - These fire immediately with a focused prompt — no orchestration needed
@@ -226,14 +227,29 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - assessment.json: written by the explore action, read by tree conditions
 - Contains: invariant gaps (specified-only, untested, unspecified — with details), test results, health scores, open plans, findings, recent git activity
 - This is the only state file — the tree reads it, explore writes it
-- Assessment signals must not be silently null — if a data source (health score, Wikipedia article, invariants count) fails to produce a value, the assessment must record the failure explicitly and the tree must treat missing signals as a problem to fix, not a condition to skip
 
-### 5.2 Configuration
+### 5.2 Operational signals
+- The system produces signals as it works: health scores, invariant counts, Wikipedia articles, test results, shift log entries, findings, insights
+- Each signal has a **liveness expectation** — a deterministic check that answers "is this signal source working?"
+- Operational signals are enumerated in the assessment alongside their status: present (with value), or failed (with reason)
+- A signal that returns null where it previously returned a value is **degraded**, not absent — the system must distinguish "not configured" from "configured but broken"
+- Operational signal checks are deterministic — no LLM needed, just "did this produce a value?"
+- Degraded signals feed into the reactive zone of the behaviour tree, above proactive work — fixing a broken sensor is higher priority than new features
+- The signal liveness check runs every tick as part of assessment, not just when an elf happens to notice
+- Examples of operational signals and their liveness checks:
+  - Health score: octoclean scan returns a number (not null)
+  - Invariants pipeline: claim count > 0 and evidence matching completes
+  - Wikipedia fetch: HTTP request succeeds during innovate ticks
+  - Test runner: `bun test` exits with a parseable result
+  - Shift log: today's log file exists and has entries
+- Adding a new data source to the assessment means adding a corresponding liveness check — signals and checks are paired
+
+### 5.3 Configuration
 - `.shoe-makers/config.yaml` with sensible defaults
 - Configurable: branch prefix, tick interval, assessment staleness, max ticks per shift, wiki directory, enabled skills
 - Works without a config file
 
-### 5.3 Skill files
+### 5.4 Skill files
 - Frontmatter: description, maps-to (priority type), risk level
 - Body: when to apply, instructions, verification criteria, permitted actions, off-limits
 - Registry loads all `.md` files from `.shoe-makers/skills/` and matches by maps-to field

@@ -58,11 +58,31 @@ Each group is a set of alternatives (OR) — any match suffices. All groups must
 
 The claim-to-evidence mapping is manually curated in `src/verify/invariants.ts`. As the system evolves, claims and evidence patterns are updated to match the current architecture.
 
-## Signal Liveness
+## Operational Signals
 
-The assessment cache contains multiple data sources: invariant counts, test results, health scores, Wikipedia articles for creative exploration. Any of these can fail silently — returning null instead of a value. A null health score currently means "skip the health check", which masks broken infrastructure.
+The invariants pipeline checks spec against code — but the system also needs to check that **its own sensors are working**. The assessment cache aggregates multiple data sources (health scores, invariant counts, test results, Wikipedia articles). Each of these can fail silently.
 
-**Null is not neutral — null is a failure.** If a signal that should produce a value returns null, the assessment must record this explicitly (e.g. `healthScore: null, healthScoreError: "octoclean not installed"`). The behaviour tree should treat missing signals as a condition to investigate, not a condition to ignore. This prevents the system from confidently innovating while one of its sensors is broken.
+### The Problem with Silent Nulls
+
+When a data source returns null, the current system treats it as "not applicable" and skips the corresponding tree condition. This means a broken sensor is indistinguishable from a healthy one that has nothing to report. The health score was silently null for days because octoclean wasn't installed — the system confidently entered innovation mode while one of its quality signals was completely broken.
+
+### Operational Signal Liveness
+
+Each data source in the assessment has a **liveness expectation**: a deterministic check that answers "is this signal source working?" These are not LLM checks — they're simple, enumerable conditions:
+
+| Signal | Liveness check |
+|--------|---------------|
+| Health score | Octoclean scan returns a number |
+| Invariants | Claim count > 0, evidence matching completes |
+| Wikipedia | HTTP fetch succeeds (during innovate ticks) |
+| Test runner | `bun test` exits with parseable result |
+| Shift log | Today's log file exists and has entries |
+
+When a signal is degraded (expected a value, got null), the assessment records both the null and the reason. The behaviour tree treats degraded signals as a reactive condition — above proactive work, because fixing a broken sensor is higher priority than building features on blind faith.
+
+### Signals and Checks Are Paired
+
+Adding a new data source to the assessment means adding a corresponding liveness check. This is a design rule, not an afterthought. If you can't check whether a signal is working, you can't trust any decision that depends on it.
 
 ## The Virtuous Cycle
 
