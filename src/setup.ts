@@ -257,7 +257,8 @@ function checkoutOrCreateBranch(repoRoot: string, branchName: string): void {
 export function logAssessment(assessment: Awaited<ReturnType<typeof assess>>): void {
   console.log(`[setup] Tests: ${assessment.testsPass ? "pass" : "FAIL"}`);
   if (assessment.typecheckPass !== undefined) {
-    console.log(`[setup] Typecheck: ${assessment.typecheckPass ? "pass" : "FAIL"}`);
+    const label = assessment.typecheckPass === null ? "skipped" : assessment.typecheckPass ? "pass" : "FAIL";
+    console.log(`[setup] Typecheck: ${label}`);
   }
   console.log(`[setup] Plans: ${assessment.openPlans.length}`);
   console.log(`[setup] Findings: ${assessment.findings.length}`);
