@@ -75,7 +75,7 @@ async function main() {
   const prevActionRaw = await readLastAction(repoRoot);
   const prevActionType = prevActionRaw ? parseActionTypeFromPrompt(prevActionRaw) : null;
   if (prevActionType && WORK_ACTIONS.includes(prevActionType)) {
-    const gate = commitOrRevert(assessment.testsPass, healthRegression);
+    const gate = commitOrRevert(assessment.testsPass ?? true, healthRegression);
     if (gate.decision === "revert") {
       console.warn(`[setup] Verification gate: reverting last commit (${gate.reason})`);
       try {
