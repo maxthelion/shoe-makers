@@ -277,45 +277,23 @@ describe("insight lifecycle in prompts", () => {
 describe("innovate prompt", () => {
   const article = { title: "Mycelial Networks", summary: "Fungi connect trees underground via root networks." };
   const wikiSummary = "Shoe-makers is a behaviour tree system for autonomous overnight codebase improvement.";
-  const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
 
-  test("includes wiki summary and article", () => {
+  test("with article includes all required content", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("Mycelial Networks");
     expect(prompt).toContain("Fungi connect trees underground");
     expect(prompt).toContain("behaviour tree system");
-  });
-
-  test("mandates writing an insight file", () => {
     expect(prompt).toContain("MUST");
     expect(prompt).toContain(".shoe-makers/insights/");
     expect(prompt).toContain("YYYY-MM-DD-NNN");
-  });
-
-  test("says no connection found is not acceptable", () => {
     expect(prompt).toContain("No connection found");
     expect(prompt).toContain("NOT acceptable");
-  });
-
-  test("mentions divergent/creative mode", () => {
     expect(prompt).toContain("divergent/creative mode");
-  });
-
-  test("mentions off-limits", () => {
     expect(prompt).toContain("Off-limits");
     expect(prompt).toContain("invariants.md");
-  });
-
-  test("requires Wikipedia article as the lens — MUST use the Wikipedia article", () => {
     expect(prompt).toContain("**MUST** use the Wikipedia article");
     expect(prompt).toContain("Do not use general knowledge");
-  });
-
-  test("Lens section format says Start with the article title", () => {
     expect(prompt).toContain("Start with the article title");
-    expect(prompt).toContain("Mycelial Networks");
-  });
-
-  test("Lens section references article.title", () => {
     expect(prompt).toContain("Lens");
     expect(prompt).toContain(article.title);
   });
@@ -333,31 +311,15 @@ describe("innovate prompt", () => {
 });
 
 describe("evaluate-insight prompt", () => {
-  const prompt = generatePrompt("evaluate-insight", makeState());
-
-  test("mentions generous disposition", () => {
+  test("includes disposition, outcomes, role, mode, paths, and off-limits", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain("generous disposition");
-  });
-
-  test("mentions promote, rework, dismiss actions", () => {
     expect(prompt).toContain("Promote");
     expect(prompt).toContain("Rework");
     expect(prompt).toContain("Dismiss");
-  });
-
-  test("says it is NOT the prioritise elf", () => {
     expect(prompt).toContain("NOT the prioritise elf");
-  });
-
-  test("mentions constructive/convergent mode", () => {
     expect(prompt).toContain("constructive/convergent mode");
-  });
-
-  test("mentions reading insights directory", () => {
     expect(prompt).toContain(".shoe-makers/insights/");
-  });
-
-  test("mentions off-limits", () => {
     expect(prompt).toContain("Off-limits");
     expect(prompt).toContain("invariants.md");
   });
