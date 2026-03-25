@@ -12,7 +12,7 @@ Each agent invocation starts cold. Without observability:
 - The next agent doesn't know what the last one tried, learned, or got stuck on
 - The human reviewing the branch in the morning sees commits but not reasoning
 - Patterns (what keeps failing, what's blocked, what's working) are invisible
-- The PRIORITISE tick has no memory of previous cycles
+- The prioritise action has no memory of previous cycles
 
 ## Three Types of Output
 
@@ -26,7 +26,7 @@ Each agent invocation starts cold. Without observability:
 
 Each entry records:
 - Timestamp (HH:MM UTC)
-- Which action the tree selected (e.g. fix-tests, implement-spec, explore, critique)
+- Which action the tree selected (e.g. fix-tests, explore, critique, execute-work-item)
 - The behaviour tree evaluation trace (which conditions were checked and whether they passed)
 - The result of running the action (if any)
 - Errors (if any)
@@ -63,7 +63,7 @@ Examples of good findings:
 
 ### 3. Suggestions
 
-**What the agent recommends.** Direct input to the PRIORITISE tick. These are opinions about what should be worked on next and why.
+**What the agent recommends.** Direct input to the prioritise action. These are opinions about what should be worked on next and why.
 
 Suggestions live in the shift log or as findings tagged with a recommendation. The PRIORITISE tick reads them alongside the assessment data.
 
@@ -83,7 +83,7 @@ During the **explore** action:
 - Read all findings — they're part of the assessment (world state)
 - Read the most recent shift log entries — recent context matters
 
-During **implementation** actions (implement-spec, implement-plan):
+During **execution** actions (execute-work-item):
 - Read findings related to the current task — previous agents may have tried this before
 - Factor suggestions into selecting which item to work on
 

@@ -39,11 +39,10 @@ Key constraints:
 
 The permission model enforces separation of concerns:
 
-- **Implementers** (`implement-spec`, `implement-plan`) cannot write test files (`src/__tests__/` is forbidden)
-- **Test writers** (`write-tests`) cannot write non-test source files
+- **Executors** (`execute-work-item`) can write both source and test files — the executor role is broadly permissioned to support varied skill types
 - **Test fixers** (`fix-tests`) can write both source and tests (fixing requires both)
 
-In practice, the current `implement-spec` prompt instructs the elf to "write failing tests first, then implement" within a single session, but the permission model prevents implementers from modifying existing test files. The `write-tests` action (for untested code) produces test-only changes.
+In practice, the `execute-work-item` action handles all implementation, testing, and documentation work. The executor role is broadly permissioned because the skill prompt (loaded from `.shoe-makers/skills/`) determines the scope of work. Permission boundaries in the table above apply to work items via their skill type.
 
 The ideal two-tick TDD cycle — where one elf writes failing tests and a different elf implements — is supported by the permission model but not strictly enforced by the tree routing.
 
