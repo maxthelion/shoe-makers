@@ -10,6 +10,7 @@ import {
   formatSkillSection,
 } from "../prompts/helpers";
 import type { SkillDefinition } from "../skills/registry";
+import { makeAssessment } from "./test-utils";
 
 describe("determineTier", () => {
   test("returns no gaps when assessment is null", () => {
@@ -20,81 +21,39 @@ describe("determineTier", () => {
   });
 
   test("returns no gaps when all counts are zero", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 0, implementedUntested: 0, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment();
     const tier = determineTier(assessment);
     expect(tier.hasGaps).toBe(false);
   });
 
   test("detects gaps when specifiedOnly > 0", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 3, implementedUntested: 0, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment({ specifiedOnly: 3 });
     const tier = determineTier(assessment);
     expect(tier.hasGaps).toBe(true);
     expect(tier.specOnlyCount).toBe(3);
   });
 
   test("detects gaps when implementedUntested >= 5", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 0, implementedUntested: 5, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment({ implementedUntested: 5 });
     const tier = determineTier(assessment);
     expect(tier.hasGaps).toBe(true);
     expect(tier.untestedCount).toBe(5);
   });
 
   test("no gaps when implementedUntested < 5", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 0, implementedUntested: 4, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment({ implementedUntested: 4 });
     const tier = determineTier(assessment);
     expect(tier.hasGaps).toBe(false);
   });
 
   test("returns no gaps when invariants is null", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: null,
-    } as any;
+    const assessment = makeAssessment({}, { invariants: null });
     const tier = determineTier(assessment);
     expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
   });
 
   test("both non-zero means hasGaps", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 3, implementedUntested: 10, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment({ specifiedOnly: 3, implementedUntested: 10 });
     const tier = determineTier(assessment);
     expect(tier.hasGaps).toBe(true);
     expect(tier.specOnlyCount).toBe(3);
@@ -108,50 +67,22 @@ describe("isInnovationTier", () => {
   });
 
   test("returns false when gaps exist", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 2, implementedUntested: 0, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment({ specifiedOnly: 2 });
     expect(isInnovationTier(assessment)).toBe(false);
   });
 
   test("returns true when no gaps", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 0, implementedUntested: 0, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment();
     expect(isInnovationTier(assessment)).toBe(true);
   });
 
   test("4 untested claims allows innovation tier (below threshold)", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 0, implementedUntested: 4, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment({ implementedUntested: 4 });
     expect(isInnovationTier(assessment)).toBe(true);
   });
 
   test("5 untested claims blocks innovation tier (at threshold)", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 0, implementedUntested: 5, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment({ implementedUntested: 5 });
     expect(isInnovationTier(assessment)).toBe(false);
   });
 });
@@ -162,45 +93,22 @@ describe("formatTopGaps", () => {
   });
 
   test("returns empty string when no gaps", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 0, implementedUntested: 0, unspecified: 0, topSpecGaps: [] },
-    } as any;
+    const assessment = makeAssessment();
     expect(formatTopGaps(assessment)).toBe("");
   });
 
   test("formats gaps as bullet list", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: {
-        specifiedOnly: 1,
-        implementedUntested: 0,
-        unspecified: 0,
-        topSpecGaps: [{ description: "Missing feature X", group: "architecture" }],
-      },
-    } as any;
+    const assessment = makeAssessment({
+      specifiedOnly: 1,
+      topSpecGaps: [{ id: "feat-x", description: "Missing feature X", group: "architecture" }],
+    });
     const result = formatTopGaps(assessment);
     expect(result).toContain("- Missing feature X (architecture)");
   });
 
   test("limits to 5 gaps", () => {
-    const gaps = Array.from({ length: 8 }, (_, i) => ({ description: `Gap ${i}`, group: "test" }));
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: 100,
-      invariants: { specifiedOnly: 8, implementedUntested: 0, unspecified: 0, topSpecGaps: gaps },
-    } as any;
+    const gaps = Array.from({ length: 8 }, (_, i) => ({ id: `gap-${i}`, description: `Gap ${i}`, group: "test" }));
+    const assessment = makeAssessment({ specifiedOnly: 8, topSpecGaps: gaps });
     const result = formatTopGaps(assessment);
     expect(result).toContain("Gap 4");
     expect(result).not.toContain("Gap 5");
@@ -213,14 +121,12 @@ describe("formatCodebaseSnapshot", () => {
   });
 
   test("formats health, worst files, and findings", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [{ file: "f.md", severity: "low" }],
+    const assessment = makeAssessment({}, {
+      findings: [{ id: "f", content: "finding" }],
       worstFiles: [{ path: "src/big.ts", score: 40 }],
       healthScore: 75,
       invariants: null,
-    } as any;
+    });
     const result = formatCodebaseSnapshot(assessment);
     expect(result).toContain("Health: 75/100");
     expect(result).toContain("src/big.ts (40)");
@@ -228,13 +134,7 @@ describe("formatCodebaseSnapshot", () => {
   });
 
   test("shows unknown health when null", () => {
-    const assessment = {
-      testsPass: true,
-      openPlans: [],
-      findings: [],
-      worstFiles: [],
-      healthScore: null,
-    } as any;
+    const assessment = makeAssessment({}, { healthScore: null });
     const result = formatCodebaseSnapshot(assessment);
     expect(result).toContain("Health: unknown");
   });
