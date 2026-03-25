@@ -5,9 +5,7 @@ import type { WorldState, Blackboard, Assessment } from "../types";
 export function emptyBlackboard(): Blackboard {
   return {
     assessment: null,
-    priorities: null,
     currentTask: null,
-    verification: null,
   };
 }
 

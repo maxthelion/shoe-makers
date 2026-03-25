@@ -6,12 +6,8 @@ import {
   readBlackboard,
   writeAssessment,
   writeCurrentTask,
-  writePriorities,
-  writeVerification,
-  clearCurrentTask,
-  clearPriorities,
 } from "../state/blackboard";
-import type { Assessment, CurrentTask, PriorityList, Verification } from "../types";
+import type { Assessment, CurrentTask } from "../types";
 
 const STATE_DIR = ".shoe-makers/state";
 
@@ -30,9 +26,7 @@ describe("readBlackboard", () => {
     const bb = await readBlackboard(tempDir);
     expect(bb).toEqual({
       assessment: null,
-      priorities: null,
       currentTask: null,
-      verification: null,
     });
   });
 
@@ -58,7 +52,6 @@ describe("readBlackboard", () => {
     await writeAssessment(tempDir, assessment);
     const bb = await readBlackboard(tempDir);
     expect(bb.assessment).toEqual(assessment);
-    expect(bb.priorities).toBeNull();
   });
 });
 
@@ -130,100 +123,5 @@ describe("write functions", () => {
     await writeCurrentTask(tempDir, task);
     const bb = await readBlackboard(tempDir);
     expect(bb.currentTask).toEqual(task);
-  });
-
-  test("writePriorities writes and reads back correctly", async () => {
-    const priorities: PriorityList = {
-      timestamp: "2026-03-21T03:00:00Z",
-      assessedAt: "2026-03-21T02:00:00Z",
-      items: [
-        {
-          rank: 1,
-          type: "implement",
-          description: "Build config loader",
-          taskPrompt: "Implement config loading",
-          reasoning: "Foundation for other features",
-          impact: "high",
-          confidence: "high",
-          risk: "low",
-        },
-      ],
-    };
-
-    await writePriorities(tempDir, priorities);
-    const bb = await readBlackboard(tempDir);
-    expect(bb.priorities).toEqual(priorities);
-  });
-
-  test("writeVerification writes and reads back correctly", async () => {
-    const verification: Verification = {
-      timestamp: "2026-03-21T04:00:00Z",
-      taskDescription: "Implement config loader",
-      testsPass: true,
-      reviewPassed: true,
-      issues: [],
-      action: "commit",
-    };
-
-    await writeVerification(tempDir, verification);
-    const bb = await readBlackboard(tempDir);
-    expect(bb.verification).toEqual(verification);
-  });
-});
-
-describe("clear functions", () => {
-  test("clearCurrentTask removes the file", async () => {
-    const task: CurrentTask = {
-      startedAt: "2026-03-21T01:00:00Z",
-      priority: {
-        rank: 1,
-        type: "implement",
-        description: "test",
-        taskPrompt: "test",
-        reasoning: "test",
-        impact: "low",
-        confidence: "high",
-        risk: "low",
-      },
-      status: "in-progress",
-    };
-
-    await writeCurrentTask(tempDir, task);
-    let bb = await readBlackboard(tempDir);
-    expect(bb.currentTask).not.toBeNull();
-
-    await clearCurrentTask(tempDir);
-    bb = await readBlackboard(tempDir);
-    expect(bb.currentTask).toBeNull();
-  });
-
-  test("clearPriorities removes the file", async () => {
-    const priorities: PriorityList = {
-      timestamp: "2026-03-21T03:00:00Z",
-      assessedAt: "2026-03-21T02:00:00Z",
-      items: [],
-    };
-
-    await writePriorities(tempDir, priorities);
-    let bb = await readBlackboard(tempDir);
-    expect(bb.priorities).not.toBeNull();
-
-    await clearPriorities(tempDir);
-    bb = await readBlackboard(tempDir);
-    expect(bb.priorities).toBeNull();
-  });
-
-  test("clearCurrentTask is safe when file doesn't exist", async () => {
-    // Should not throw
-    await clearCurrentTask(tempDir);
-    const bb = await readBlackboard(tempDir);
-    expect(bb.currentTask).toBeNull();
-  });
-
-  test("clearPriorities is safe when file doesn't exist", async () => {
-    // Should not throw
-    await clearPriorities(tempDir);
-    const bb = await readBlackboard(tempDir);
-    expect(bb.priorities).toBeNull();
   });
 });

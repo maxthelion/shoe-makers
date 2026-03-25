@@ -289,24 +289,3 @@ function analyzeProcessPatterns(steps: ShiftStep[]): ProcessPatterns {
   return { reactiveTicks, proactiveTicks, reactiveRatio, reviewLoopCount };
 }
 
-/**
- * Generate process-level suggestions from shift patterns.
- * These can be included in the shift log or assessment for explore to pick up.
- */
-export function buildProcessSuggestions(patterns: ProcessPatterns): string[] {
-  const suggestions: string[] = [];
-
-  if (patterns.reactiveRatio > 0.7 && patterns.reactiveTicks + patterns.proactiveTicks >= 3) {
-    suggestions.push(
-      `High reactive ratio (${Math.round(patterns.reactiveRatio * 100)}%) — most ticks spent on fixes/reviews rather than proactive work`
-    );
-  }
-
-  if (patterns.reviewLoopCount > 0) {
-    suggestions.push(
-      `${patterns.reviewLoopCount} review loop(s) detected — critique/fix-critique cycling suggests work quality issues`
-    );
-  }
-
-  return suggestions;
-}

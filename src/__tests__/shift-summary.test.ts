@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { summarizeShift, buildProcessSuggestions, type ShiftSummary, type ProcessPatterns } from "../log/shift-summary";
+import { summarizeShift, type ShiftSummary, type ProcessPatterns } from "../log/shift-summary";
 import type { ShiftStep } from "../scheduler/shift";
 import type { TickResult } from "../scheduler/tick";
 import type { TraceEntry } from "../tree/evaluate";
@@ -294,49 +294,3 @@ describe("summarizeShift", () => {
   });
 });
 
-describe("buildProcessSuggestions", () => {
-  test("suggests high reactive ratio when > 70%", () => {
-    const patterns: ProcessPatterns = {
-      reactiveTicks: 8,
-      proactiveTicks: 2,
-      reactiveRatio: 0.8,
-      reviewLoopCount: 0,
-    };
-    const suggestions = buildProcessSuggestions(patterns);
-    expect(suggestions.length).toBe(1);
-    expect(suggestions[0]).toContain("High reactive ratio");
-    expect(suggestions[0]).toContain("80%");
-  });
-
-  test("no suggestion for moderate reactive ratio", () => {
-    const patterns: ProcessPatterns = {
-      reactiveTicks: 3,
-      proactiveTicks: 7,
-      reactiveRatio: 0.3,
-      reviewLoopCount: 0,
-    };
-    expect(buildProcessSuggestions(patterns)).toHaveLength(0);
-  });
-
-  test("suggests review loop when detected", () => {
-    const patterns: ProcessPatterns = {
-      reactiveTicks: 4,
-      proactiveTicks: 6,
-      reactiveRatio: 0.4,
-      reviewLoopCount: 2,
-    };
-    const suggestions = buildProcessSuggestions(patterns);
-    expect(suggestions.length).toBe(1);
-    expect(suggestions[0]).toContain("review loop");
-  });
-
-  test("no suggestion for too few ticks even if ratio is high", () => {
-    const patterns: ProcessPatterns = {
-      reactiveTicks: 2,
-      proactiveTicks: 0,
-      reactiveRatio: 1.0,
-      reviewLoopCount: 0,
-    };
-    expect(buildProcessSuggestions(patterns)).toHaveLength(0);
-  });
-});

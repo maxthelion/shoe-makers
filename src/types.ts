@@ -41,9 +41,7 @@ export type ActionType =
 /** The blackboard — shared state written as files on the branch */
 export interface Blackboard {
   assessment: Assessment | null;
-  priorities: PriorityList | null;
   currentTask: CurrentTask | null;
-  verification: Verification | null;
 }
 
 /** Output of the ASSESS tick */
@@ -89,14 +87,6 @@ export interface InvariantSummary {
   group: string;
 }
 
-/** Output of the PRIORITISE tick */
-export interface PriorityList {
-  timestamp: string;
-  /** Assessment timestamp this was derived from */
-  assessedAt: string;
-  items: PriorityItem[];
-}
-
 export interface PriorityItem {
   rank: number;
   type: "implement" | "test" | "doc-sync" | "plan" | "fix" | "health";
@@ -118,16 +108,6 @@ export interface CurrentTask {
   startedAt: string;
   priority: PriorityItem;
   status: "in-progress" | "done" | "failed";
-}
-
-/** Output of the VERIFY tick */
-export interface Verification {
-  timestamp: string;
-  taskDescription: string;
-  testsPass: boolean;
-  reviewPassed: boolean;
-  issues: string[];
-  action: "commit" | "revert";
 }
 
 /** The world state read at the start of each tick */

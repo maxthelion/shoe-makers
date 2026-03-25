@@ -17,9 +17,7 @@ describe("readWorldState", () => {
 
     // Blackboard should have the right shape
     expect(state.blackboard).toHaveProperty("assessment");
-    expect(state.blackboard).toHaveProperty("priorities");
     expect(state.blackboard).toHaveProperty("currentTask");
-    expect(state.blackboard).toHaveProperty("verification");
 
     // Inbox count should be a number
     expect(typeof state.inboxCount).toBe("number");
