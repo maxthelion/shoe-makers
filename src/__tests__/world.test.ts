@@ -3,7 +3,7 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { execSync } from "child_process";
 import { join } from "path";
 import { tmpdir } from "os";
-import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType } from "../state/world";
+import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType, checkHasWorkItem, checkHasCandidates, countInsights, hasUncommittedChanges } from "../state/world";
 
 describe("readWorldState", () => {
   test("reads current repo world state", async () => {
@@ -152,5 +152,93 @@ describe("readWorkItemSkillType", () => {
   test("returns null when work-item.md does not exist", async () => {
     const result = await readWorkItemSkillType(tempDir);
     expect(result).toBeNull();
+  });
+});
+
+describe("checkHasWorkItem", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-work-item-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns true when work-item.md exists", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "work-item.md"), "# Work item");
+    expect(await checkHasWorkItem(tempDir)).toBe(true);
+  });
+
+  test("returns false when work-item.md does not exist", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    expect(await checkHasWorkItem(tempDir)).toBe(false);
+  });
+
+  test("returns false when state directory does not exist", async () => {
+    expect(await checkHasWorkItem(tempDir)).toBe(false);
+  });
+});
+
+describe("checkHasCandidates", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-candidates-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns true when candidates.md exists", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "candidates.md"), "# Candidates");
+    expect(await checkHasCandidates(tempDir)).toBe(true);
+  });
+
+  test("returns false when candidates.md does not exist", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    expect(await checkHasCandidates(tempDir)).toBe(false);
+  });
+});
+
+describe("countInsights", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-insights-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns 0 when insights directory does not exist", async () => {
+    expect(await countInsights(tempDir)).toBe(0);
+  });
+
+  test("returns 0 when insights directory is empty", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "insights"), { recursive: true });
+    expect(await countInsights(tempDir)).toBe(0);
+  });
+
+  test("counts only .md files", async () => {
+    const dir = join(tempDir, ".shoe-makers", "insights");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "2026-03-25-001.md"), "# Insight");
+    await writeFile(join(dir, "2026-03-25-002.md"), "# Insight 2");
+    await writeFile(join(dir, "notes.txt"), "not an insight");
+    expect(await countInsights(tempDir)).toBe(2);
+  });
+});
+
+describe("hasUncommittedChanges", () => {
+  test("returns a boolean for the current repo", () => {
+    // Use the real repo — creating temp git repos fails due to commit signing constraints
+    const result = hasUncommittedChanges(process.cwd());
+    expect(typeof result).toBe("boolean");
   });
 });
