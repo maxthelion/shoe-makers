@@ -58,6 +58,15 @@ describe("archiveConsumedStateFiles", () => {
     expect(archived[0]).toMatch(/^work-item-/);
   });
 
+  test("archives partial-work.md when action is continue-work", async () => {
+    writeFileSync(join(tmpDir, ".shoe-makers", "state", "partial-work.md"), "# Partial work");
+
+    const archived = await archiveConsumedStateFiles(tmpDir, "continue-work");
+
+    expect(archived.length).toBe(1);
+    expect(archived[0]).toMatch(/^partial-work-/);
+  });
+
   test("does nothing when action does not consume files", async () => {
     writeFileSync(join(tmpDir, ".shoe-makers", "state", "work-item.md"), "content");
 
