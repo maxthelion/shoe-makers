@@ -1,22 +1,22 @@
 # Candidates
 
-## 1. Consolidate world.test.ts temp dir setup (score 91)
+## 1. Reduce prompt-builders.test.ts size (score 90)
 **Type**: octoclean-fix
 **Impact**: medium
-**Reasoning**: `src/__tests__/world.test.ts` (399 lines, score 91) has repeated temp directory setup/teardown across multiple describe blocks. Each creates a temp git repo with `mkdtemp` + `git init` + `git commit --allow-empty`. Extracting a `withTempRepo` helper would reduce ~100 lines of boilerplate and improve the health score.
+**Reasoning**: `src/__tests__/prompt-builders.test.ts` (now 2nd worst at 90) can be consolidated. The critique prompt tests generate the same prompt multiple times independently. Generating once per describe block and asserting against the result would reduce duplication.
 
-Files: `src/__tests__/world.test.ts`, `src/__tests__/test-utils.ts`
+Files: `src/__tests__/prompt-builders.test.ts`
 
-## 2. Add claim-evidence entries for structured-skills validation
-**Type**: implement
-**Impact**: medium
-**Reasoning**: The structured-skills spec and now the code have validation patterns parsed and surfaced in critique prompts. But `.shoe-makers/claim-evidence.yaml` has no entries to verify this. Adding evidence patterns that look for `validationPatterns`, `parseValidationPatterns`, and `Validation patterns to check` would let the invariant checker confirm the feature exists.
-
-Files: `.shoe-makers/claim-evidence.yaml`
-
-## 3. Update structured-skills wiki page to reflect implementation
+## 2. Update structured-skills wiki page to reflect validation implementation
 **Type**: doc-sync
-**Impact**: low
-**Reasoning**: `wiki/pages/structured-skills.md` describes the validation pattern system but may not reflect the current implementation details (e.g., that patterns are surfaced in the critique prompt, that all 9 skills have validation sections). Updating the spec to match the code closes the doc-code gap.
+**Impact**: medium
+**Reasoning**: `wiki/pages/structured-skills.md` describes the validation pattern system as a design goal. Now that it's implemented (all 9 skills have `## Validation` sections, patterns are surfaced in the critique prompt), the wiki should reflect this as current reality rather than future intent.
 
 Files: `wiki/pages/structured-skills.md`
+
+## 3. Reduce prompts.test.ts to improve worst file score (87)
+**Type**: octoclean-fix
+**Impact**: medium
+**Reasoning**: `src/__tests__/prompts.test.ts` remains the worst file at 87. Further consolidation possible: the `explore prompt creative lens` and `insight lifecycle in prompts` blocks have overlapping tests about creative lens inclusion in explore prompts.
+
+Files: `src/__tests__/prompts.test.ts`
