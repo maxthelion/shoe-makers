@@ -7,6 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- Configurable thresholds — `health-regression-threshold`, `review-loop-threshold`, `wikipedia-timeout`, `octoclean-timeout` in config.yaml with backward-compatible defaults
 - Assess skill now reads findings from `.shoe-makers/findings/` — persistent observations from previous elves are included in the assessment and factored into prioritisation
 - Task lifecycle CLI (`bun run task:status`, `task:done`, `task:fail`) — manage current task status from the command line
 - Task lifecycle design — documents the work execution gap and three-phase task protocol

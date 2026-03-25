@@ -114,6 +114,10 @@ max-ticks-per-shift: 10
 enabled-skills: fix-tests, implement, test-coverage, doc-sync, health  # omit to enable all
 insight-frequency: 0.3
 max-innovation-cycles: 3
+health-regression-threshold: 2
+review-loop-threshold: 3
+wikipedia-timeout: 10000
+octoclean-timeout: 120000
 ```
 
 `.shoe-makers/schedule.md` (optional — restricts elves to a working window, UTC 24h format):
