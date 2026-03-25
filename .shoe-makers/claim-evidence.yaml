@@ -2010,3 +2010,66 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.this-o
   test:
     - [Wikipedia article fetched]
     - [Wikipedia article fetch failed]
+
+# === Section 2.6.1: Creative corpus ===
+
+# Random concepts come from .shoe-makers/creative-corpus/
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.random-concepts-for-the-creative-lens-come-from-shoemakerscr:
+  source:
+    - [creative-corpus]
+    - [loadCorpus]
+  test:
+    - [creative-corpus]
+    - [loadCorpus]
+
+# Corpus populated by scripts/fetch-wikipedia-corpus.sh
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-corpus-is-populated-locally-by-running-scriptsfetchwikip:
+  source:
+    - [fetchArticleFromCorpus]
+    - [creative-corpus]
+  test:
+    - [fetchArticleFromCorpus]
+
+# Setup picks one unused article at random from the corpus
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.setup-picks-one-unused-article-at-random-from-the-corpus-and:
+  source:
+    - [pickUnusedArticle]
+    - [fetchArticleFromCorpus]
+  test:
+    - [pickUnusedArticle]
+    - [fetchArticleFromCorpus]
+
+# After innovate tick, article marked as used
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.after-the-innovate-tick-completes-the-article-is-marked-as-u:
+  source:
+    - [markArticleUsed]
+    - ["used: true", "used:"]
+  test:
+    - [markArticleUsed]
+    - ["used: true"]
+
+# When all articles are used, human should replenish
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.when-all-articles-are-used-or-the-corpus-is-empty-the-human-:
+  source:
+    - [pickUnusedArticle]
+    - [getRandomFallbackConcept]
+  test:
+    - [pickUnusedArticle]
+    - ["all used", "returns null"]
+
+# Articles should be kept concise
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.articles-should-be-kept-concise-to-minimise-token-usage-the-:
+  source:
+    - [summary]
+    - [creative-corpus]
+  test:
+    - [summary]
+    - [creative-corpus]
+
+# Setup logs which article was selected (title) to the shift log
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-setup-script-logs-which-article-was-selected-title-to-th:
+  source:
+    - [Wikipedia article fetched]
+    - [appendToShiftLog]
+  test:
+    - [Wikipedia article fetched]
