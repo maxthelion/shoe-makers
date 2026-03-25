@@ -10,4 +10,4 @@ This was detected automatically by the setup script. The fix-critique elf should
 
 Resolved.
 
-False positive: work-item.md is explicitly expected to be deleted after execution per the execute action instructions. The off-limits notice exempts candidates.md and work-item.md.
+False positive: work-item.md deletion is expected after execution per the execute action instructions.
