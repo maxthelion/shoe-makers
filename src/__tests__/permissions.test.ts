@@ -6,7 +6,7 @@ import {
 } from "../verify/permissions";
 import type { ActionType } from "../types";
 import { defaultTree } from "../tree/default-tree";
-import type { TreeNode } from "../types";
+import { extractSkills } from "./test-utils";
 
 const allActions: ActionType[] = [
   "fix-tests",
@@ -196,22 +196,6 @@ describe("custom wikiDir", () => {
 });
 
 describe("allActions drift prevention", () => {
-  /** Recursively extract all unique skill names from a tree node */
-  function extractSkills(node: TreeNode): Set<string> {
-    const skills = new Set<string>();
-    if (node.type === "action" && node.skill) {
-      skills.add(node.skill);
-    }
-    if (node.children) {
-      for (const child of node.children) {
-        for (const s of extractSkills(child)) {
-          skills.add(s);
-        }
-      }
-    }
-    return skills;
-  }
-
   test("allActions covers every skill in the behaviour tree", () => {
     const treeSkills = extractSkills(defaultTree);
     const allActionsSet = new Set(allActions);

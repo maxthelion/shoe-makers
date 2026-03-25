@@ -27,6 +27,9 @@ export async function runSkill(
     case "critique":
       return "Action: critique — elf should adversarially review unreviewed commits.";
 
+    case "continue-work":
+      return "Action: continue-work — elf should read partial-work.md and resume where the previous elf left off.";
+
     case "review":
       return "Action: review — elf should review uncommitted changes adversarially.";
 

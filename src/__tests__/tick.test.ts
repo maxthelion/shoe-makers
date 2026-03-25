@@ -1,8 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { tick } from "../scheduler/tick";
-import { emptyBlackboard, freshAssessment, makeState } from "./test-utils";
+import { emptyBlackboard, freshAssessment, makeState, extractSkills } from "./test-utils";
 import { defaultTree } from "../tree/default-tree";
-import type { TreeNode } from "../types";
 
 describe("tick", () => {
   test("returns fix-tests when tests are failing", () => {
@@ -186,22 +185,6 @@ describe("tick", () => {
 });
 
 describe("SKILL_TO_ACTION drift prevention", () => {
-  /** Recursively extract all unique skill names from a tree node */
-  function extractSkills(node: TreeNode): Set<string> {
-    const skills = new Set<string>();
-    if (node.type === "action" && node.skill) {
-      skills.add(node.skill);
-    }
-    if (node.children) {
-      for (const child of node.children) {
-        for (const s of extractSkills(child)) {
-          skills.add(s);
-        }
-      }
-    }
-    return skills;
-  }
-
   test("tick returns non-null action for every skill in the default tree", () => {
     const treeSkills = extractSkills(defaultTree);
     // Build states that trigger each skill and verify action is non-null

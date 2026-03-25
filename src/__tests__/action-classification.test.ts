@@ -1,23 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "../log/action-classification";
 import { defaultTree } from "../tree/default-tree";
-import type { TreeNode } from "../types";
-
-/** Recursively extract all unique skill names from a tree node */
-function extractSkills(node: TreeNode): Set<string> {
-  const skills = new Set<string>();
-  if (node.type === "action" && node.skill) {
-    skills.add(node.skill);
-  }
-  if (node.children) {
-    for (const child of node.children) {
-      for (const s of extractSkills(child)) {
-        skills.add(s);
-      }
-    }
-  }
-  return skills;
-}
+import { extractSkills } from "./test-utils";
 
 describe("action-classification drift prevention", () => {
   const treeSkills = extractSkills(defaultTree);
