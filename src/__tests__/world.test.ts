@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { execSync } from "child_process";
 import { join } from "path";
-import { tmpdir } from "os";
 import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType, getCurrentBranch, checkHasWorkItem, checkHasCandidates, checkHasPartialWork, countInsights, hasUncommittedChanges, countUnresolvedCritiques } from "../state/world";
+import { withTempDir } from "./test-utils";
 
 describe("readWorldState", () => {
   test("reads current repo world state", async () => {
@@ -42,41 +42,32 @@ describe("getCurrentBranch", () => {
   });
 
   test("returns branchName from a fresh git repo", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-branch-"));
-    try {
-      execSync("git init", { cwd: tempDir, stdio: "pipe" });
-      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: tempDir, stdio: "pipe" });
-      const branchName = getCurrentBranch(tempDir);
+    await withTempDir("branch", async (dir) => {
+      execSync("git init", { cwd: dir, stdio: "pipe" });
+      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: dir, stdio: "pipe" });
+      const branchName = getCurrentBranch(dir);
       expect(typeof branchName).toBe("string");
       expect(branchName.length).toBeGreaterThan(0);
-    } finally {
-      await rm(tempDir, { recursive: true, force: true });
-    }
+    });
   });
 });
 
 describe("hasUncommittedChanges", () => {
   test("returns false for a clean repo", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-clean-"));
-    try {
-      execSync("git init", { cwd: tempDir, stdio: "pipe" });
-      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: tempDir, stdio: "pipe" });
-      expect(hasUncommittedChanges(tempDir)).toBe(false);
-    } finally {
-      await rm(tempDir, { recursive: true, force: true });
-    }
+    await withTempDir("clean", async (dir) => {
+      execSync("git init", { cwd: dir, stdio: "pipe" });
+      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: dir, stdio: "pipe" });
+      expect(hasUncommittedChanges(dir)).toBe(false);
+    });
   });
 
   test("returns true when files are modified", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-dirty-"));
-    try {
-      execSync("git init", { cwd: tempDir, stdio: "pipe" });
-      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: tempDir, stdio: "pipe" });
-      await writeFile(join(tempDir, "new-file.txt"), "hello");
-      expect(hasUncommittedChanges(tempDir)).toBe(true);
-    } finally {
-      await rm(tempDir, { recursive: true, force: true });
-    }
+    await withTempDir("dirty", async (dir) => {
+      execSync("git init", { cwd: dir, stdio: "pipe" });
+      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: dir, stdio: "pipe" });
+      await writeFile(join(dir, "new-file.txt"), "hello");
+      expect(hasUncommittedChanges(dir)).toBe(true);
+    });
   });
 });
 
@@ -149,244 +140,204 @@ describe("checkUnreviewedCommits", () => {
   });
 
   test("returns false for non-git directory", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-unreviewed-"));
-    try {
-      const result = await checkUnreviewedCommits(tempDir);
-      expect(result).toBe(false);
-    } finally {
-      await rm(tempDir, { recursive: true, force: true });
-    }
+    await withTempDir("unreviewed", async (dir) => {
+      expect(await checkUnreviewedCommits(dir)).toBe(false);
+    });
   });
 });
 
 describe("readWorkItemSkillType", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-skill-type-"));
-    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
   test("returns skill type when skill-type: line is present", async () => {
-    await writeFile(
-      join(tempDir, ".shoe-makers", "state", "work-item.md"),
-      "# Remove unused exports\nskill-type: dead-code\n\n## Context\n...",
-    );
-    const result = await readWorkItemSkillType(tempDir);
-    expect(result).toBe("dead-code");
+    await withTempDir("skill-type", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      await writeFile(join(dir, ".shoe-makers", "state", "work-item.md"), "# Remove unused exports\nskill-type: dead-code\n\n## Context\n...");
+      expect(await readWorkItemSkillType(dir)).toBe("dead-code");
+    });
   });
 
   test("returns null when no skill-type line exists", async () => {
-    await writeFile(
-      join(tempDir, ".shoe-makers", "state", "work-item.md"),
-      "# Add tests for prompts\n\n## Context\n...",
-    );
-    const result = await readWorkItemSkillType(tempDir);
-    expect(result).toBeNull();
+    await withTempDir("skill-type", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      await writeFile(join(dir, ".shoe-makers", "state", "work-item.md"), "# Add tests for prompts\n\n## Context\n...");
+      expect(await readWorkItemSkillType(dir)).toBeNull();
+    });
   });
 
   test("does not false-positive on keyword dead-code in title", async () => {
-    await writeFile(
-      join(tempDir, ".shoe-makers", "state", "work-item.md"),
-      "# Add tests for the dead-code prompt\n\n## Context\nThis is about testing, not dead-code removal.\n",
-    );
-    const result = await readWorkItemSkillType(tempDir);
-    expect(result).toBeNull();
+    await withTempDir("skill-type", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      await writeFile(join(dir, ".shoe-makers", "state", "work-item.md"), "# Add tests for the dead-code prompt\n\n## Context\nThis is about testing, not dead-code removal.\n");
+      expect(await readWorkItemSkillType(dir)).toBeNull();
+    });
   });
 
   test("returns null when work-item.md does not exist", async () => {
-    const result = await readWorkItemSkillType(tempDir);
-    expect(result).toBeNull();
+    await withTempDir("skill-type", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      expect(await readWorkItemSkillType(dir)).toBeNull();
+    });
   });
 });
 
 describe("checkHasWorkItem", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-work-item-"));
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
   test("returns true when work-item.md exists", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
-    await writeFile(join(tempDir, ".shoe-makers", "state", "work-item.md"), "# Work item");
-    expect(await checkHasWorkItem(tempDir)).toBe(true);
+    await withTempDir("has-work-item", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      await writeFile(join(dir, ".shoe-makers", "state", "work-item.md"), "# Work item");
+      expect(await checkHasWorkItem(dir)).toBe(true);
+    });
   });
 
   test("returns false when work-item.md does not exist", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
-    expect(await checkHasWorkItem(tempDir)).toBe(false);
+    await withTempDir("has-work-item", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      expect(await checkHasWorkItem(dir)).toBe(false);
+    });
   });
 
   test("returns false when state directory does not exist", async () => {
-    expect(await checkHasWorkItem(tempDir)).toBe(false);
+    await withTempDir("has-work-item", async (dir) => {
+      expect(await checkHasWorkItem(dir)).toBe(false);
+    });
   });
 });
 
 describe("checkHasCandidates", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-candidates-"));
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
   test("returns true when candidates.md exists", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
-    await writeFile(join(tempDir, ".shoe-makers", "state", "candidates.md"), "# Candidates");
-    expect(await checkHasCandidates(tempDir)).toBe(true);
+    await withTempDir("has-candidates", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      await writeFile(join(dir, ".shoe-makers", "state", "candidates.md"), "# Candidates");
+      expect(await checkHasCandidates(dir)).toBe(true);
+    });
   });
 
   test("returns false when candidates.md does not exist", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
-    expect(await checkHasCandidates(tempDir)).toBe(false);
+    await withTempDir("has-candidates", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      expect(await checkHasCandidates(dir)).toBe(false);
+    });
   });
 });
 
 describe("checkHasPartialWork", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-partial-work-"));
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
   test("returns true when partial-work.md exists", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
-    await writeFile(join(tempDir, ".shoe-makers", "state", "partial-work.md"), "# Partial work");
-    expect(await checkHasPartialWork(tempDir)).toBe(true);
+    await withTempDir("has-partial-work", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      await writeFile(join(dir, ".shoe-makers", "state", "partial-work.md"), "# Partial work");
+      expect(await checkHasPartialWork(dir)).toBe(true);
+    });
   });
 
   test("returns false when partial-work.md does not exist", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
-    expect(await checkHasPartialWork(tempDir)).toBe(false);
+    await withTempDir("has-partial-work", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "state"), { recursive: true });
+      expect(await checkHasPartialWork(dir)).toBe(false);
+    });
   });
 
   test("returns false when state directory does not exist", async () => {
-    expect(await checkHasPartialWork(tempDir)).toBe(false);
+    await withTempDir("has-partial-work", async (dir) => {
+      expect(await checkHasPartialWork(dir)).toBe(false);
+    });
   });
 });
 
 describe("countInsights", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-insights-"));
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
   test("returns 0 when insights directory does not exist", async () => {
-    expect(await countInsights(tempDir)).toBe(0);
+    await withTempDir("insights", async (dir) => {
+      expect(await countInsights(dir)).toBe(0);
+    });
   });
 
   test("returns 0 when insights directory is empty", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "insights"), { recursive: true });
-    expect(await countInsights(tempDir)).toBe(0);
+    await withTempDir("insights", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "insights"), { recursive: true });
+      expect(await countInsights(dir)).toBe(0);
+    });
   });
 
   test("counts only .md files", async () => {
-    const dir = join(tempDir, ".shoe-makers", "insights");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "2026-03-25-001.md"), "# Insight");
-    await writeFile(join(dir, "2026-03-25-002.md"), "# Insight 2");
-    await writeFile(join(dir, "notes.txt"), "not an insight");
-    expect(await countInsights(tempDir)).toBe(2);
+    await withTempDir("insights", async (dir) => {
+      const insightsDir = join(dir, ".shoe-makers", "insights");
+      await mkdir(insightsDir, { recursive: true });
+      await writeFile(join(insightsDir, "2026-03-25-001.md"), "# Insight");
+      await writeFile(join(insightsDir, "2026-03-25-002.md"), "# Insight 2");
+      await writeFile(join(insightsDir, "notes.txt"), "not an insight");
+      expect(await countInsights(dir)).toBe(2);
+    });
   });
 });
 
 describe("countUnresolvedCritiques", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-critiques-"));
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
   test("returns 0 when findings directory does not exist", async () => {
-    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+    await withTempDir("critiques", async (dir) => {
+      expect(await countUnresolvedCritiques(dir)).toBe(0);
+    });
   });
 
   test("returns 0 when findings directory is empty", async () => {
-    await mkdir(join(tempDir, ".shoe-makers", "findings"), { recursive: true });
-    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+    await withTempDir("critiques", async (dir) => {
+      await mkdir(join(dir, ".shoe-makers", "findings"), { recursive: true });
+      expect(await countUnresolvedCritiques(dir)).toBe(0);
+    });
   });
 
   test("returns 0 when no critique files exist", async () => {
-    const dir = join(tempDir, ".shoe-makers", "findings");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "invariant-update-2026-03-25.md"), "# Finding\n\nSome finding.");
-    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+    await withTempDir("critiques", async (dir) => {
+      const findingsDir = join(dir, ".shoe-makers", "findings");
+      await mkdir(findingsDir, { recursive: true });
+      await writeFile(join(findingsDir, "invariant-update-2026-03-25.md"), "# Finding\n\nSome finding.");
+      expect(await countUnresolvedCritiques(dir)).toBe(0);
+    });
   });
 
   test("counts unresolved critiques", async () => {
-    const dir = join(tempDir, ".shoe-makers", "findings");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "critique-2026-03-25-001.md"), "# Critique\n\nSome issue found.");
-    await writeFile(join(dir, "critique-2026-03-25-002.md"), "# Critique\n\nAnother issue.");
-    expect(await countUnresolvedCritiques(tempDir)).toBe(2);
+    await withTempDir("critiques", async (dir) => {
+      const findingsDir = join(dir, ".shoe-makers", "findings");
+      await mkdir(findingsDir, { recursive: true });
+      await writeFile(join(findingsDir, "critique-2026-03-25-001.md"), "# Critique\n\nSome issue found.");
+      await writeFile(join(findingsDir, "critique-2026-03-25-002.md"), "# Critique\n\nAnother issue.");
+      expect(await countUnresolvedCritiques(dir)).toBe(2);
+    });
   });
 
   test("ignores resolved critiques", async () => {
-    const dir = join(tempDir, ".shoe-makers", "findings");
-    await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, "critique-2026-03-25-001.md"),
-      "# Critique\n\nSome issue.\n\n## Status\n\nResolved.\n",
-    );
-    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+    await withTempDir("critiques", async (dir) => {
+      const findingsDir = join(dir, ".shoe-makers", "findings");
+      await mkdir(findingsDir, { recursive: true });
+      await writeFile(join(findingsDir, "critique-2026-03-25-001.md"), "# Critique\n\nSome issue.\n\n## Status\n\nResolved.\n");
+      expect(await countUnresolvedCritiques(dir)).toBe(0);
+    });
   });
 
   test("counts mix of resolved and unresolved", async () => {
-    const dir = join(tempDir, ".shoe-makers", "findings");
-    await mkdir(dir, { recursive: true });
-    await writeFile(
-      join(dir, "critique-2026-03-25-001.md"),
-      "# Critique: issue A\n\nProblem.\n\n## Status\n\nResolved.\n",
-    );
-    await writeFile(
-      join(dir, "critique-2026-03-25-002.md"),
-      "# Critique: issue B\n\nProblem.\n\n## Status\n\nResolved.\n",
-    );
-    await writeFile(
-      join(dir, "critique-2026-03-25-003.md"),
-      "# Critique: issue C\n\nStill open.",
-    );
-    expect(await countUnresolvedCritiques(tempDir)).toBe(1);
+    await withTempDir("critiques", async (dir) => {
+      const findingsDir = join(dir, ".shoe-makers", "findings");
+      await mkdir(findingsDir, { recursive: true });
+      await writeFile(join(findingsDir, "critique-2026-03-25-001.md"), "# Critique: issue A\n\nProblem.\n\n## Status\n\nResolved.\n");
+      await writeFile(join(findingsDir, "critique-2026-03-25-002.md"), "# Critique: issue B\n\nProblem.\n\n## Status\n\nResolved.\n");
+      await writeFile(join(findingsDir, "critique-2026-03-25-003.md"), "# Critique: issue C\n\nStill open.");
+      expect(await countUnresolvedCritiques(dir)).toBe(1);
+    });
   });
 
   test("ignores files not starting with critique-", async () => {
-    const dir = join(tempDir, ".shoe-makers", "findings");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "invariant-update-2026-03-25.md"), "# Finding\n\nNo resolved status.");
-    await writeFile(join(dir, "permission-violation.md"), "# Violation\n\nNo resolved status.");
-    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+    await withTempDir("critiques", async (dir) => {
+      const findingsDir = join(dir, ".shoe-makers", "findings");
+      await mkdir(findingsDir, { recursive: true });
+      await writeFile(join(findingsDir, "invariant-update-2026-03-25.md"), "# Finding\n\nNo resolved status.");
+      await writeFile(join(findingsDir, "permission-violation.md"), "# Violation\n\nNo resolved status.");
+      expect(await countUnresolvedCritiques(dir)).toBe(0);
+    });
   });
 
   test("ignores non-.md files", async () => {
-    const dir = join(tempDir, ".shoe-makers", "findings");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "critique-2026-03-25-001.txt"), "Not a markdown critique");
-    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+    await withTempDir("critiques", async (dir) => {
+      const findingsDir = join(dir, ".shoe-makers", "findings");
+      await mkdir(findingsDir, { recursive: true });
+      await writeFile(join(findingsDir, "critique-2026-03-25-001.txt"), "Not a markdown critique");
+      expect(await countUnresolvedCritiques(dir)).toBe(0);
+    });
   });
 });
 

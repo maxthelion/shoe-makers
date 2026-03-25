@@ -1,5 +1,6 @@
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
 import { join } from "path";
+import { tmpdir } from "os";
 import type { WorldState, Blackboard, Assessment, TreeNode } from "../types";
 
 export function emptyBlackboard(): Blackboard {
@@ -104,6 +105,22 @@ export async function writeClaimEvidence(
   const dir = join(tempDir, ".shoe-makers");
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, "claim-evidence.yaml"), yaml);
+}
+
+/**
+ * Create a temporary directory, run a callback with it, then clean up.
+ * Replaces repeated beforeEach/afterEach patterns for temp dir management.
+ */
+export async function withTempDir(
+  prefix: string,
+  fn: (dir: string) => Promise<void>,
+): Promise<void> {
+  const dir = await mkdtemp(join(tmpdir(), `shoe-makers-${prefix}-`));
+  try {
+    await fn(dir);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }
 
 /** Recursively extract all unique skill names from a tree node */
