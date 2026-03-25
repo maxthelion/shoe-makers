@@ -40,7 +40,7 @@ Humans steer, agents execute.
 - **Inbox** (`.shoe-makers/inbox/`): drop a markdown file, the next elf reads it, acts on it with priority, deletes it, logs what it did
 - **Shift logs** (`.shoe-makers/log/`): chronological record of each tick — what was attempted, what happened, what was committed. The primary interface for the morning review.
 - **Findings** (`.shoe-makers/findings/`): persistent observations that survive across shifts until resolved. "The wiki says X but the code does Y." "Implementing Z is blocked by W."
-- **Suggestions**: noted in the shift log, feed into the PRIORITISE tick. "The next elf should tackle the blackboard reader before the scheduler."
+- **Suggestions**: noted in the shift log, feed into the prioritise action. "The next elf should tackle the blackboard reader before the scheduler."
 
 ## Source of Truth
 

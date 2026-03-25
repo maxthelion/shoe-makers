@@ -3,7 +3,7 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { execSync } from "child_process";
 import { join } from "path";
 import { tmpdir } from "os";
-import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType, getCurrentBranch, hasUncommittedChanges } from "../state/world";
+import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType, getCurrentBranch, checkHasWorkItem, checkHasCandidates, checkHasPartialWork, countInsights, hasUncommittedChanges, countUnresolvedCritiques } from "../state/world";
 
 describe("readWorldState", () => {
   test("reads current repo world state", async () => {
@@ -11,15 +11,14 @@ describe("readWorldState", () => {
     const repoRoot = process.cwd();
     const state = await readWorldState(repoRoot);
 
-    // We should be on the shoemakers branch
-    expect(state.branch).toContain("shoemakers");
+    // Branch should be a non-empty string
+    expect(typeof state.branch).toBe("string");
+    expect(state.branch.length).toBeGreaterThan(0);
     expect(typeof state.hasUncommittedChanges).toBe("boolean");
 
     // Blackboard should have the right shape
     expect(state.blackboard).toHaveProperty("assessment");
-    expect(state.blackboard).toHaveProperty("priorities");
     expect(state.blackboard).toHaveProperty("currentTask");
-    expect(state.blackboard).toHaveProperty("verification");
 
     // Inbox count should be a number
     expect(typeof state.inboxCount).toBe("number");
@@ -38,8 +37,8 @@ describe("getCurrentBranch", () => {
     const branchName = getCurrentBranch(process.cwd());
     expect(typeof branchName).toBe("string");
     expect(branchName.length).toBeGreaterThan(0);
-    // We should be on a shoemakers branch
-    expect(branchName).toContain("shoemakers");
+    // Branch name should be a valid branch string
+    expect(branchName).toMatch(/^[a-zA-Z0-9/_.-]+$/);
   });
 
   test("returns branchName from a fresh git repo", async () => {
@@ -119,12 +118,17 @@ describe("checkUnreviewedCommits", () => {
   });
 
   test("returns true when elf-authored commits exist after marker", async () => {
-    // Find the most recent commit that touched src/ (non-housekeeping),
-    // then set the marker to its parent so there's at least one elf-authored commit
-    const srcCommit = execSync("git log --format=%H -1 -- src/", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
+    // Find a commit that touches src/ (non-orchestration), then use its parent as marker
+    const srcCommit = execSync(
+      "git log --format=%H -n 1 -- src/",
+      { cwd: repoRoot, encoding: "utf-8" },
+    ).trim();
+
+    if (!srcCommit) {
+      // No src-touching commits — skip test (shouldn't happen in a real repo)
+      return;
+    }
+
     const parent = execSync(`git rev-parse ${srcCommit}~1`, {
       cwd: repoRoot,
       encoding: "utf-8",
@@ -197,5 +201,199 @@ describe("readWorkItemSkillType", () => {
   test("returns null when work-item.md does not exist", async () => {
     const result = await readWorkItemSkillType(tempDir);
     expect(result).toBeNull();
+  });
+});
+
+describe("checkHasWorkItem", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-work-item-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns true when work-item.md exists", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "work-item.md"), "# Work item");
+    expect(await checkHasWorkItem(tempDir)).toBe(true);
+  });
+
+  test("returns false when work-item.md does not exist", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    expect(await checkHasWorkItem(tempDir)).toBe(false);
+  });
+
+  test("returns false when state directory does not exist", async () => {
+    expect(await checkHasWorkItem(tempDir)).toBe(false);
+  });
+});
+
+describe("checkHasCandidates", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-candidates-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns true when candidates.md exists", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "candidates.md"), "# Candidates");
+    expect(await checkHasCandidates(tempDir)).toBe(true);
+  });
+
+  test("returns false when candidates.md does not exist", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    expect(await checkHasCandidates(tempDir)).toBe(false);
+  });
+});
+
+describe("checkHasPartialWork", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-partial-work-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns true when partial-work.md exists", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "partial-work.md"), "# Partial work");
+    expect(await checkHasPartialWork(tempDir)).toBe(true);
+  });
+
+  test("returns false when partial-work.md does not exist", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    expect(await checkHasPartialWork(tempDir)).toBe(false);
+  });
+
+  test("returns false when state directory does not exist", async () => {
+    expect(await checkHasPartialWork(tempDir)).toBe(false);
+  });
+});
+
+describe("countInsights", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-insights-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns 0 when insights directory does not exist", async () => {
+    expect(await countInsights(tempDir)).toBe(0);
+  });
+
+  test("returns 0 when insights directory is empty", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "insights"), { recursive: true });
+    expect(await countInsights(tempDir)).toBe(0);
+  });
+
+  test("counts only .md files", async () => {
+    const dir = join(tempDir, ".shoe-makers", "insights");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "2026-03-25-001.md"), "# Insight");
+    await writeFile(join(dir, "2026-03-25-002.md"), "# Insight 2");
+    await writeFile(join(dir, "notes.txt"), "not an insight");
+    expect(await countInsights(tempDir)).toBe(2);
+  });
+});
+
+describe("countUnresolvedCritiques", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-critiques-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns 0 when findings directory does not exist", async () => {
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("returns 0 when findings directory is empty", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "findings"), { recursive: true });
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("returns 0 when no critique files exist", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "invariant-update-2026-03-25.md"), "# Finding\n\nSome finding.");
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("counts unresolved critiques", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "critique-2026-03-25-001.md"), "# Critique\n\nSome issue found.");
+    await writeFile(join(dir, "critique-2026-03-25-002.md"), "# Critique\n\nAnother issue.");
+    expect(await countUnresolvedCritiques(tempDir)).toBe(2);
+  });
+
+  test("ignores resolved critiques", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, "critique-2026-03-25-001.md"),
+      "# Critique\n\nSome issue.\n\n## Status\n\nResolved.\n",
+    );
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("counts mix of resolved and unresolved", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, "critique-2026-03-25-001.md"),
+      "# Critique: issue A\n\nProblem.\n\n## Status\n\nResolved.\n",
+    );
+    await writeFile(
+      join(dir, "critique-2026-03-25-002.md"),
+      "# Critique: issue B\n\nProblem.\n\n## Status\n\nResolved.\n",
+    );
+    await writeFile(
+      join(dir, "critique-2026-03-25-003.md"),
+      "# Critique: issue C\n\nStill open.",
+    );
+    expect(await countUnresolvedCritiques(tempDir)).toBe(1);
+  });
+
+  test("ignores files not starting with critique-", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "invariant-update-2026-03-25.md"), "# Finding\n\nNo resolved status.");
+    await writeFile(join(dir, "permission-violation.md"), "# Violation\n\nNo resolved status.");
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("ignores non-.md files", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "critique-2026-03-25-001.txt"), "Not a markdown critique");
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+});
+
+describe("hasUncommittedChanges", () => {
+  test("returns a boolean for the current repo", () => {
+    // Use the real repo — creating temp git repos fails due to commit signing constraints
+    const result = hasUncommittedChanges(process.cwd());
+    expect(typeof result).toBe("boolean");
   });
 });

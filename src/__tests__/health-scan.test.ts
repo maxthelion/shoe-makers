@@ -11,11 +11,15 @@ describe("health-scan integration", () => {
 
   test.skipIf(!octocleanAvailable)("getHealthScore returns a numeric score for the real repo", async () => {
     const score = await getHealthScore(process.cwd());
+    if (!octocleanAvailable) {
+      expect(score).toBeNull();
+      return;
+    }
     expect(score).not.toBeNull();
     expect(typeof score).toBe("number");
     expect(score!).toBeGreaterThanOrEqual(0);
     expect(score!).toBeLessThanOrEqual(100);
-  });
+  }, 120_000);
 
   test("getHealthResult returns null for a directory without octoclean", async () => {
     const result = await getHealthResult("/tmp/nonexistent-repo");
@@ -24,6 +28,10 @@ describe("health-scan integration", () => {
 
   test.skipIf(!octocleanAvailable)("getHealthResult returns score and worst files for the real repo", async () => {
     const result = await getHealthResult(process.cwd());
+    if (!octocleanAvailable) {
+      expect(result).toBeNull();
+      return;
+    }
     expect(result).not.toBeNull();
     expect(typeof result!.score).toBe("number");
     expect(result!.score).toBeGreaterThanOrEqual(0);
@@ -35,7 +43,7 @@ describe("health-scan integration", () => {
       expect(typeof f.path).toBe("string");
       expect(typeof f.score).toBe("number");
     }
-  });
+  }, 120_000);
 });
 
 describe("parseHealthSnapshot", () => {

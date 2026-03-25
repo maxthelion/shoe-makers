@@ -67,6 +67,20 @@ Run \`git diff\` to see the changes. Check against these criteria:
 If the changes are good, commit them with a descriptive message. If not, fix the issues first.${OFF_LIMITS}`;
 }
 
+export function buildContinueWorkPrompt(): string {
+  return `# Continue Partial Work
+
+A previous elf started work but didn't finish. Resume where they left off.
+
+1. Read \`.shoe-makers/state/partial-work.md\` to understand what was done and what remains
+2. Read the relevant source files referenced in the partial work description
+3. Continue the work described
+4. Run \`bun test\` to confirm nothing is broken
+5. Commit your work
+6. If you finish, delete \`.shoe-makers/state/partial-work.md\`
+7. If you can't finish either, update partial-work.md with your progress${OFF_LIMITS}`;
+}
+
 export function buildInboxPrompt(state: WorldState): string {
   return `# Inbox Messages
 

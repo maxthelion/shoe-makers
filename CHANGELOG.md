@@ -27,6 +27,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Blackboard I/O — reads/writes JSON state files for assessment, priorities, currentTask, verification
 - World state reader — assembles WorldState from git info, blackboard, and config
 - Behaviour tree evaluator — recursive selector/sequence/condition/action evaluation
+- `continue-work` action — detects and resumes partial work from previous elves via `.shoe-makers/state/partial-work.md`
+- `innovate` action — creative exploration at innovation tier using random Wikipedia articles as conceptual lenses
+- `evaluate-insight` action — generous evaluation of creative insights, separate from pragmatic prioritise
+- `bun run setup` command — evaluates behaviour tree, writes focused prompt to `.shoe-makers/state/next-action.md`
+- Review-loop breaker — tree breaks out of critique/fix-critique loops after 3 consecutive review actions
+- Innovation cycle cap — `max-innovation-cycles` config limits creative cycles per shift (default: 3)
+- `insight-frequency` config — controls probability of creative lens during explore (default: 0.3)
+- Health regression detection — warns when octoclean health score drops between ticks
+- State file archiving — consumed candidates and work items archived for traceability
 
 - Wikipedia creative lens — random article as analogical thinking prompt for explore and innovate actions
 - Innovation pipeline — dedicated `innovate` and `evaluate-insight` tree actions with separate dispositions (divergent/creative vs constructive/convergent)
@@ -55,3 +64,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Tick cycle loop: verify clears both currentTask and priorities to prevent infinite work loop
 - Removed no-op `scheduled-tasks` from invariants mapping (page has `category: reference`, was filtered out anyway)
 - Invariants checker strips comments and its own evidence mapping before scanning to prevent false positive matches
+- Missing `continue-work` in `SKILL_TO_ACTION` map — `bun run tick`/`bun run shift` silently dropped partial work actions
+- Missing `continue-work` in `runSkill` switch — shift runner returned "Unknown action" for continue-work
+- Missing `continue-work` in shift-log-parser — process pattern counting missed continue-work actions

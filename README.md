@@ -11,6 +11,7 @@ Shoe-makers uses a **behaviour tree** inspired by game AI. Each scheduled invoca
 ```
 Selector
 ├── [tests failing?]         → Fix tests
+├── [review-loop ≥3?]        → Break out to explore
 ├── [unresolved critiques?]  → Fix issues flagged by reviewer
 ├── [unreviewed commits?]    → Adversarial review of previous elf's work
 ├── [uncommitted changes?]   → Review uncommitted work
@@ -18,16 +19,18 @@ Selector
 ├── [dead-code work-item?]   → Remove dead code
 ├── [work-item.md exists?]   → Execute the detailed work item
 ├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
-├── [insights exist?]        → Evaluate insight (generous/convergent)
+├── [insights exist?]        → Evaluate insight (generous disposition)
 ├── [innovation tier?]       → Innovate: creative brief with Wikipedia lens
 └── [always true]            → Explore: assess the codebase, write candidates.md
 ```
 
 **Reactive conditions** (top) handle urgent work with direct prompts. **Three-phase orchestration** (bottom) handles proactive work across separate invocations:
 
-1. **Explore** — broad context. Read the wiki, code, invariants, health scores, findings. Write a ranked list of candidates. Occasionally prompted with a random Wikipedia article as an analogical lens for creative thinking.
+1. **Explore** — broad context. Read the wiki, code, invariants, health scores, findings. Write a ranked list of candidates.
 2. **Prioritise** — medium context. Read the candidates, read the relevant code and wiki. Pick one and write a detailed work item with full context — not "implement something" but specific instructions with relevant code and patterns.
 3. **Execute** — narrow context. Read the work item. Do exactly what it says. Commit. Optionally hand off a follow-up (e.g. "review what I just built").
+
+At **innovation tier** (all invariants met, health good), the tree routes to **Innovate** instead of Explore. The setup script prepares a creative brief with a random Wikipedia article, and the elf writes an insight connecting the random concept to the system. A separate **Evaluate-insight** action fires when insight files exist — it has a generous disposition, building on ideas constructively rather than filtering them.
 
 Each phase narrows the context for the next. The prioritiser's job is to write a really good prompt for the executor.
 
@@ -127,6 +130,7 @@ end: 6
   protocol.md           # Instructions for the elf
   config.yaml           # Settings with sensible defaults
   invariants.md         # Human-written spec claims (authoritative)
+  claim-evidence.yaml   # Evidence patterns for invariant verification
   schedule.md           # Working hours (optional)
   skills/               # Markdown skill prompts
   state/                # Ephemeral state (assessment, candidates, work items)
@@ -134,8 +138,7 @@ end: 6
   findings/             # Persistent observations
   insights/             # Creative proposals from analogical prompting
   inbox/                # Messages from humans
-  archive/              # Archived state files for traceability
-  claim-evidence.yaml   # Evidence patterns for invariant verification
+  archive/              # Archived state files and resolved findings
   known-issues.md       # Troubleshooting
 
 src/                    # The behaviour tree system

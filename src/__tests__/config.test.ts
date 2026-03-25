@@ -155,7 +155,7 @@ describe("loadConfig", () => {
     const warnSpy = spyOn(console, "warn");
     await loadConfig(tempDir);
     const unknownKeyWarnings = warnSpy.mock.calls.filter(
-      (call) => typeof call[0] === "string" && call[0].includes("Unknown config key")
+      (call: any[]) => typeof call[0] === "string" && call[0].includes("Unknown config key")
     );
     expect(unknownKeyWarnings).toHaveLength(0);
     warnSpy.mockRestore();
@@ -199,6 +199,39 @@ describe("loadConfig", () => {
     expect(config.insightFrequency).toBe(0.3);
   });
 
+  test("enabled-skills with trailing comma ignores empty entries", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "enabled-skills: fix-tests,implement,\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toEqual(["fix-tests", "implement"]);
+  });
+
+  test("enabled-skills with extra whitespace trims correctly", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "enabled-skills:   fix-tests ,  implement  \n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toEqual(["fix-tests", "implement"]);
+  });
+
+  test("enabled-skills with single skill returns one-element array", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "enabled-skills: fix-tests\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toEqual(["fix-tests"]);
+  });
+
   test("warns on unknown config key", async () => {
     await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
     await writeFile(
@@ -209,7 +242,7 @@ describe("loadConfig", () => {
     const warnSpy = spyOn(console, "warn");
     await loadConfig(tempDir);
     const unknownKeyWarnings = warnSpy.mock.calls.filter(
-      (call) => typeof call[0] === "string" && call[0].includes("Unknown config key")
+      (call: any[]) => typeof call[0] === "string" && call[0].includes("Unknown config key")
     );
     expect(unknownKeyWarnings).toHaveLength(1);
     expect(unknownKeyWarnings[0][0]).toContain("unknown-key");

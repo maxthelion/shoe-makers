@@ -28,6 +28,7 @@ export type ActionType =
   | "fix-tests"
   | "fix-critique"
   | "critique"
+  | "continue-work"
   | "review"
   | "inbox"
   | "execute-work-item"
@@ -41,9 +42,7 @@ export type ActionType =
 /** The blackboard — shared state written as files on the branch */
 export interface Blackboard {
   assessment: Assessment | null;
-  priorities: PriorityList | null;
   currentTask: CurrentTask | null;
-  verification: Verification | null;
 }
 
 /** Output of the ASSESS tick */
@@ -91,14 +90,6 @@ export interface InvariantSummary {
   group: string;
 }
 
-/** Output of the PRIORITISE tick */
-export interface PriorityList {
-  timestamp: string;
-  /** Assessment timestamp this was derived from */
-  assessedAt: string;
-  items: PriorityItem[];
-}
-
 export interface PriorityItem {
   rank: number;
   type: "implement" | "test" | "doc-sync" | "plan" | "fix" | "health";
@@ -122,16 +113,6 @@ export interface CurrentTask {
   status: "in-progress" | "done" | "failed";
 }
 
-/** Output of the VERIFY tick */
-export interface Verification {
-  timestamp: string;
-  taskDescription: string;
-  testsPass: boolean;
-  reviewPassed: boolean;
-  issues: string[];
-  action: "commit" | "revert";
-}
-
 /** The world state read at the start of each tick */
 export interface WorldState {
   /** Current branch name */
@@ -152,6 +133,8 @@ export interface WorldState {
   hasCandidates: boolean;
   /** The skill type of the current work item, or null if no work item or unknown type */
   workItemSkillType: string | null;
+  /** Whether .shoe-makers/state/partial-work.md exists (agent exited with partial status) */
+  hasPartialWork: boolean;
   /** Number of insight files in .shoe-makers/insights/ */
   insightCount: number;
   /** Configuration (optional — defaults used if absent) */

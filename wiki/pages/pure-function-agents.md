@@ -43,12 +43,10 @@ Output:
 After an agent exits, the scheduler handles all side effects:
 
 1. Commit the agent's changes to the shoemakers branch
-2. Run tests against the new state
-3. If tests pass and the [[verification]] gate passes, create a PR or merge
-4. If tests fail, revert the commit
-5. Update the wiki with what happened
+2. Push the branch to remote
+3. Log what happened in the shift log
 
-The agent doesn't know or care about any of this.
+Quality is enforced by the [[behaviour-tree]]: the next tick detects unreviewed commits and routes a different elf to perform adversarial review. The agent doesn't know or care about any of this.
 
 ## Partial Work
 

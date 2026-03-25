@@ -13,6 +13,7 @@ Each tick evaluates the [[behaviour-tree]] against cached world state. The first
 ```
 Selector
 ├── [tests failing?]         → Fix them
+├── [review-loop ≥3?]        → Break out to explore (circuit breaker)
 ├── [unresolved critiques?]  → Fix the flagged issues
 ├── [unreviewed commits?]    → Review adversarially
 ├── [uncommitted changes?]   → Review before committing

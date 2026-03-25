@@ -1,13 +1,11 @@
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
-import type { WorldState, Blackboard, Assessment } from "../types";
+import type { WorldState, Blackboard, Assessment, TreeNode } from "../types";
 
 export function emptyBlackboard(): Blackboard {
   return {
     assessment: null,
-    priorities: null,
     currentTask: null,
-    verification: null,
   };
 }
 
@@ -40,6 +38,7 @@ export function makeState(overrides: Partial<WorldState> = {}): WorldState {
     hasWorkItem: false,
     hasCandidates: false,
     workItemSkillType: null,
+    hasPartialWork: false,
     insightCount: 0,
     blackboard: {
       ...emptyBlackboard(),
@@ -105,4 +104,20 @@ export async function writeClaimEvidence(
   const dir = join(tempDir, ".shoe-makers");
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, "claim-evidence.yaml"), yaml);
+}
+
+/** Recursively extract all unique skill names from a tree node */
+export function extractSkills(node: TreeNode): Set<string> {
+  const skills = new Set<string>();
+  if (node.type === "action" && node.skill) {
+    skills.add(node.skill);
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      for (const s of extractSkills(child)) {
+        skills.add(s);
+      }
+    }
+  }
+  return skills;
 }

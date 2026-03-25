@@ -7,7 +7,9 @@ import { isInnovationTier } from "../prompts/helpers";
  *
  * Selector
  * ├── [tests failing?] → Fix tests
+ * ├── [review loop ≥3?] → Break out to explore
  * ├── [unresolved critiques?] → Fix critiques
+ * ├── [partial work?] → Continue partial work
  * ├── [unreviewed commits?] → Review adversarially
  * ├── [uncommitted changes?] → Review before committing
  * ├── [inbox messages?] → Handle inbox
@@ -25,8 +27,17 @@ function testsFailing(state: WorldState): boolean {
   return assessment.testsPass === false || assessment.typecheckPass === false;
 }
 
+function inReviewLoop(state: WorldState): boolean {
+  const loopCount = state.blackboard.assessment?.processPatterns?.reviewLoopCount ?? 0;
+  return loopCount >= 3;
+}
+
 function hasUnresolvedCritiques(state: WorldState): boolean {
   return state.unresolvedCritiqueCount > 0;
+}
+
+function hasPartialWork(state: WorldState): boolean {
+  return state.hasPartialWork;
 }
 
 function hasUnreviewedCommits(state: WorldState): boolean {
@@ -94,7 +105,9 @@ export const defaultTree: TreeNode = {
   children: [
     // Reactive zone — urgent, handled with direct prompts
     makeConditionAction("tests-failing", testsFailing, "fix-tests"),
+    makeConditionAction("review-loop-breaker", inReviewLoop, "explore"),
     makeConditionAction("unresolved-critiques", hasUnresolvedCritiques, "fix-critique"),
+    makeConditionAction("partial-work", hasPartialWork, "continue-work"),
     makeConditionAction("unreviewed-commits", hasUnreviewedCommits, "critique"),
     makeConditionAction("unverified-work", hasUnverifiedWork, "review"),
     makeConditionAction("inbox-messages", hasInboxMessages, "inbox"),

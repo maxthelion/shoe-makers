@@ -27,6 +27,9 @@ export async function runSkill(
     case "critique":
       return "Action: critique — elf should adversarially review unreviewed commits.";
 
+    case "continue-work":
+      return "Action: continue-work — elf should read partial-work.md and resume where the previous elf left off.";
+
     case "review":
       return "Action: review — elf should review uncommitted changes adversarially.";
 
@@ -43,10 +46,10 @@ export async function runSkill(
       return "Action: prioritise — elf should read candidates.md, pick one, and write a detailed work-item.md.";
 
     case "innovate":
-      return "Action: innovate — elf should write a creative insight from the innovation brief.";
+      return "Action: innovate — elf should write a creative insight connecting a random concept to the system.";
 
     case "evaluate-insight":
-      return "Action: evaluate-insight — elf should read an insight and evaluate whether to act on it.";
+      return "Action: evaluate-insight — elf should read insight files and evaluate them constructively.";
 
     default:
       return `Unknown action: ${action}`;

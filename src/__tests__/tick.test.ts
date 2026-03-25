@@ -1,6 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { tick } from "../scheduler/tick";
-import { emptyBlackboard, freshAssessment, makeState } from "./test-utils";
+import { emptyBlackboard, freshAssessment, makeState, extractSkills } from "./test-utils";
+import { defaultTree } from "../tree/default-tree";
 
 describe("tick", () => {
   test("returns fix-tests when tests are failing", () => {
@@ -67,6 +68,12 @@ describe("tick", () => {
     const result = tick(makeState());
     expect(result.action).toBe("innovate");
     expect(result.skill).toBe("innovate");
+  });
+
+  test("returns continue-work when hasPartialWork is true", () => {
+    const result = tick(makeState({ hasPartialWork: true }));
+    expect(result.action).toBe("continue-work");
+    expect(result.skill).toBe("continue-work");
   });
 
   test("returns review when there are uncommitted changes", () => {
@@ -174,5 +181,40 @@ describe("tick", () => {
       },
     }));
     expect(result.action).toBe("innovate");
+  });
+});
+
+describe("SKILL_TO_ACTION drift prevention", () => {
+  test("tick returns non-null action for every skill in the default tree", () => {
+    const treeSkills = extractSkills(defaultTree);
+    // Build states that trigger each skill and verify action is non-null
+    const stateForSkill: Record<string, ReturnType<typeof makeState>> = {
+      "fix-tests": makeState({
+        blackboard: {
+          ...emptyBlackboard(),
+          assessment: { ...freshAssessment, testsPass: false },
+        },
+      }),
+      "fix-critique": makeState({ unresolvedCritiqueCount: 1 }),
+      critique: makeState({ hasUnreviewedCommits: true }),
+      "continue-work": makeState({ hasPartialWork: true }),
+      review: makeState({ hasUncommittedChanges: true }),
+      inbox: makeState({ inboxCount: 1 }),
+      "dead-code": makeState({ hasWorkItem: true, workItemSkillType: "dead-code" }),
+      "execute-work-item": makeState({ hasWorkItem: true }),
+      prioritise: makeState({ hasCandidates: true }),
+      innovate: makeState(), // innovation tier is the default in test-utils
+      "evaluate-insight": makeState({ insightCount: 1 }),
+      explore: makeState({
+        blackboard: { ...emptyBlackboard(), assessment: null },
+      }),
+    };
+
+    for (const skill of treeSkills) {
+      const state = stateForSkill[skill];
+      expect(state).toBeDefined();
+      const result = tick(state);
+      expect(result.action).not.toBeNull();
+    }
   });
 });

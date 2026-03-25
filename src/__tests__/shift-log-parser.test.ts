@@ -3,6 +3,9 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseShiftLogActions, computeProcessPatterns, getShiftProcessPatterns } from "../log/shift-log-parser";
+import { generatePrompt } from "../prompts";
+import { makeState } from "./test-utils";
+import type { ActionType } from "../types";
 
 describe("parseShiftLogActions", () => {
   test("extracts action names from shift log entries", () => {
@@ -48,6 +51,8 @@ describe("parseShiftLogActions", () => {
       "- Action: Fix Failing Tests",
       "- Action: Fix Unresolved Critiques",
       "- Action: Adversarial Review — Critique Previous Elf's Work",
+      "- Action: Continue Partial Work",
+      "- Action: Review Uncommitted Work",
       "- Action: Inbox Messages — Act on These First",
       "- Action: Execute Work Item",
       "- Action: Remove Dead Code",
@@ -59,9 +64,9 @@ describe("parseShiftLogActions", () => {
 
     const actions = parseShiftLogActions(log);
     expect(actions).toEqual([
-      "fix-tests", "fix-critique", "critique", "inbox",
-      "execute-work-item", "dead-code", "prioritise",
-      "innovate", "evaluate-insight", "explore",
+      "fix-tests", "fix-critique", "critique", "continue-work",
+      "review", "inbox", "execute-work-item", "dead-code",
+      "prioritise", "innovate", "evaluate-insight", "explore",
     ]);
   });
 });
@@ -183,5 +188,97 @@ describe("getShiftProcessPatterns", () => {
     expect(result!.reactiveRatio).toBe(0.6);
     expect(result!.reviewLoopCount).toBe(0);
     expect(result!.innovationCycleCount).toBe(0);
+  });
+});
+
+describe("getShiftProcessPatterns", () => {
+  let tempDir: string;
+  const today = new Date().toISOString().slice(0, 10);
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-shift-patterns-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns undefined when no shift log exists", async () => {
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeUndefined();
+  });
+
+  test("returns undefined when shift log has no actions", async () => {
+    const logDir = join(tempDir, ".shoe-makers", "log");
+    await mkdir(logDir, { recursive: true });
+    await writeFile(join(logDir, `${today}.md`), "# Shift Log\n\nNo actions yet.\n");
+
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeUndefined();
+  });
+
+  test("returns process patterns from shift log with actions", async () => {
+    const logDir = join(tempDir, ".shoe-makers", "log");
+    await mkdir(logDir, { recursive: true });
+    await writeFile(
+      join(logDir, `${today}.md`),
+      [
+        "# Shift Log",
+        "",
+        "## Setup",
+        "- Action: Adversarial Review — Critique Previous Elf's Work",
+        "",
+        "## Setup",
+        "- Action: Fix Unresolved Critiques",
+        "",
+        "## Setup",
+        "- Action: Explore — Survey and Write Candidates",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeDefined();
+    // 2 reactive (critique, fix-critique) out of 3 total
+    expect(result!.reactiveRatio).toBeCloseTo(2 / 3);
+    expect(result!.reviewLoopCount).toBe(0);
+    expect(result!.innovationCycleCount).toBe(0);
+  });
+});
+
+describe("computeProcessPatterns edge cases", () => {
+  test("counts multiple non-contiguous review loops", () => {
+    const patterns = computeProcessPatterns([
+      "critique", "fix-critique", "critique",
+      "explore",
+      "critique", "fix-critique", "critique",
+    ]);
+    expect(patterns.reviewLoopCount).toBe(2);
+  });
+
+  test("single long review loop counts as 1", () => {
+    const patterns = computeProcessPatterns([
+      "critique", "fix-critique", "critique", "fix-critique", "critique",
+    ]);
+    expect(patterns.reviewLoopCount).toBe(1);
+  });
+});
+
+describe("TITLE_TO_ACTION drift prevention", () => {
+  const allActions: ActionType[] = [
+    "fix-tests", "fix-critique", "critique", "continue-work",
+    "review", "inbox", "execute-work-item", "dead-code",
+    "prioritise", "innovate", "evaluate-insight", "explore",
+  ];
+
+  test("parseShiftLogActions recognizes all prompt titles", () => {
+    const state = makeState();
+    for (const action of allActions) {
+      const prompt = generatePrompt(action, state);
+      const title = prompt.split("\n")[0].replace(/^#\s*/, "");
+      const logEntry = `- Action: ${title}`;
+      const parsed = parseShiftLogActions(logEntry);
+      expect(parsed.length).toBe(1);
+    }
   });
 });

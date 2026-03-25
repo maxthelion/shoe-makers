@@ -14,36 +14,36 @@ Verification is not self-review. The executor and verifier must be different elv
 
 Each action from the [[behaviour-tree]] has a **role** that determines what the elf is allowed to touch. The elf's prompt includes both the task and the permission boundary.
 
-The reactive conditions (tests failing, critiques, reviews, uncommitted work, inbox) appear directly in the tree. The remaining rows (open plans, specified-only invariants, untested code, undocumented code, code health) describe roles applied when executing work items through the three-phase orchestration cycle.
+The reactive conditions (tests failing, critiques, reviews, uncommitted work, inbox) appear directly in the tree. The remaining actions (continue-work, execute-work-item, dead-code, prioritise, innovate, evaluate-insight, explore) are part of the three-phase orchestration cycle.
 
-| Tree condition / work type | Role | Can write | Cannot write |
+| Action | Role | Can write | Cannot write |
 |---|---|---|---|
-| Tests failing? | **test-fixer** | `src/` | invariants, wiki |
-| Unresolved critiques? | **critique-fixer** | `src/`, `.shoe-makers/findings/` | invariants, wiki |
-| Unreviewed commits? | **reviewer** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
-| Uncommitted work? | **reviewer** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
-| Inbox? | **inbox-handler** | `src/`, `wiki/`, `.shoe-makers/` | invariants |
-| Open plans? | **plan-implementer** | `src/`, `wiki/` | `src/__tests__/`, invariants |
-| Specified-only invariant? | **implementer** | `src/` | `src/__tests__/`, wiki, invariants |
-| Untested code? | **test-writer** | `src/__tests__/` only | `src/` (non-test), invariants, wiki |
-| Undocumented code? | **doc-writer** | `wiki/` only | `src/`, tests, invariants |
-| Code health? | **refactorer** | `src/` | `src/__tests__/`, wiki, invariants |
-| Explore? | **assessor** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
+| fix-tests | **test-fixer** | `src/` | invariants, wiki |
+| fix-critique | **critique-fixer** | `src/`, `.shoe-makers/findings/` | invariants, wiki |
+| critique | **reviewer** | `.shoe-makers/findings/` only | `src/`, wiki, invariants |
+| review | **reviewer** | `.shoe-makers/findings/` only | `src/`, wiki, invariants |
+| inbox | **inbox-handler** | `src/`, `wiki/`, `.shoe-makers/` | invariants |
+| continue-work | **executor** | `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/claim-evidence.yaml`, `CHANGELOG.md`, `README.md` | invariants |
+| execute-work-item | **executor** | `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/claim-evidence.yaml`, `CHANGELOG.md`, `README.md` | invariants |
+| dead-code | **dead-code-remover** | `src/` | invariants, wiki |
+| prioritise | **prioritiser** | `.shoe-makers/state/` only | `src/`, wiki, invariants |
+| innovate | **innovator** | `.shoe-makers/insights/` only | `src/`, wiki, invariants |
+| evaluate-insight | **insight-evaluator** | `.shoe-makers/insights/`, `.shoe-makers/state/`, `.shoe-makers/log/` | `src/`, wiki, invariants |
+| explore | **explorer** | `.shoe-makers/state/`, `.shoe-makers/findings/` | `src/`, wiki, invariants |
 
 Key constraints:
 - **Invariants are never writable by elves.** Only humans maintain `.shoe-makers/invariants.md`. This prevents the cheating problem where elves tailor claims to match their code.
 - **Reviewers can only write findings.** They can't "fix" problems they find — they document them for the next elf.
-- **Implementers write tests first.** TDD is enforced by the permission model: write tests, commit, then next tick the "tests failing" condition fires and the elf can write implementation code.
+- **Executors have broad permissions.** The `execute-work-item` role can write both source and tests because it handles varied skill types. The skill prompt determines what should be changed.
 
 ## TDD Enforcement
 
 The permission model enforces separation of concerns:
 
-- **Implementers** (`implement-spec`, `implement-plan`) cannot write test files (`src/__tests__/` is forbidden)
-- **Test writers** (`write-tests`) cannot write non-test source files
+- **Executors** (`execute-work-item`) can write both source and test files — the executor role is broadly permissioned to support varied skill types
 - **Test fixers** (`fix-tests`) can write both source and tests (fixing requires both)
 
-In practice, the current `implement-spec` prompt instructs the elf to "write failing tests first, then implement" within a single session, but the permission model prevents implementers from modifying existing test files. The `write-tests` action (for untested code) produces test-only changes.
+In practice, the `execute-work-item` action handles all implementation, testing, and documentation work. The executor role is broadly permissioned because the skill prompt (loaded from `.shoe-makers/skills/`) determines the scope of work. Permission boundaries in the table above apply to work items via their skill type.
 
 The ideal two-tick TDD cycle — where one elf writes failing tests and a different elf implements — is supported by the permission model but not strictly enforced by the tree routing.
 
@@ -59,6 +59,20 @@ The ideal two-tick TDD cycle — where one elf writes failing tests and a differ
    - The diff since last review
    - The rules the previous elf was given (from `last-action.md`)
    - Instructions to check: did they stay in scope? Did they game anything? Is the code correct?
+
+### Orchestration skip
+
+Not all commits need adversarial review. Commits that only touch orchestration output directories are automatically skipped:
+
+- `.shoe-makers/state/` — orchestration state files (candidates.md, work-item.md)
+- `.shoe-makers/findings/` — critique findings
+- `.shoe-makers/insights/` — creative insights
+- `.shoe-makers/log/` — shift log entries
+- `.shoe-makers/archive/` — archived files
+
+These are mechanical outputs of the tree cycle, not code changes. Skipping review for them prevents the system from spending most of its shift reviewing low-risk orchestration artifacts.
+
+Commits that touch `src/`, `wiki/`, or any real code still trigger full adversarial review.
 
 ### What the reviewer checks
 
@@ -110,6 +124,7 @@ Note: When permission violations are detected, the prompt includes a `PERMISSION
 ```
 Selector
 ├── [tests failing?]         → Fix them
+├── [review loop ≥3?]        → Break out to explore
 ├── [unresolved critiques?]  → Fix the flagged issues
 ├── [unreviewed commits?]    → Review adversarially (critique)
 ├── [uncommitted work?]      → Review before committing (review)
@@ -118,9 +133,11 @@ Selector
 ├── [work-item.md exists?]   → Execute the work item
 ├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
 ├── [insights exist?]        → Evaluate insight (generous disposition)
-├── [innovation tier?]       → Innovate: creative brief
+├── [innovation tier?]       → Innovate: write insight from creative brief
 └── [always]                 → Explore: write candidates.md
 ```
+
+The review-loop circuit breaker prevents infinite critique/fix-critique cycles. If the shift has seen 3+ review loop iterations (detected via the shift log parser), the tree routes to explore instead of continuing the loop. This ensures the shift makes progress even when a critique can't be resolved.
 
 Critiques sit above unreviewed work — you fix problems before reviewing new work. Unreviewed work sits above new work — you review before starting something new.
 

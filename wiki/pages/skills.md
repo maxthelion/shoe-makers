@@ -14,7 +14,7 @@ A skill is a self-contained unit of work that the [[architecture|behaviour tree]
 - Takes a context (repo state, wiki, health scan) and produces a branch with changes
 - Has its own verification criteria
 
-Skills are defined as markdown files in `.shoe-makers/skills/` — they're prompts, not code. The skill registry (`src/skills/registry.ts`) loads these files, parses their frontmatter, and makes them available to the work skill. Each skill's `maps-to` field links it to a [[tick-types|priority item type]], so when the work skill picks a task, it automatically includes the matching skill's full instructions.
+Skills are defined as markdown files in `.shoe-makers/skills/` — they're prompts, not code. The skill registry (`src/skills/registry.ts`) loads these files, parses their frontmatter, and makes them available to the prompt generation system. Each skill's `maps-to` field links it to an action type, so when the [[behaviour-tree]] routes to execute-work-item, the prompt includes the matching skill's full instructions.
 
 ## Implemented Skills
 

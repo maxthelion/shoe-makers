@@ -18,6 +18,7 @@ const SKILL_TO_ACTION: Record<string, ActionType> = {
   "fix-tests": "fix-tests",
   "fix-critique": "fix-critique",
   critique: "critique",
+  "continue-work": "continue-work",
   review: "review",
   inbox: "inbox",
   "execute-work-item": "execute-work-item",

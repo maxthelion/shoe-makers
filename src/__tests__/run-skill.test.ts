@@ -3,6 +3,8 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { runSkill } from "../scheduler/run-skill";
+import { defaultTree } from "../tree/default-tree";
+import { extractSkills } from "./test-utils";
 
 let tempDir: string;
 
@@ -62,11 +64,19 @@ describe("runSkill", () => {
   test("returns descriptive message for innovate", async () => {
     const result = await runSkill(tempDir, "innovate");
     expect(result).toContain("innovate");
+    expect(result).toContain("insight");
   });
 
   test("returns descriptive message for evaluate-insight", async () => {
     const result = await runSkill(tempDir, "evaluate-insight");
     expect(result).toContain("evaluate-insight");
+    expect(result).toContain("insight");
+  });
+
+  test("returns descriptive message for continue-work", async () => {
+    const result = await runSkill(tempDir, "continue-work");
+    expect(result).toContain("continue-work");
+    expect(result).toContain("partial-work");
   });
 
   test("handles unknown action type", async () => {
@@ -87,5 +97,19 @@ describe("runSkill", () => {
     expect(result).toContain("Tests:");
     expect(result).toContain("Plans:");
     expect(result).toContain("specified-only");
+  });
+
+  test("returns non-Unknown message for every tree skill", async () => {
+    // Set up minimal structure for explore/assess to work
+    await mkdir(join(tempDir, "wiki", "pages"), { recursive: true });
+    await mkdir(join(tempDir, "src"), { recursive: true });
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await mkdir(join(tempDir, ".shoe-makers", "findings"), { recursive: true });
+
+    const treeSkills = extractSkills(defaultTree);
+    for (const skill of treeSkills) {
+      const result = await runSkill(tempDir, skill);
+      expect(result).not.toContain("Unknown action");
+    }
   });
 });

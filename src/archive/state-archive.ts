@@ -8,6 +8,7 @@ const STATE_DIR = ".shoe-makers/state";
 const CONSUMABLE_FILES: Record<string, string[]> = {
   "execute-work-item": ["work-item.md"],
   "dead-code": ["work-item.md"],
+  "continue-work": ["partial-work.md"],
   "prioritise": ["candidates.md"],
 };
 

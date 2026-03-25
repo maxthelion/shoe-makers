@@ -40,6 +40,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: {
         ...emptyBlackboard(),
@@ -72,6 +73,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -86,6 +88,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: true,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -114,6 +117,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -129,5 +133,98 @@ describe("shift runner", () => {
     expect(result.outcome).toBe("error");
     expect(result.steps).toHaveLength(1);
     expect(result.steps[0].error).toBe("skill exploded");
+  });
+
+  test("returns max-ticks when explore keeps running", async () => {
+    // All ticks return explore (the fallback) — should hit maxTicks limit
+    const state: WorldState = {
+      branch: "shoemakers/2026-03-21",
+      hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
+      hasWorkItem: false,
+      hasCandidates: false,
+      workItemSkillType: null,
+      hasPartialWork: false,
+      insightCount: 0,
+      blackboard: emptyBlackboard(),
+    };
+
+    const result = await shift(tempDir, {
+      maxTicks: 3,
+      readState: mockStateSequence([state, state, state]),
+      runSkill: async (_root, action) => `${action} done`,
+      writeLog: noopLog,
+    });
+
+    expect(result.outcome).toBe("max-ticks");
+    expect(result.steps).toHaveLength(3);
+    expect(result.steps.every(s => s.tick.action === "explore")).toBe(true);
+  });
+
+  test("calls onTick callback with single tick", async () => {
+    // The default tree always returns explore, so the sleep path is unreachable.
+    // This test verifies onTick works with a single-tick shift.
+    const state: WorldState = {
+      branch: "shoemakers/2026-03-21",
+      hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
+      hasWorkItem: false,
+      hasCandidates: false,
+      workItemSkillType: null,
+      hasPartialWork: false,
+      insightCount: 0,
+      blackboard: emptyBlackboard(),
+    };
+
+    const tickSteps: any[] = [];
+    const result = await shift(tempDir, {
+      maxTicks: 1,
+      readState: mockStateSequence([state]),
+      runSkill: async (_root, action) => `${action} done`,
+      writeLog: noopLog,
+      onTick: (step) => tickSteps.push(step),
+    });
+
+    expect(result.steps).toHaveLength(1);
+    expect(tickSteps).toHaveLength(1);
+    expect(tickSteps[0].tick.action).toBe("explore");
+  });
+
+  test("onTick callback receives each step", async () => {
+    const state1: WorldState = {
+      branch: "shoemakers/2026-03-21",
+      hasUncommittedChanges: false,
+      inboxCount: 0,
+      hasUnreviewedCommits: false,
+      unresolvedCritiqueCount: 0,
+      hasWorkItem: false,
+      hasCandidates: false,
+      workItemSkillType: null,
+      hasPartialWork: false,
+      insightCount: 0,
+      blackboard: emptyBlackboard(),
+    };
+
+    const state2: WorldState = {
+      ...state1,
+      hasCandidates: true,
+    };
+
+    const tickSteps: any[] = [];
+    const result = await shift(tempDir, {
+      readState: mockStateSequence([state1, state2]),
+      runSkill: async (_root, action) => `${action} done`,
+      writeLog: noopLog,
+      onTick: (step) => tickSteps.push(step),
+    });
+
+    expect(result.outcome).toBe("action");
+    expect(tickSteps).toHaveLength(2);
+    expect(tickSteps[0].tick.action).toBe("explore");
+    expect(tickSteps[1].tick.action).toBe("prioritise");
   });
 });

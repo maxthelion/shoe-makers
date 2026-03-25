@@ -3,7 +3,7 @@ title: Architecture
 category: architecture
 tags: [architecture, core, behaviour-tree, scheduled-tasks]
 summary: The core architecture — one invocation, one action, one exit. Reactive conditions plus three-phase orchestration.
-last-modified-by: user
+last-modified-by: elf
 ---
 
 ## Core Insight
@@ -25,6 +25,7 @@ Two zones: reactive (urgent, direct prompt) and orchestrated (proactive, three-p
 ```
 Selector
 ├── [tests failing?]         → Fix tests (direct)
+├── [review-loop ≥3?]        → Break out to explore (circuit breaker)
 ├── [unresolved critiques?]  → Fix critiques (direct)
 ├── [unreviewed commits?]    → Review adversarially (direct)
 ├── [uncommitted changes?]   → Review uncommitted work (direct)

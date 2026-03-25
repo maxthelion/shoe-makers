@@ -4,7 +4,8 @@ import { execSync } from "child_process";
 import { readLastAction } from "../state/last-action";
 import { parseActionTypeFromPrompt } from "../prompts/helpers";
 import { checkPermissionViolations } from "./permissions";
-import { SETUP_HOUSEKEEPING_PATHS } from "../utils/housekeeping";
+
+import { loadConfig } from "../config/load-config";
 import type { ActionType } from "../types";
 
 /**
@@ -52,7 +53,8 @@ export async function detectPermissionViolations(repoRoot: string): Promise<stri
     const changedFiles = getElfChangedFiles(repoRoot, lastReviewed);
     if (changedFiles.length === 0) return [];
 
-    const violations = checkPermissionViolations(actionType, changedFiles);
+    const config = await loadConfig(repoRoot);
+    const violations = checkPermissionViolations(actionType, changedFiles, config.wikiDir);
     return violations;
   } catch {
     return undefined;
@@ -61,10 +63,31 @@ export async function detectPermissionViolations(repoRoot: string): Promise<stri
 
 const HOUSEKEEPING_PREFIX = "Auto-commit setup housekeeping";
 
+/** Paths that are orchestration output — commits touching only these don't need review */
+export const ORCHESTRATION_PREFIXES = [
+  ".shoe-makers/state/",
+  ".shoe-makers/findings/",
+  ".shoe-makers/insights/",
+  ".shoe-makers/log/",
+  ".shoe-makers/archive/",
+];
+
 /**
- * Get files changed by elf commits only, excluding auto-commit housekeeping.
- * This prevents false-positive permission violations from setup script commits
- * (shift log entries, archived findings) being attributed to the elf.
+ * Get the files changed by a single commit.
+ */
+function getCommitFiles(repoRoot: string, hash: string): string[] {
+  const files = execSync(`git diff-tree --no-commit-id --name-only -r ${hash}`, {
+    cwd: repoRoot,
+    encoding: "utf-8",
+  }).trim();
+  return files ? files.split("\n").filter(f => f.length > 0) : [];
+}
+
+/**
+ * Get files changed by elf commits only, excluding auto-commit housekeeping
+ * and state-file-only commits (orchestration artifacts like candidates.md,
+ * work-item.md). This prevents false-positive permission violations and
+ * unnecessary review cycles for planning commits.
  */
 export function getElfChangedFiles(repoRoot: string, sinceCommit: string): string[] {
   const commitsRaw = execSync(
@@ -74,7 +97,7 @@ export function getElfChangedFiles(repoRoot: string, sinceCommit: string): strin
 
   if (!commitsRaw) return [];
 
-  const elfCommitHashes = commitsRaw
+  const nonHousekeepingCommits = commitsRaw
     .split("\n")
     .filter(line => {
       const subject = line.substring(line.indexOf(" ") + 1);
@@ -83,24 +106,28 @@ export function getElfChangedFiles(repoRoot: string, sinceCommit: string): strin
     .map(line => line.split(" ")[0])
     .filter(Boolean);
 
+  if (nonHousekeepingCommits.length === 0) return [];
+
+  // Filter out commits that only touch orchestration state files
+  const elfCommitHashes = nonHousekeepingCommits.filter(hash => {
+    const files = getCommitFiles(repoRoot, hash);
+    return files.length === 0 || !files.every(f => ORCHESTRATION_PREFIXES.some(p => f.startsWith(p)));
+  });
+
   if (elfCommitHashes.length === 0) return [];
 
   const changedFiles = new Set<string>();
   for (const hash of elfCommitHashes) {
-    const files = execSync(`git diff-tree --no-commit-id --name-only -r ${hash}`, {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
-    if (files) {
-      for (const f of files.split("\n")) {
-        if (f.length > 0) changedFiles.add(f);
-      }
+    for (const f of getCommitFiles(repoRoot, hash)) {
+      changedFiles.add(f);
     }
   }
 
-  // Filter out files under housekeeping paths — these are setup-authored,
-  // not elf-authored, even when they appear in elf commits
+  // Filter out log and archive files — these are setup-authored, not elf-authored,
+  // even when they appear in elf commits. Findings and state files are kept because
+  // elves legitimately modify them (e.g. resolving critiques, writing work items).
+  const ELF_EXCLUDED_PREFIXES = [".shoe-makers/log/", ".shoe-makers/archive/"];
   return [...changedFiles].filter(f =>
-    !SETUP_HOUSEKEEPING_PATHS.some(p => f.startsWith(p))
+    !ELF_EXCLUDED_PREFIXES.some(p => f.startsWith(p))
   );
 }

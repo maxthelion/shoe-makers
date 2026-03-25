@@ -5,15 +5,21 @@ import {
   checkPermissionViolations,
 } from "../verify/permissions";
 import type { ActionType } from "../types";
+import { defaultTree } from "../tree/default-tree";
+import { extractSkills } from "./test-utils";
 
 const allActions: ActionType[] = [
   "fix-tests",
   "fix-critique",
   "critique",
+  "continue-work",
   "review",
   "inbox",
   "execute-work-item",
+  "dead-code",
   "prioritise",
+  "innovate",
+  "evaluate-insight",
   "explore",
 ];
 
@@ -91,6 +97,14 @@ describe("isFileAllowed", () => {
     expect(isFileAllowed("fix-tests", "src/types.ts")).toBe(true);
   });
 
+  test("continue-work has executor-level permissions", () => {
+    expect(isFileAllowed("continue-work", "src/foo.ts")).toBe(true);
+    expect(isFileAllowed("continue-work", "src/__tests__/foo.test.ts")).toBe(true);
+    expect(isFileAllowed("continue-work", "wiki/pages/bar.md")).toBe(true);
+    expect(isFileAllowed("continue-work", ".shoe-makers/state/partial-work.md")).toBe(true);
+    expect(isFileAllowed("continue-work", ".shoe-makers/invariants.md")).toBe(false);
+  });
+
   test("explore can write state and findings", () => {
     expect(isFileAllowed("explore", ".shoe-makers/state/candidates.md")).toBe(true);
     expect(isFileAllowed("explore", ".shoe-makers/findings/note.md")).toBe(true);
@@ -123,5 +137,136 @@ describe("checkPermissionViolations", () => {
       ".shoe-makers/invariants.md",
     ]);
     expect(violations).toEqual([".shoe-makers/invariants.md"]);
+  });
+});
+
+describe("custom wikiDir", () => {
+  test("getPermissions uses custom wikiDir in cannotWrite", () => {
+    const perms = getPermissions("critique", "docs/wiki");
+    expect(perms.cannotWrite).toContain("docs/wiki/");
+    expect(perms.cannotWrite).not.toContain("wiki/");
+  });
+
+  test("getPermissions uses custom wikiDir in canWrite", () => {
+    const perms = getPermissions("execute-work-item", "docs/wiki");
+    expect(perms.canWrite).toContain("docs/wiki/");
+    expect(perms.canWrite).not.toContain("wiki/");
+  });
+
+  test("reviewer cannot write to custom wiki dir", () => {
+    expect(isFileAllowed("critique", "docs/wiki/pages/foo.md", "docs/wiki")).toBe(false);
+  });
+
+  test("old wiki/ path is not forbidden when wikiDir is different", () => {
+    // With custom wikiDir, "wiki/" is no longer in cannotWrite for the reviewer.
+    // But the reviewer still can't write there since "wiki/" isn't in canWrite either.
+    // Test with inbox-handler which has broad canWrite including the wiki path.
+    const perms = getPermissions("critique", "docs/wiki");
+    expect(perms.cannotWrite).not.toContain("wiki/");
+  });
+
+  test("executor can write to custom wiki dir", () => {
+    expect(isFileAllowed("execute-work-item", "docs/wiki/pages/foo.md", "docs/wiki")).toBe(true);
+  });
+
+  test("executor cannot write to old wiki/ when wikiDir is different", () => {
+    // With custom wikiDir, "wiki/" is not in canWrite — only "docs/wiki/" is
+    expect(isFileAllowed("execute-work-item", "wiki/pages/foo.md", "docs/wiki")).toBe(false);
+  });
+
+  test("checkPermissionViolations uses custom wikiDir", () => {
+    const violations = checkPermissionViolations("critique", [
+      ".shoe-makers/findings/critique-001.md",
+      "docs/wiki/pages/foo.md",
+    ], "docs/wiki");
+    expect(violations).toEqual(["docs/wiki/pages/foo.md"]);
+  });
+
+  test("invariants.md is still forbidden with custom wikiDir", () => {
+    for (const action of allActions) {
+      expect(isFileAllowed(action, ".shoe-makers/invariants.md", "docs/wiki")).toBe(false);
+    }
+  });
+
+  test("default wikiDir matches original behavior", () => {
+    // Explicitly passing "wiki" should behave the same as not passing it
+    expect(isFileAllowed("critique", "wiki/pages/foo.md", "wiki")).toBe(false);
+    expect(isFileAllowed("execute-work-item", "wiki/pages/foo.md", "wiki")).toBe(true);
+  });
+});
+
+describe("allActions drift prevention", () => {
+  test("allActions covers every skill in the behaviour tree", () => {
+    const treeSkills = extractSkills(defaultTree);
+    const allActionsSet = new Set(allActions);
+    for (const skill of treeSkills) {
+      expect(allActionsSet.has(skill as ActionType)).toBe(true);
+    }
+  });
+
+  test("every action in allActions exists in the behaviour tree", () => {
+    const treeSkills = extractSkills(defaultTree);
+    for (const action of allActions) {
+      expect(treeSkills.has(action)).toBe(true);
+    }
+  });
+});
+
+describe("dead-code permissions", () => {
+  test("dead-code can write source code", () => {
+    expect(isFileAllowed("dead-code", "src/foo.ts")).toBe(true);
+    expect(isFileAllowed("dead-code", "src/__tests__/foo.test.ts")).toBe(true);
+  });
+
+  test("dead-code cannot write wiki", () => {
+    expect(isFileAllowed("dead-code", "wiki/pages/architecture.md")).toBe(false);
+  });
+
+  test("dead-code cannot write invariants", () => {
+    expect(isFileAllowed("dead-code", ".shoe-makers/invariants.md")).toBe(false);
+  });
+});
+
+describe("innovate permissions", () => {
+  test("innovate can write insights", () => {
+    expect(isFileAllowed("innovate", ".shoe-makers/insights/2026-03-25-001.md")).toBe(true);
+  });
+
+  test("innovate cannot write source code", () => {
+    expect(isFileAllowed("innovate", "src/types.ts")).toBe(false);
+  });
+
+  test("innovate cannot write wiki", () => {
+    expect(isFileAllowed("innovate", "wiki/pages/architecture.md")).toBe(false);
+  });
+
+  test("innovate cannot write invariants", () => {
+    expect(isFileAllowed("innovate", ".shoe-makers/invariants.md")).toBe(false);
+  });
+});
+
+describe("evaluate-insight permissions", () => {
+  test("evaluate-insight can write insights", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/insights/2026-03-25-001.md")).toBe(true);
+  });
+
+  test("evaluate-insight can write state files", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/state/work-item.md")).toBe(true);
+  });
+
+  test("evaluate-insight can write log files", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/log/2026-03-25.md")).toBe(true);
+  });
+
+  test("evaluate-insight cannot write source code", () => {
+    expect(isFileAllowed("evaluate-insight", "src/types.ts")).toBe(false);
+  });
+
+  test("evaluate-insight cannot write wiki", () => {
+    expect(isFileAllowed("evaluate-insight", "wiki/pages/architecture.md")).toBe(false);
+  });
+
+  test("evaluate-insight cannot write invariants", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/invariants.md")).toBe(false);
   });
 });

@@ -2,6 +2,8 @@ import { describe, test, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { defaultTree } from "../tree/default-tree";
+import { evaluate } from "../tree/evaluate";
+import { makeState, freshAssessment, emptyBlackboard } from "./test-utils";
 
 describe("default tree structure", () => {
   test("root is a selector", () => {
@@ -9,8 +11,8 @@ describe("default tree structure", () => {
     expect(defaultTree.name).toBe("root");
   });
 
-  test("has exactly 11 children", () => {
-    expect(defaultTree.children).toHaveLength(11);
+  test("has exactly 13 children", () => {
+    expect(defaultTree.children).toHaveLength(13);
   });
 
   test("each child is a sequence with condition + action", () => {
@@ -23,13 +25,15 @@ describe("default tree structure", () => {
   });
 
   const expectedOrder = [
-    // Reactive zone (positions 0-4)
+    // Reactive zone (positions 0-6)
     "tests-failing",
+    "review-loop-breaker",
     "unresolved-critiques",
+    "partial-work",
     "unreviewed-commits",
     "unverified-work",
     "inbox-messages",
-    // Three-phase orchestration (positions 5-10)
+    // Three-phase orchestration (positions 7-12)
     "dead-code-work",
     "work-item",
     "candidates",
@@ -44,11 +48,13 @@ describe("default tree structure", () => {
   });
 
   test("reactive zone comes before proactive zone", () => {
-    const reactiveNames = defaultTree.children!.slice(0, 5).map((c) => c.name);
-    const proactiveNames = defaultTree.children!.slice(5).map((c) => c.name);
+    const reactiveNames = defaultTree.children!.slice(0, 7).map((c) => c.name);
+    const proactiveNames = defaultTree.children!.slice(7).map((c) => c.name);
     expect(reactiveNames).toEqual([
       "tests-failing",
+      "review-loop-breaker",
       "unresolved-critiques",
+      "partial-work",
       "unreviewed-commits",
       "unverified-work",
       "inbox-messages",
@@ -89,5 +95,85 @@ describe("default tree structure", () => {
       (line) => line.includes("├──") || line.includes("└──")
     );
     expect(treeLines.length).toBe(defaultTree.children!.length);
+  });
+});
+
+describe("review-loop circuit breaker", () => {
+  test("routes to explore when review loop count >= 3 and critiques exist", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 2,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 3, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("explore");
+  });
+
+  test("routes to fix-critique when review loop count < 3 and critiques exist", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 2,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.5, reviewLoopCount: 2, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("fix-critique");
+  });
+
+  test("tests-failing still takes priority over circuit breaker", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 2,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          testsPass: false,
+          processPatterns: { reactiveRatio: 0.9, reviewLoopCount: 5, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("fix-tests");
+  });
+});
+
+describe("partial-work resumption", () => {
+  test("routes to continue-work when hasPartialWork is true", () => {
+    const state = makeState({ hasPartialWork: true });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("continue-work");
+  });
+
+  test("partial-work fires before unreviewed-commits", () => {
+    const state = makeState({
+      hasPartialWork: true,
+      hasUnreviewedCommits: true,
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("continue-work");
+  });
+
+  test("unresolved critiques take priority over partial-work", () => {
+    const state = makeState({
+      hasPartialWork: true,
+      unresolvedCritiqueCount: 1,
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("fix-critique");
+  });
+
+  test("does not route to continue-work when hasPartialWork is false", () => {
+    const state = makeState({ hasPartialWork: false });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).not.toBe("continue-work");
   });
 });

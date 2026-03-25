@@ -1,12 +1,13 @@
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "./action-constants";
+import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "./action-classification";
 
 /** Map prompt title keywords to action names */
 const TITLE_TO_ACTION: [RegExp, string][] = [
   [/Fix Failing Tests/i, "fix-tests"],
   [/Fix Unresolved Critiques/i, "fix-critique"],
   [/Adversarial Review/i, "critique"],
+  [/Continue Partial Work/i, "continue-work"],
   [/Review Uncommitted Work/i, "review"],
   [/Inbox Messages/i, "inbox"],
   [/Execute Work Item/i, "execute-work-item"],

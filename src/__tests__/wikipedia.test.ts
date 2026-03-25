@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { shouldIncludeLens, fetchRandomArticle, fetchArticleForAction } from "../creative/wikipedia";
+import { shouldIncludeLens, fetchRandomArticle, fetchArticleForAction, FALLBACK_CONCEPTS, getRandomFallbackConcept } from "../creative/wikipedia";
 
 describe("shouldIncludeLens", () => {
   test("returns false when frequency is 0", () => {
@@ -17,6 +17,38 @@ describe("shouldIncludeLens", () => {
   });
 });
 
+describe("FALLBACK_CONCEPTS", () => {
+  test("has at least 50 entries", () => {
+    expect(FALLBACK_CONCEPTS.length).toBeGreaterThanOrEqual(50);
+  });
+
+  test("each entry has a non-empty title and summary of at least 50 characters", () => {
+    for (const concept of FALLBACK_CONCEPTS) {
+      expect(concept.title.length).toBeGreaterThan(0);
+      expect(concept.summary.length).toBeGreaterThanOrEqual(50);
+    }
+  });
+});
+
+describe("getRandomFallbackConcept", () => {
+  test("returns an object with title and summary strings", () => {
+    const concept = getRandomFallbackConcept();
+    expect(typeof concept.title).toBe("string");
+    expect(typeof concept.summary).toBe("string");
+    expect(concept.title.length).toBeGreaterThan(0);
+    expect(concept.summary.length).toBeGreaterThan(0);
+  });
+
+  test("returns different values across multiple calls", () => {
+    const titles = new Set<string>();
+    for (let i = 0; i < 20; i++) {
+      titles.add(getRandomFallbackConcept().title);
+    }
+    // With 50+ concepts, 20 calls should produce at least 2 unique titles
+    expect(titles.size).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe("fetchRandomArticle", () => {
   const originalFetch = globalThis.fetch;
 
@@ -25,22 +57,24 @@ describe("fetchRandomArticle", () => {
   });
 
   function mockFetch(fn: (...args: Parameters<typeof fetch>) => Promise<Response> | never): void {
-    globalThis.fetch = Object.assign(fn, { preconnect: originalFetch.preconnect }) as typeof fetch;
+    globalThis.fetch = Object.assign(fn, { preconnect: (originalFetch as any).preconnect }) as typeof fetch;
   }
 
-  test("returns null on network error", async () => {
+  test("returns fallback concept on network error", async () => {
     mockFetch(() => { throw new Error("Network error"); });
     const result = await fetchRandomArticle();
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(FALLBACK_CONCEPTS).toContainEqual(result!);
   });
 
-  test("returns null when API returns non-OK status", async () => {
+  test("returns fallback concept when API returns non-OK status", async () => {
     mockFetch(async () => new Response("", { status: 500 }));
     const result = await fetchRandomArticle();
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(FALLBACK_CONCEPTS).toContainEqual(result!);
   });
 
-  test("returns null for stub articles with short extracts", async () => {
+  test("returns fallback concept for stub articles with short extracts", async () => {
     let callCount = 0;
     mockFetch(async () => {
       callCount++;
@@ -54,7 +88,8 @@ describe("fetchRandomArticle", () => {
       }));
     });
     const result = await fetchRandomArticle();
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(FALLBACK_CONCEPTS).toContainEqual(result!);
   });
 
   test("returns title and summary on success", async () => {
@@ -140,12 +175,14 @@ describe("fetchArticleForAction", () => {
     expect(logs[0]).toContain("Mock Article");
   });
 
-  test("logs failure to shift log when innovate fetch fails", async () => {
+  test("falls back to local concept when innovate fetch fails", async () => {
     mockFetch(() => { throw new Error("Network error"); });
     const logs: string[] = [];
-    await fetchArticleForAction("innovate", 0.3, async (e) => { logs.push(e); });
+    const result = await fetchArticleForAction("innovate", 0.3, async (e) => { logs.push(e); });
+    // fetchRandomArticle catches network errors and returns a fallback concept
+    expect(result).not.toBeUndefined();
     expect(logs.length).toBe(1);
-    expect(logs[0]).toContain("fetch failed");
+    expect(logs[0]).toContain("Wikipedia article");
   });
 
   test("returns undefined for non-creative skills", async () => {

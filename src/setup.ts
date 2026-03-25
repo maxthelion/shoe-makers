@@ -8,7 +8,7 @@ import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
 import { readLastAction, saveLastAction } from "./state/last-action";
 import { parseActionTypeFromPrompt } from "./prompts/helpers";
-import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights } from "./state/world";
+import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights, checkHasPartialWork } from "./state/world";
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
 import { detectPermissionViolations } from "./verify/detect-violations";
@@ -107,7 +107,7 @@ async function main() {
   // Read wiki overview for innovate action
   let wikiSummary: string | undefined;
   if (skill === "innovate") {
-    wikiSummary = await readWikiOverview(repoRoot);
+    wikiSummary = await readWikiOverview(repoRoot, config.wikiDir);
   }
 
   // Snapshot the previous action type before detection reads it.
@@ -274,7 +274,8 @@ function checkoutOrCreateBranch(repoRoot: string, branchName: string): void {
 export function logAssessment(assessment: Awaited<ReturnType<typeof assess>>): void {
   console.log(`[setup] Tests: ${assessment.testsPass ? "pass" : "FAIL"}`);
   if (assessment.typecheckPass !== undefined) {
-    console.log(`[setup] Typecheck: ${assessment.typecheckPass ? "pass" : "FAIL"}`);
+    const label = assessment.typecheckPass === null ? "skipped" : assessment.typecheckPass ? "pass" : "FAIL";
+    console.log(`[setup] Typecheck: ${label}`);
   }
   console.log(`[setup] Plans: ${assessment.openPlans.length}`);
   console.log(`[setup] Findings: ${assessment.findings.length}`);
@@ -321,7 +322,7 @@ async function buildWorldState(
   inboxCount: number,
   config: Config,
 ): Promise<WorldState> {
-  const [uncommitted, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType, insightCount] = await Promise.all([
+  const [uncommitted, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType, insightCount, hasPartialWork] = await Promise.all([
     hasUncommittedChanges(repoRoot),
     checkUnreviewedCommits(repoRoot),
     countUnresolvedCritiques(repoRoot),
@@ -329,13 +330,12 @@ async function buildWorldState(
     checkHasCandidates(repoRoot),
     readWorkItemSkillType(repoRoot),
     countInsights(repoRoot),
+    checkHasPartialWork(repoRoot),
   ]);
 
   const blackboard: Blackboard = {
     assessment,
-    priorities: null,
     currentTask: null,
-    verification: null,
   };
 
   return {
@@ -347,6 +347,7 @@ async function buildWorldState(
     hasWorkItem,
     hasCandidates,
     workItemSkillType,
+    hasPartialWork,
     insightCount,
     blackboard,
     config,
@@ -400,13 +401,13 @@ The tree found no applicable action. This shouldn't happen — check the tree de
  * Read wiki overview pages for the innovate creative brief.
  * Reads architecture.md and other key overview pages to build a system summary.
  */
-export async function readWikiOverview(repoRoot: string): Promise<string> {
+export async function readWikiOverview(repoRoot: string, wikiDir: string = "wiki"): Promise<string> {
   const overviewFiles = ["architecture.md", "behaviour-tree.md", "pure-function-agents.md"];
   const sections: string[] = [];
 
   for (const file of overviewFiles) {
     try {
-      const content = await readFile(join(repoRoot, "wiki", "pages", file), "utf-8");
+      const content = await readFile(join(repoRoot, wikiDir, "pages", file), "utf-8");
       // Strip frontmatter
       const stripped = content.replace(/^---[\s\S]*?---\n*/, "");
       sections.push(stripped.trim());
