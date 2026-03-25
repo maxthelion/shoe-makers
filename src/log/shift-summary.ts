@@ -50,11 +50,7 @@ export interface ProcessPatterns {
   reviewLoopCount: number;
 }
 
-/** Actions considered reactive (urgent/corrective) */
-const REACTIVE_ACTIONS = new Set(["fix-tests", "fix-critique", "critique", "review", "inbox"]);
-
-/** Actions considered proactive (planned/creative) */
-const PROACTIVE_ACTIONS = new Set(["explore", "prioritise", "execute-work-item", "dead-code", "innovate", "evaluate-insight"]);
+import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "./action-classification";
 
 /** Map action types to improvement categories */
 const ACTION_TO_CATEGORY: Record<string, ImprovementCategory> = {
