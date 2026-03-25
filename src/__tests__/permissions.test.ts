@@ -125,3 +125,58 @@ describe("checkPermissionViolations", () => {
     expect(violations).toEqual([".shoe-makers/invariants.md"]);
   });
 });
+
+describe("custom wikiDir", () => {
+  test("getPermissions uses custom wikiDir in cannotWrite", () => {
+    const perms = getPermissions("critique", "docs/wiki");
+    expect(perms.cannotWrite).toContain("docs/wiki/");
+    expect(perms.cannotWrite).not.toContain("wiki/");
+  });
+
+  test("getPermissions uses custom wikiDir in canWrite", () => {
+    const perms = getPermissions("execute-work-item", "docs/wiki");
+    expect(perms.canWrite).toContain("docs/wiki/");
+    expect(perms.canWrite).not.toContain("wiki/");
+  });
+
+  test("reviewer cannot write to custom wiki dir", () => {
+    expect(isFileAllowed("critique", "docs/wiki/pages/foo.md", "docs/wiki")).toBe(false);
+  });
+
+  test("old wiki/ path is not forbidden when wikiDir is different", () => {
+    // With custom wikiDir, "wiki/" is no longer in cannotWrite for the reviewer.
+    // But the reviewer still can't write there since "wiki/" isn't in canWrite either.
+    // Test with inbox-handler which has broad canWrite including the wiki path.
+    const perms = getPermissions("critique", "docs/wiki");
+    expect(perms.cannotWrite).not.toContain("wiki/");
+  });
+
+  test("executor can write to custom wiki dir", () => {
+    expect(isFileAllowed("execute-work-item", "docs/wiki/pages/foo.md", "docs/wiki")).toBe(true);
+  });
+
+  test("executor cannot write to old wiki/ when wikiDir is different", () => {
+    // With custom wikiDir, "wiki/" is not in canWrite — only "docs/wiki/" is
+    expect(isFileAllowed("execute-work-item", "wiki/pages/foo.md", "docs/wiki")).toBe(false);
+  });
+
+  test("checkPermissionViolations uses custom wikiDir", () => {
+    const violations = checkPermissionViolations("critique", [
+      ".shoe-makers/findings/critique-001.md",
+      "docs/wiki/pages/foo.md",
+    ], "docs/wiki");
+    expect(violations).toEqual(["docs/wiki/pages/foo.md"]);
+  });
+
+  test("invariants.md is still forbidden with custom wikiDir", () => {
+    for (const action of allActions) {
+      expect(isFileAllowed(action, ".shoe-makers/invariants.md", "docs/wiki")).toBe(false);
+    }
+  });
+
+  test("default wikiDir matches original behavior", () => {
+    // Explicitly passing "wiki" should behave the same as not passing it
+    expect(isFileAllowed("critique", "wiki/pages/foo.md", "wiki")).toBe(false);
+    expect(isFileAllowed("execute-work-item", "wiki/pages/foo.md", "wiki")).toBe(true);
+  });
+});

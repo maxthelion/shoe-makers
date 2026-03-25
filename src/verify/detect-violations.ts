@@ -4,6 +4,7 @@ import { execSync } from "child_process";
 import { readLastAction } from "../state/last-action";
 import { parseActionTypeFromPrompt } from "../prompts/helpers";
 import { checkPermissionViolations } from "./permissions";
+import { loadConfig } from "../config/load-config";
 
 /**
  * Detect permission violations by the previous elf.
@@ -33,7 +34,8 @@ export async function detectPermissionViolations(repoRoot: string): Promise<stri
     const changedFiles = getElfChangedFiles(repoRoot, lastReviewed);
     if (changedFiles.length === 0) return [];
 
-    const violations = checkPermissionViolations(actionType, changedFiles);
+    const config = await loadConfig(repoRoot);
+    const violations = checkPermissionViolations(actionType, changedFiles, config.wikiDir);
     return violations;
   } catch {
     return undefined;

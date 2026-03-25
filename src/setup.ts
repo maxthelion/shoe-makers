@@ -101,7 +101,7 @@ async function main() {
   // Read wiki overview for innovate action
   let wikiSummary: string | undefined;
   if (skill === "innovate") {
-    wikiSummary = await readWikiOverview(repoRoot);
+    wikiSummary = await readWikiOverview(repoRoot, config.wikiDir);
   }
 
   // Detect permission violations for critique actions
@@ -380,13 +380,13 @@ The tree found no applicable action. This shouldn't happen — check the tree de
  * Read wiki overview pages for the innovate creative brief.
  * Reads architecture.md and other key overview pages to build a system summary.
  */
-export async function readWikiOverview(repoRoot: string): Promise<string> {
+export async function readWikiOverview(repoRoot: string, wikiDir: string = "wiki"): Promise<string> {
   const overviewFiles = ["architecture.md", "behaviour-tree.md", "pure-function-agents.md"];
   const sections: string[] = [];
 
   for (const file of overviewFiles) {
     try {
-      const content = await readFile(join(repoRoot, "wiki", "pages", file), "utf-8");
+      const content = await readFile(join(repoRoot, wikiDir, "pages", file), "utf-8");
       // Strip frontmatter
       const stripped = content.replace(/^---[\s\S]*?---\n*/, "");
       sections.push(stripped.trim());
