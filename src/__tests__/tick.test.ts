@@ -155,6 +155,10 @@ describe("tick", () => {
         enabledSkills: null,
         insightFrequency: 0.3,
         maxInnovationCycles: 3,
+        healthRegressionThreshold: 2,
+        reviewLoopThreshold: 3,
+        wikipediaTimeout: 10_000,
+        octocleanTimeout: 120_000,
       },
     }));
     expect(result.action).toBe("explore");
@@ -178,6 +182,10 @@ describe("tick", () => {
         enabledSkills: null,
         insightFrequency: 0.3,
         maxInnovationCycles: 3,
+        healthRegressionThreshold: 2,
+        reviewLoopThreshold: 3,
+        wikipediaTimeout: 10_000,
+        octocleanTimeout: 120_000,
       },
     }));
     expect(result.action).toBe("innovate");

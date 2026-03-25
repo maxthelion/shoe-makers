@@ -30,10 +30,10 @@ async function main() {
   if (!(await handleWorkingHoursCheck(repoRoot))) return;
 
   const branchName = ensureBranch(repoRoot);
-  const { assessment, prevActionRaw } = await runAssessmentPhase(repoRoot);
-
   const config = await loadConfig(repoRoot);
   console.log(`[setup] Config: tick every ${config.tickInterval}m, max ${config.maxTicksPerShift} ticks/shift`);
+
+  const { assessment, prevActionRaw } = await runAssessmentPhase(repoRoot, config);
 
   const { skill, trace, state, inboxMessages, loadedSkills } =
     await evaluateTreePhase(repoRoot, branchName, assessment, config);
@@ -58,7 +58,7 @@ async function handleWorkingHoursCheck(repoRoot: string): Promise<boolean> {
   return false;
 }
 
-async function runAssessmentPhase(repoRoot: string) {
+async function runAssessmentPhase(repoRoot: string, config: Config) {
   const archived = await archiveResolvedFindings(repoRoot);
   if (archived.length > 0) {
     console.log(`[setup] Archived ${archived.length} resolved finding(s)`);
@@ -69,7 +69,7 @@ async function runAssessmentPhase(repoRoot: string) {
   const previousBlackboard = await readBlackboard(repoRoot);
   const healthBefore = previousBlackboard.assessment?.healthScore ?? null;
   const assessment = await assess(repoRoot);
-  const healthRegression = checkHealthRegression(healthBefore, assessment.healthScore);
+  const healthRegression = checkHealthRegression(healthBefore, assessment.healthScore, config.healthRegressionThreshold);
   if (healthRegression) {
     console.warn(`[setup] WARNING: ${healthRegression}`);
   }

@@ -108,7 +108,7 @@ export async function fetchArticleFromCorpus(repoRoot: string): Promise<{
  * Fetch a random Wikipedia article summary for analogical prompting.
  * Falls back to a local concept corpus when Wikipedia is unreachable.
  */
-export async function fetchRandomArticle(): Promise<{
+export async function fetchRandomArticle(timeout: number = 10_000): Promise<{
   title: string;
   summary: string;
 } | null> {
@@ -116,7 +116,7 @@ export async function fetchRandomArticle(): Promise<{
     // Get a random article title
     const randomRes = await fetch(
       "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json",
-      { signal: AbortSignal.timeout(10_000) }
+      { signal: AbortSignal.timeout(timeout) }
     );
     if (!randomRes.ok) return getRandomFallbackConcept();
     const randomData = await randomRes.json();
@@ -126,7 +126,7 @@ export async function fetchRandomArticle(): Promise<{
     // Get the article extract
     const extractRes = await fetch(
       `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=true&explaintext=true&format=json`,
-      { signal: AbortSignal.timeout(10_000) }
+      { signal: AbortSignal.timeout(timeout) }
     );
     if (!extractRes.ok) return getRandomFallbackConcept();
     const extractData = await extractRes.json();

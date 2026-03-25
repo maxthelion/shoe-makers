@@ -13,6 +13,10 @@ const KNOWN_KEYS = new Set([
   "enabled-skills",
   "insight-frequency",
   "max-innovation-cycles",
+  "health-regression-threshold",
+  "review-loop-threshold",
+  "wikipedia-timeout",
+  "octoclean-timeout",
 ]);
 
 const DEFAULTS: Config = {
@@ -24,6 +28,10 @@ const DEFAULTS: Config = {
   enabledSkills: null,
   insightFrequency: 0.3,
   maxInnovationCycles: 3,
+  healthRegressionThreshold: 2,
+  reviewLoopThreshold: 3,
+  wikipediaTimeout: 10_000,
+  octocleanTimeout: 120_000,
 };
 
 /**
@@ -104,5 +112,9 @@ export async function loadConfig(repoRoot: string): Promise<Config> {
       : null,
     insightFrequency: parseInsightFrequency(raw["insight-frequency"]),
     maxInnovationCycles: intOrDefault("max-innovation-cycles", DEFAULTS.maxInnovationCycles),
+    healthRegressionThreshold: intOrDefault("health-regression-threshold", DEFAULTS.healthRegressionThreshold),
+    reviewLoopThreshold: intOrDefault("review-loop-threshold", DEFAULTS.reviewLoopThreshold),
+    wikipediaTimeout: intOrDefault("wikipedia-timeout", DEFAULTS.wikipediaTimeout),
+    octocleanTimeout: intOrDefault("octoclean-timeout", DEFAULTS.octocleanTimeout),
   };
 }

@@ -92,6 +92,16 @@ describe("computeProcessPatterns", () => {
     expect(patterns.reviewLoopCount).toBe(0);
   });
 
+  test("respects custom review loop threshold", () => {
+    // With threshold=5, 3 consecutive review actions should NOT count as a loop
+    const patterns = computeProcessPatterns(["critique", "fix-critique", "critique", "explore"], 5);
+    expect(patterns.reviewLoopCount).toBe(0);
+
+    // With threshold=5, 5 consecutive review actions SHOULD count as a loop
+    const patterns2 = computeProcessPatterns(["critique", "fix-critique", "critique", "fix-critique", "critique", "explore"], 5);
+    expect(patterns2.reviewLoopCount).toBe(1);
+  });
+
   test("fully reactive shift has ratio 1.0", () => {
     const patterns = computeProcessPatterns(["critique", "fix-critique", "critique"]);
     expect(patterns.reactiveRatio).toBe(1.0);

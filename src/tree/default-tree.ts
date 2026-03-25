@@ -29,7 +29,8 @@ function testsFailing(state: WorldState): boolean {
 
 function reviewLoopExhausted(state: WorldState): boolean {
   const loopCount = state.blackboard.assessment?.processPatterns?.reviewLoopCount ?? 0;
-  return loopCount >= 3;
+  const threshold = state.config?.reviewLoopThreshold ?? 3;
+  return loopCount >= threshold;
 }
 
 function inReviewLoop(state: WorldState): boolean {

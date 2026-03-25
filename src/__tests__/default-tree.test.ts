@@ -181,6 +181,30 @@ describe("review-loop circuit breaker", () => {
     expect(result.skill).toBe("prioritise");
   });
 
+  test("respects custom review loop threshold from config", () => {
+    // With threshold=5, a loop count of 3 should NOT trigger the breaker
+    const state = makeState({
+      unresolvedCritiqueCount: 2,
+      config: {
+        branchPrefix: "shoemakers", tickInterval: 5, wikiDir: "wiki",
+        assessmentStaleAfter: 30, maxTicksPerShift: 10, enabledSkills: null,
+        insightFrequency: 0.3, maxInnovationCycles: 3,
+        healthRegressionThreshold: 2, reviewLoopThreshold: 5,
+        wikipediaTimeout: 10_000, octocleanTimeout: 120_000,
+      },
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 3, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    // Should route to fix-critique since loop count (3) < threshold (5)
+    expect(result.skill).toBe("fix-critique");
+  });
+
   test("tests-failing still takes priority over circuit breaker", () => {
     const state = makeState({
       unresolvedCritiqueCount: 2,

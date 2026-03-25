@@ -251,9 +251,10 @@ function analyzeTraces(steps: ShiftStep[]): TraceAnalysis | undefined {
  * Analyze process-level patterns across the shift.
  *
  * Counts reactive vs. proactive ticks and detects review loops
- * (sequences where critique/fix-critique alternate 3+ times).
+ * (sequences where critique/fix-critique alternate N+ times,
+ * configurable via reviewLoopThreshold, default 3).
  */
-function analyzeProcessPatterns(steps: ShiftStep[]): ProcessPatterns {
+function analyzeProcessPatterns(steps: ShiftStep[], reviewLoopThreshold: number = 3): ProcessPatterns {
   let reactiveTicks = 0;
   let proactiveTicks = 0;
 
@@ -267,7 +268,7 @@ function analyzeProcessPatterns(steps: ShiftStep[]): ProcessPatterns {
   const total = reactiveTicks + proactiveTicks;
   const reactiveRatio = total > 0 ? reactiveTicks / total : 0;
 
-  // Detect review loops: sequences of critique/fix-critique alternating 3+ times
+  // Detect review loops: sequences of critique/fix-critique alternating N+ times
   const reviewActions = new Set(["critique", "fix-critique"]);
   let reviewLoopCount = 0;
   let consecutiveReviewActions = 0;
@@ -275,11 +276,11 @@ function analyzeProcessPatterns(steps: ShiftStep[]): ProcessPatterns {
     if (reviewActions.has(step.tick.action ?? "")) {
       consecutiveReviewActions++;
     } else {
-      if (consecutiveReviewActions >= 3) reviewLoopCount++;
+      if (consecutiveReviewActions >= reviewLoopThreshold) reviewLoopCount++;
       consecutiveReviewActions = 0;
     }
   }
-  if (consecutiveReviewActions >= 3) reviewLoopCount++;
+  if (consecutiveReviewActions >= reviewLoopThreshold) reviewLoopCount++;
 
   return { reactiveTicks, proactiveTicks, reactiveRatio, reviewLoopCount };
 }

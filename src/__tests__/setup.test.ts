@@ -40,6 +40,10 @@ const defaultConfig: Config = {
   enabledSkills: null,
   insightFrequency: 0.3,
   maxInnovationCycles: 3,
+  healthRegressionThreshold: 2,
+  reviewLoopThreshold: 3,
+  wikipediaTimeout: 10_000,
+  octocleanTimeout: 120_000,
 };
 
 function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {

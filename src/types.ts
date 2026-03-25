@@ -178,4 +178,12 @@ export interface Config {
   insightFrequency: number;
   /** Maximum innovation cycles per shift before routing to explore (default: 3) */
   maxInnovationCycles: number;
+  /** Health regression tolerance in points (default: 2) */
+  healthRegressionThreshold: number;
+  /** Review loop breaker threshold — consecutive review actions before breaking out (default: 3) */
+  reviewLoopThreshold: number;
+  /** Timeout for Wikipedia API fetch in milliseconds (default: 10000) */
+  wikipediaTimeout: number;
+  /** Timeout for octoclean health scan in milliseconds (default: 120000) */
+  octocleanTimeout: number;
 }
