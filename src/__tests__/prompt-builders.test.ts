@@ -3,6 +3,7 @@ import {
   buildFixTestsPrompt,
   buildFixCritiquePrompt,
   buildCritiquePrompt,
+  buildContinueWorkPrompt,
   buildReviewPrompt,
   buildInboxPrompt,
 } from "../prompts/reactive";
@@ -103,6 +104,26 @@ describe("buildCritiquePrompt", () => {
     const result = buildCritiquePrompt();
     expect(result).toContain("Compliant");
     expect(result).toContain("Non-compliant");
+  });
+});
+
+describe("buildContinueWorkPrompt", () => {
+  test("includes partial-work.md instructions", () => {
+    const result = buildContinueWorkPrompt();
+    expect(result).toContain("Continue Partial Work");
+    expect(result).toContain("partial-work.md");
+    expect(result).toContain("bun test");
+  });
+
+  test("tells elf to delete partial-work.md when done", () => {
+    const result = buildContinueWorkPrompt();
+    expect(result).toContain("delete");
+    expect(result).toContain("partial-work.md");
+  });
+
+  test("includes off-limits", () => {
+    const result = buildContinueWorkPrompt();
+    expect(result).toContain("Off-limits");
   });
 });
 
@@ -286,6 +307,7 @@ describe("buildExecutePrompt", () => {
   test("includes wiki-wins-over-code rule", () => {
     const result = buildExecutePrompt("");
     expect(result).toContain("wiki is always the source of truth");
+    expect(result).toContain("never revert the wiki");
   });
 });
 
@@ -306,12 +328,15 @@ describe("buildDeadCodePrompt", () => {
 describe("buildInnovatePrompt", () => {
   const wikiSummary = "Shoe-makers is a behaviour tree system.";
 
-  test("with article includes article details", () => {
+  test("with article includes article details and article.title in lens format", () => {
     const article = { title: "Ant Colony Optimization", summary: "Ants find shortest paths." };
     const result = buildInnovatePrompt(wikiSummary, article);
     expect(result).toContain("Ant Colony Optimization");
     expect(result).toContain("Ants find shortest paths.");
     expect(result).toContain("**MUST** use the Wikipedia article");
+    expect(result).toContain("Start with the article title");
+    // article.title should appear in the lens section format
+    expect(result).toContain(article.title);
   });
 
   test("without article prompts self-chosen lens", () => {
@@ -326,11 +351,12 @@ describe("buildInnovatePrompt", () => {
     expect(result).toContain("Shoe-makers is a behaviour tree system.");
   });
 
-  test("requires insight file output", () => {
+  test("requires insight file output and uses divergent/creative mode", () => {
     const result = buildInnovatePrompt(wikiSummary);
     expect(result).toContain(".shoe-makers/insights/");
     expect(result).toContain("No connection found");
     expect(result).toContain("NOT acceptable");
+    expect(result).toContain("divergent/creative mode");
   });
 
   test("includes required insight sections", () => {
@@ -343,10 +369,10 @@ describe("buildInnovatePrompt", () => {
 });
 
 describe("buildEvaluateInsightPrompt", () => {
-  test("has generous disposition", () => {
+  test("has generous disposition and constructive/convergent mode", () => {
     const result = buildEvaluateInsightPrompt();
     expect(result).toContain("generous disposition");
-    expect(result).toContain("constructive/convergent");
+    expect(result).toContain("constructive/convergent mode");
   });
 
   test("includes three outcomes", () => {
