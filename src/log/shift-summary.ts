@@ -1,5 +1,6 @@
 import type { ShiftStep } from "../scheduler/shift";
 import type { TraceEntry } from "../tree/evaluate";
+import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "./action-classification";
 
 /** Category of improvement work */
 export type ImprovementCategory = "fix" | "feature" | "test" | "docs" | "health" | "review";
@@ -49,8 +50,6 @@ export interface ProcessPatterns {
   /** Detected review loops: sequences where critique/fix-critique alternate 3+ times */
   reviewLoopCount: number;
 }
-
-import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "./action-classification";
 
 /** Map action types to improvement categories */
 const ACTION_TO_CATEGORY: Record<string, ImprovementCategory> = {
