@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-25T22:13:24.272Z",
+  "timestamp": "2026-03-25T22:13:49.704Z",
   "invariants": {
     "specifiedOnly": 0,
     "implementedUntested": 0,
@@ -42,6 +42,7 @@
   "testsPass": true,
   "typecheckPass": true,
   "recentGitActivity": [
+    "435feea Update state files",
     "6c83808 Update state files after review tick",
     "10e56e6 Update shift log and state files after explore tick",
     "88b699e Explore: write 5 ranked candidates after codebase survey",
@@ -50,11 +51,10 @@
     "2f26690 Prioritise: add integration test for tick lifecycle",
     "3e7d323 Explore: write candidates after achieving 100/100 health",
     "a5857e8 Split wikipedia.test.ts and world.test.ts into focused test files",
-    "001140d Prioritise: split wikipedia.test.ts and world.test.ts",
-    "8f3e92b Explore: write candidates for remaining health and coverage work"
+    "001140d Prioritise: split wikipedia.test.ts and world.test.ts"
   ],
   "processPatterns": {
-    "reactiveRatio": 0.32779097387173395,
+    "reactiveRatio": 0.3293838862559242,
     "reviewLoopCount": 3,
     "innovationCycleCount": 3
   }
