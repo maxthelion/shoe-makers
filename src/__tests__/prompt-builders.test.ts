@@ -55,35 +55,17 @@ describe("buildFixCritiquePrompt", () => {
 });
 
 describe("buildCritiquePrompt", () => {
-  test("without violations has no warning", () => {
+  test("includes review process steps, scope restrictions, and verdict format", () => {
     const result = buildCritiquePrompt();
-    expect(result).not.toContain("PERMISSION VIOLATIONS");
     expect(result).toContain("Adversarial Review");
-  });
-
-  test("with empty violations has no warning", () => {
-    const result = buildCritiquePrompt([]);
-    expect(result).not.toContain("PERMISSION VIOLATIONS");
-  });
-
-  test("with violations includes warning and file list", () => {
-    const result = buildCritiquePrompt(["src/foo.ts", "wiki/bar.md"]);
-    expect(result).toContain("PERMISSION VIOLATIONS");
-    expect(result).toContain("src/foo.ts");
-    expect(result).toContain("wiki/bar.md");
-  });
-
-  test("includes review steps", () => {
-    const result = buildCritiquePrompt();
     expect(result).toContain("last-action.md");
     expect(result).toContain("last-reviewed-commit");
     expect(result).toContain("git log");
     expect(result).toContain("git diff");
-  });
-
-  test("reviewers cannot modify src or wiki", () => {
-    const result = buildCritiquePrompt();
     expect(result).toContain("reviewers can only write findings");
+    expect(result).toContain("Not every review must find problems");
+    expect(result).toContain("Compliant");
+    expect(result).toContain("Non-compliant");
   });
 
   test("includes all 5 wiki verification criteria", () => {
@@ -95,15 +77,16 @@ describe("buildCritiquePrompt", () => {
     expect(result).toContain("Does the change match the wiki spec");
   });
 
-  test("includes clean pass guidance", () => {
-    const result = buildCritiquePrompt();
-    expect(result).toContain("Not every review must find problems");
+  test("without violations has no warning", () => {
+    expect(buildCritiquePrompt()).not.toContain("PERMISSION VIOLATIONS");
+    expect(buildCritiquePrompt([])).not.toContain("PERMISSION VIOLATIONS");
   });
 
-  test("requires verdict format with Compliant/Non-compliant", () => {
-    const result = buildCritiquePrompt();
-    expect(result).toContain("Compliant");
-    expect(result).toContain("Non-compliant");
+  test("with violations includes warning and file list", () => {
+    const result = buildCritiquePrompt(["src/foo.ts", "wiki/bar.md"]);
+    expect(result).toContain("PERMISSION VIOLATIONS");
+    expect(result).toContain("src/foo.ts");
+    expect(result).toContain("wiki/bar.md");
   });
 
   test("includes validation patterns when provided", () => {
@@ -113,14 +96,9 @@ describe("buildCritiquePrompt", () => {
     expect(result).toContain("`tests cover the new functionality`");
   });
 
-  test("omits validation section when patterns empty", () => {
-    const result = buildCritiquePrompt([], []);
-    expect(result).not.toContain("Validation patterns");
-  });
-
-  test("omits validation section when patterns undefined", () => {
-    const result = buildCritiquePrompt();
-    expect(result).not.toContain("Validation patterns");
+  test("omits validation section when patterns empty or undefined", () => {
+    expect(buildCritiquePrompt([], [])).not.toContain("Validation patterns");
+    expect(buildCritiquePrompt()).not.toContain("Validation patterns");
   });
 
   test("includes both violation warning and validation patterns", () => {
@@ -349,21 +327,13 @@ describe("buildInnovatePrompt", () => {
 });
 
 describe("buildEvaluateInsightPrompt", () => {
-  test("has generous disposition and constructive/convergent mode", () => {
+  test("includes generous disposition, outcomes, and role distinction", () => {
     const result = buildEvaluateInsightPrompt();
     expect(result).toContain("generous disposition");
     expect(result).toContain("constructive/convergent mode");
-  });
-
-  test("includes three outcomes", () => {
-    const result = buildEvaluateInsightPrompt();
     expect(result).toContain("Promote");
     expect(result).toContain("Rework");
     expect(result).toContain("Dismiss");
-  });
-
-  test("distinguishes from prioritise elf", () => {
-    const result = buildEvaluateInsightPrompt();
     expect(result).toContain("NOT the prioritise elf");
   });
 });
