@@ -6,21 +6,20 @@ import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
 import { readLastAction, saveLastAction } from "./state/last-action";
-import { parseActionTypeFromPrompt, ACTION_TO_SKILL_TYPE } from "./prompts/helpers";
+import { parseActionTypeFromPrompt, findValidationPatterns } from "./prompts/helpers";
 import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights, checkHasPartialWork } from "./state/world";
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
-import { detectPermissionViolations } from "./verify/detect-violations";
-import { writePermissionViolationFinding } from "./verify/violation-findings";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
 import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
 import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
-import { verify as commitOrRevert } from "./verify/commit-or-revert";
 import { fetchArticleForAction } from "./creative/wikipedia";
 import { archiveConsumedStateFiles } from "./archive/state-archive";
 import { autoCommitHousekeeping, isAllHousekeeping, HOUSEKEEPING_PATHS } from "./scheduler/housekeeping";
+import { runVerificationGate } from "./scheduler/verification-gate";
+import { setupPermissionContext } from "./scheduler/permission-setup";
 
 /**
  * Setup script: runs before the elf starts.
@@ -70,22 +69,9 @@ async function main() {
   }
 
   // Verification gate: revert the elf's last commit if tests fail or health regresses.
-  // Only applies to work actions (not orchestration like explore/prioritise).
-  const WORK_ACTIONS: ActionType[] = ["execute-work-item", "fix-tests", "fix-critique", "dead-code", "continue-work", "inbox"];
   const prevActionRaw = await readLastAction(repoRoot);
   const prevActionType = prevActionRaw ? parseActionTypeFromPrompt(prevActionRaw) : null;
-  if (prevActionType && WORK_ACTIONS.includes(prevActionType)) {
-    const gate = commitOrRevert(assessment.testsPass ?? true, healthRegression);
-    if (gate.decision === "revert") {
-      console.warn(`[setup] Verification gate: reverting last commit (${gate.reason})`);
-      try {
-        execSync("git revert --no-edit HEAD", { cwd: repoRoot, stdio: "pipe" });
-        await appendToShiftLog(repoRoot, `## ${new Date().toISOString()} — Verification Gate\n\n- Reverted last commit: ${gate.reason}\n`);
-      } catch (e) {
-        console.warn("[setup] Revert failed — manual intervention may be needed");
-      }
-    }
-  }
+  await runVerificationGate(repoRoot, assessment.testsPass ?? true, prevActionType, healthRegression);
 
   logAssessment(assessment);
 
@@ -130,31 +116,11 @@ async function main() {
     wikiSummary = await readWikiOverview(repoRoot, config.wikiDir);
   }
 
-  // Snapshot the previous action type before detection reads it.
-  // This must happen BEFORE detectPermissionViolations so it reads
-  // the action that was actually issued to the previous elf.
+  // Snapshot previous action type and detect permission violations
+  const permissionViolations = await setupPermissionContext(repoRoot, skill);
+
   const stateDir = join(repoRoot, ".shoe-makers", "state");
   await mkdir(stateDir, { recursive: true });
-  const previousAction = await readLastAction(repoRoot);
-  if (previousAction) {
-    const prevType = parseActionTypeFromPrompt(previousAction);
-    if (prevType) {
-      await writeFile(join(stateDir, "previous-action-type"), prevType);
-    }
-  }
-
-  // Detect permission violations for critique actions
-  const permissionViolations = skill === "critique"
-    ? await detectPermissionViolations(repoRoot)
-    : undefined;
-
-  // Write a structured finding if permission violations were detected
-  if (permissionViolations && permissionViolations.length > 0) {
-    const findingFile = await writePermissionViolationFinding(repoRoot, permissionViolations);
-    if (findingFile) {
-      console.log(`[setup] Permission violation finding written: ${findingFile}`);
-    }
-  }
 
   // Archive state files that will be consumed by this action
   if (skill) {
@@ -165,21 +131,9 @@ async function main() {
   }
 
   // Look up validation patterns for critique actions
-  let validationPatterns: string[] | undefined;
-  if (skill === "critique" && loadedSkills && previousAction) {
-    const prevType = parseActionTypeFromPrompt(previousAction);
-    if (prevType) {
-      const prevSkillType = ACTION_TO_SKILL_TYPE[prevType];
-      if (prevSkillType) {
-        for (const s of loadedSkills.values()) {
-          if (s.mapsTo === prevSkillType && s.validationPatterns.length > 0) {
-            validationPatterns = s.validationPatterns;
-            break;
-          }
-        }
-      }
-    }
-  }
+  const validationPatterns = (skill === "critique" && loadedSkills)
+    ? findValidationPatterns(prevActionRaw, loadedSkills)
+    : undefined;
 
   const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary, validationPatterns);
 
