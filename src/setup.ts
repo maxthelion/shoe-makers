@@ -155,8 +155,6 @@ async function main() {
   console.log("[setup] Done. The elf should read .shoe-makers/state/next-action.md");
 }
 
-// Re-export for backward compatibility with existing test imports
-export { isAllHousekeeping, HOUSEKEEPING_PATHS } from "./scheduler/housekeeping";
 
 function ensureBranch(repoRoot: string): string {
   const shiftDate = getShiftDate(repoRoot); // uses shared schedule module
