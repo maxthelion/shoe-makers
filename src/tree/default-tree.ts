@@ -7,6 +7,7 @@ import { isInnovationTier } from "../prompts/helpers";
  *
  * Selector
  * ├── [tests failing?] → Fix tests
+ * ├── [review loop ≥3?] → Break out to explore
  * ├── [unresolved critiques?] → Fix critiques
  * ├── [unreviewed commits?] → Review adversarially
  * ├── [uncommitted changes?] → Review before committing
@@ -23,6 +24,11 @@ function testsFailing(state: WorldState): boolean {
   const assessment = state.blackboard.assessment;
   if (!assessment) return false;
   return assessment.testsPass === false || assessment.typecheckPass === false;
+}
+
+function inReviewLoop(state: WorldState): boolean {
+  const loopCount = state.blackboard.assessment?.processPatterns?.reviewLoopCount ?? 0;
+  return loopCount >= 3;
 }
 
 function hasUnresolvedCritiques(state: WorldState): boolean {
@@ -94,6 +100,7 @@ export const defaultTree: TreeNode = {
   children: [
     // Reactive zone — urgent, handled with direct prompts
     makeConditionAction("tests-failing", testsFailing, "fix-tests"),
+    makeConditionAction("review-loop-breaker", inReviewLoop, "explore"),
     makeConditionAction("unresolved-critiques", hasUnresolvedCritiques, "fix-critique"),
     makeConditionAction("unreviewed-commits", hasUnreviewedCommits, "critique"),
     makeConditionAction("unverified-work", hasUnverifiedWork, "review"),
