@@ -14,7 +14,7 @@ Verification is not self-review. The executor and verifier must be different elv
 
 Each action from the [[behaviour-tree]] has a **role** that determines what the elf is allowed to touch. The elf's prompt includes both the task and the permission boundary.
 
-The reactive conditions (tests failing, critiques, reviews, uncommitted work, inbox) appear directly in the tree. The remaining actions (execute-work-item, dead-code, prioritise, innovate, evaluate-insight, explore) are part of the three-phase orchestration cycle.
+The reactive conditions (tests failing, critiques, reviews, uncommitted work, inbox) appear directly in the tree. The remaining actions (continue-work, execute-work-item, dead-code, prioritise, innovate, evaluate-insight, explore) are part of the three-phase orchestration cycle.
 
 | Action | Role | Can write | Cannot write |
 |---|---|---|---|
@@ -23,6 +23,7 @@ The reactive conditions (tests failing, critiques, reviews, uncommitted work, in
 | critique | **reviewer** | `.shoe-makers/findings/` only | `src/`, wiki, invariants |
 | review | **reviewer** | `.shoe-makers/findings/` only | `src/`, wiki, invariants |
 | inbox | **inbox-handler** | `src/`, `wiki/`, `.shoe-makers/` | invariants |
+| continue-work | **executor** | `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/claim-evidence.yaml`, `CHANGELOG.md`, `README.md` | invariants |
 | execute-work-item | **executor** | `src/`, `wiki/`, `.shoe-makers/state/` | invariants |
 | dead-code | **dead-code-remover** | `src/` | invariants, wiki |
 | prioritise | **prioritiser** | `.shoe-makers/state/` only | `src/`, wiki, invariants |
