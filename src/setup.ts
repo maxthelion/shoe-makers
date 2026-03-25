@@ -6,7 +6,7 @@ import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
 import { readLastAction, saveLastAction } from "./state/last-action";
-import { parseActionTypeFromPrompt } from "./prompts/helpers";
+import { parseActionTypeFromPrompt, ACTION_TO_SKILL_TYPE } from "./prompts/helpers";
 import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights, checkHasPartialWork } from "./state/world";
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
@@ -144,7 +144,24 @@ async function main() {
     }
   }
 
-  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary);
+  // Look up validation patterns for critique actions
+  let validationPatterns: string[] | undefined;
+  if (skill === "critique" && loadedSkills && previousAction) {
+    const prevType = parseActionTypeFromPrompt(previousAction);
+    if (prevType) {
+      const prevSkillType = ACTION_TO_SKILL_TYPE[prevType];
+      if (prevSkillType) {
+        for (const s of loadedSkills.values()) {
+          if (s.mapsTo === prevSkillType && s.validationPatterns.length > 0) {
+            validationPatterns = s.validationPatterns;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary, validationPatterns);
 
   await writeFile(join(stateDir, "next-action.md"), action);
   await saveLastAction(repoRoot, action);
@@ -293,6 +310,7 @@ export function formatAction(
   article?: { title: string; summary: string },
   permissionViolations?: string[],
   wikiSummary?: string,
+  validationPatterns?: string[],
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -312,7 +330,7 @@ Run \`bun run setup\` again to get your next action.
 
   if (skill) {
     const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary);
+    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary, validationPatterns);
     return `${prompt}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}

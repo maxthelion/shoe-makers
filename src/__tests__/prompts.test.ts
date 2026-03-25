@@ -411,6 +411,20 @@ describe("critique prompt permission violations", () => {
     const prompt = generatePrompt("critique", makeState());
     expect(prompt).not.toContain("PERMISSION VIOLATIONS");
   });
+
+  test("includes validation patterns when passed through generatePrompt", () => {
+    const patterns = ["bun test passes", "code follows existing conventions"];
+    const prompt = generatePrompt("critique", makeState(), undefined, undefined, undefined, undefined, patterns);
+    expect(prompt).toContain("Validation patterns to check");
+    expect(prompt).toContain("`bun test passes`");
+    expect(prompt).toContain("`code follows existing conventions`");
+  });
+
+  test("omits validation patterns for non-critique actions", () => {
+    const patterns = ["bun test passes"];
+    const prompt = generatePrompt("fix-tests", makeState(), undefined, undefined, undefined, undefined, patterns);
+    expect(prompt).not.toContain("Validation patterns");
+  });
 });
 
 describe("insight lifecycle in prompts", () => {

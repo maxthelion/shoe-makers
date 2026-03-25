@@ -34,6 +34,12 @@ The invariants pipeline reports `specified-only` items — things described in t
 - Modify existing source files to wire in new functionality
 - Update wiki pages if design was refined during implementation
 
+## Validation
+
+- `bun test passes`
+- `tests cover the new functionality`
+- `code follows existing conventions`
+
 ## Off-limits
 
 - Do not change the behaviour tree routing logic without updating the wiki

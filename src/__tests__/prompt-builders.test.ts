@@ -105,6 +105,30 @@ describe("buildCritiquePrompt", () => {
     expect(result).toContain("Compliant");
     expect(result).toContain("Non-compliant");
   });
+
+  test("includes validation patterns when provided", () => {
+    const result = buildCritiquePrompt([], ["bun test passes", "tests cover the new functionality"]);
+    expect(result).toContain("Validation patterns to check");
+    expect(result).toContain("`bun test passes`");
+    expect(result).toContain("`tests cover the new functionality`");
+  });
+
+  test("omits validation section when patterns empty", () => {
+    const result = buildCritiquePrompt([], []);
+    expect(result).not.toContain("Validation patterns");
+  });
+
+  test("omits validation section when patterns undefined", () => {
+    const result = buildCritiquePrompt();
+    expect(result).not.toContain("Validation patterns");
+  });
+
+  test("includes both violation warning and validation patterns", () => {
+    const result = buildCritiquePrompt(["src/foo.ts"], ["bun test passes"]);
+    expect(result).toContain("PERMISSION VIOLATIONS");
+    expect(result).toContain("Validation patterns to check");
+    expect(result).toContain("`bun test passes`");
+  });
 });
 
 describe("buildContinueWorkPrompt", () => {
