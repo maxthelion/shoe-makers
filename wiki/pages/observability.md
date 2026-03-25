@@ -53,7 +53,7 @@ Each finding is a short markdown file with:
 - Why it matters
 - Whether it's a blocker, a question, or just a note
 
-Findings are read by future agents during the ASSESS tick. They're part of the world state. A finding can be resolved (deleted or archived) when the issue is addressed.
+Findings are read by future agents during the explore action's assessment phase. They're part of the world state. A finding can be resolved (deleted or archived) when the issue is addressed.
 
 Examples of good findings:
 - "The wiki says X but the code does Y — unclear which is correct"

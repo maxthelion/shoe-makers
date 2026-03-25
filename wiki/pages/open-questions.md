@@ -36,7 +36,7 @@ Install shoe-makers, run an init script (scaffolds `.shoe-makers/` in the repo),
 
 ### Multi-Round Gatekeeper (Answered)
 
-Multi-round review **emerges from the tick loop**. If the VERIFY tick rejects work (reverts), the next cycle's ASSESS tick sees the gap is still there, PRIORITISE re-ranks it, and WORK tries again. No special multi-round mechanism needed — the natural cycle handles retries.
+Multi-round review **emerges from the behaviour tree loop**. If the critique action finds issues, the next cycle's tree routes to fix-critique, and after fixing, the tree re-evaluates. No special multi-round mechanism needed — the natural tree cycle handles retries. A circuit breaker (review-loop ≥3) prevents infinite loops.
 
 ### MCP Integration
 
