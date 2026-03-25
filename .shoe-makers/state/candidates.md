@@ -1,40 +1,29 @@
 # Candidates
 
-## 1. Add tests for prompt builders
-**Type**: test
-**Impact**: high
-**Reasoning**: The 8 prompt builder files in `src/prompts/` (explore.ts, execute.ts, prioritise.ts, reactive.ts, innovate.ts, evaluate-insight.ts, helpers.ts, three-phase.ts) are entirely untested. These files generate the prompts that directly guide elf behaviour — they are the most behaviour-critical untested code in the system. The existing `prompts.test.ts` (health score 87) only tests the dispatcher, not the individual builders. Each builder should have tests validating key structural elements: required sections, skill references, state-dependent content. Wiki page `skills.md` and `structured-skills.md` specify that skills have validation patterns — prompt builders should be tested to the same standard.
-
-Files: `src/prompts/explore.ts`, `src/prompts/execute.ts`, `src/prompts/prioritise.ts`, `src/prompts/reactive.ts`, `src/prompts/innovate.ts`, `src/prompts/evaluate-insight.ts`, `src/prompts/helpers.ts`
-Test file: `src/__tests__/prompts.test.ts`
-
-## 2. Refactor setup.ts to reduce complexity
+## 1. Extract housekeeping functions from setup.ts
 **Type**: health
 **Impact**: medium
-**Reasoning**: `src/setup.ts` is the largest file in the codebase (430 lines, health score 90) and does 13 distinct operations in a single `main()` function: branch management, assessment, tree evaluation, permission detection, finding archival, housekeeping auto-commits, shift logging, and more. The `autoCommitHousekeeping` and `isAllHousekeeping` logic is buried and untested. Breaking this into smaller, testable functions would improve both health score and testability. Wiki page `architecture.md` specifies separation of concerns — setup.ts currently violates this by mixing orchestration with side effects.
+**Reasoning**: `src/setup.ts` (431 lines, health score 90) is the second-worst file. The `autoCommitHousekeeping` (47 lines) and `isAllHousekeeping` functions handle git auto-commits for archive/log changes — they're self-contained and could move to `src/scheduler/housekeeping.ts` or similar. This would reduce setup.ts by ~60 lines. The functions are already tested in `src/__tests__/auto-commit-housekeeping.test.ts`. Similarly, `ensureBranch` + `checkoutOrCreateBranch` (~33 lines) could move to `src/scheduler/branch.ts`. Combined, this would reduce setup.ts from 431 to ~340 lines. Wiki page `architecture.md` specifies separation of concerns — the setup script should orchestrate, not implement.
 
-Files: `src/setup.ts`
-Worst-score file per octoclean assessment.
+Files: `src/setup.ts` (extract from), `src/scheduler/housekeeping.ts` (new), `src/__tests__/auto-commit-housekeeping.test.ts` (update import)
 
-## 3. Add tests for config/load-config.ts
-**Type**: test
+## 2. Reduce prompts.test.ts size without losing evidence
+**Type**: octoclean-fix
 **Impact**: medium
-**Reasoning**: `src/config/load-config.ts` (110 lines) handles YAML parsing with validation logic and fallback defaults but has zero tests. It includes `parseInsightFrequency`, `intOrDefault`, and type coercion logic that silently falls back to defaults on invalid input. Configuration errors could cause subtle misbehaviour (wrong tick interval, wrong branch prefix, disabled skills) that would be hard to diagnose. Wiki page `integration.md` specifies config keys and their expected types — tests should validate these contracts.
+**Reasoning**: `src/__tests__/prompts.test.ts` (739 lines, health score 87) is the worst-scoring file. It has significant overlap with `src/__tests__/prompt-builders.test.ts` (363 lines). However, many duplicated tests provide evidence for invariant claims via specific string patterns. To safely consolidate: move the evidence-bearing tests to prompt-builders.test.ts (which tests builders directly), then remove them from prompts.test.ts. Key patterns to preserve: "never revert the wiki", "MUST use the Wikipedia article", "divergent/creative mode", "constructive/convergent mode", "Start with the article title". Check claim-evidence.yaml before removing ANY test.
 
-Files: `src/config/load-config.ts`
-No existing test file.
+Files: `src/__tests__/prompts.test.ts`, `src/__tests__/prompt-builders.test.ts`, `.shoe-makers/claim-evidence.yaml`
 
-## 4. Add tests for init skill templates
+## 3. Add buildContinueWorkPrompt to prompt-builders.test.ts
 **Type**: test
 **Impact**: low
-**Reasoning**: The 3 init-skill-template files (`init-skill-templates-work.ts`, `init-skill-templates-quality.ts`, `init-skill-templates-docs.ts`, ~350 lines total) export raw markdown strings that define the skill prompts new projects receive. These are untested — a malformed template would break skill loading via the registry's frontmatter parser. Tests should validate that each template parses as valid frontmatter with required fields (name, description, maps-to, risk). Wiki page `skills.md` specifies the required frontmatter schema.
+**Reasoning**: `buildContinueWorkPrompt` (in `src/prompts/reactive.ts`) is the only prompt builder not directly tested in `prompt-builders.test.ts`. It's currently only tested through the `generatePrompt` dispatcher in `prompts.test.ts`. Adding a direct test in prompt-builders would complete the pattern where every builder has targeted tests.
 
-Files: `src/init-skill-templates-work.ts`, `src/init-skill-templates-quality.ts`, `src/init-skill-templates-docs.ts`
-No existing test file.
+Files: `src/__tests__/prompt-builders.test.ts`, `src/prompts/reactive.ts`
 
-## 5. Improve world.test.ts coverage
-**Type**: test
+## 4. Consolidate world.test.ts temp dir setup
+**Type**: octoclean-fix
 **Impact**: low
-**Reasoning**: `src/__tests__/world.test.ts` (health score 91) only covers basic git status queries but misses several functions in `src/state/world.ts`: `readWorkItemSkillType`, `countUnresolvedCritiques`, `readFindings`, and edge cases in `gitDiffFiles`. These functions feed the behaviour tree's condition checks — if they return wrong values, the tree routes incorrectly. Adding tests for untested world state readers would improve both coverage and the health score.
+**Reasoning**: `src/__tests__/world.test.ts` (400 lines, health score 91) has 7 separate `describe` blocks each with their own `beforeEach`/`afterEach` for temp directory management. Consolidating to a shared setup helper (like the existing `test-utils.ts` pattern) would reduce boilerplate and improve the score.
 
-Files: `src/state/world.ts`, `src/__tests__/world.test.ts`
+Files: `src/__tests__/world.test.ts`
