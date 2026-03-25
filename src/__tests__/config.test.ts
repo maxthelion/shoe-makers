@@ -155,7 +155,7 @@ describe("loadConfig", () => {
     const warnSpy = spyOn(console, "warn");
     await loadConfig(tempDir);
     const unknownKeyWarnings = warnSpy.mock.calls.filter(
-      (call) => typeof call[0] === "string" && call[0].includes("Unknown config key")
+      (call: any[]) => typeof call[0] === "string" && call[0].includes("Unknown config key")
     );
     expect(unknownKeyWarnings).toHaveLength(0);
     warnSpy.mockRestore();
@@ -242,7 +242,7 @@ describe("loadConfig", () => {
     const warnSpy = spyOn(console, "warn");
     await loadConfig(tempDir);
     const unknownKeyWarnings = warnSpy.mock.calls.filter(
-      (call) => typeof call[0] === "string" && call[0].includes("Unknown config key")
+      (call: any[]) => typeof call[0] === "string" && call[0].includes("Unknown config key")
     );
     expect(unknownKeyWarnings).toHaveLength(1);
     expect(unknownKeyWarnings[0][0]).toContain("unknown-key");

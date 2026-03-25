@@ -57,7 +57,7 @@ describe("fetchRandomArticle", () => {
   });
 
   function mockFetch(fn: (...args: Parameters<typeof fetch>) => Promise<Response> | never): void {
-    globalThis.fetch = Object.assign(fn, { preconnect: originalFetch.preconnect }) as typeof fetch;
+    globalThis.fetch = Object.assign(fn, { preconnect: (originalFetch as any).preconnect }) as typeof fetch;
   }
 
   test("returns fallback concept on network error", async () => {

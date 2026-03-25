@@ -54,6 +54,7 @@ function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {
     hasWorkItem: false,
     hasCandidates: false,
     workItemSkillType: null,
+    hasPartialWork: false,
     insightCount: 0,
     config,
     ...overrides,
@@ -65,7 +66,7 @@ describe("logAssessment", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment({ testsPass: true });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     expect(logs).toContain("[setup] Tests: pass");
     logSpy.mockRestore();
   });
@@ -74,7 +75,7 @@ describe("logAssessment", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment({ testsPass: false });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     expect(logs).toContain("[setup] Tests: FAIL");
     logSpy.mockRestore();
   });
@@ -83,7 +84,7 @@ describe("logAssessment", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment({ typecheckPass: true });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     expect(logs).toContain("[setup] Typecheck: pass");
     logSpy.mockRestore();
   });
@@ -92,7 +93,7 @@ describe("logAssessment", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment();
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     const typecheckLogs = logs.filter((l: string) => l.includes("Typecheck"));
     expect(typecheckLogs).toHaveLength(0);
     logSpy.mockRestore();
@@ -102,7 +103,7 @@ describe("logAssessment", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment({ typecheckPass: false });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     expect(logs).toContain("[setup] Typecheck: FAIL");
     logSpy.mockRestore();
   });
@@ -111,7 +112,7 @@ describe("logAssessment", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment({ typecheckPass: null });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     expect(logs).toContain("[setup] Typecheck: skipped");
     logSpy.mockRestore();
   });
@@ -120,7 +121,7 @@ describe("logAssessment", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment({ healthScore: 85 });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     expect(logs).toContain("[setup] Health: 85/100");
     logSpy.mockRestore();
   });
@@ -135,7 +136,7 @@ describe("logAssessment", () => {
       ],
     });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     const worstLine = logs.find((l: string) => l.includes("Worst files"));
     expect(worstLine).toContain("src/foo.ts (40)");
     expect(worstLine).toContain("src/bar.ts (55)");
@@ -149,7 +150,7 @@ describe("logAssessment", () => {
       worstFiles: [{ path: "src/foo.ts", score: 90 }],
     });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     const worstLine = logs.find((l: string) => l.includes("Worst files"));
     expect(worstLine).toBeUndefined();
     logSpy.mockRestore();
@@ -167,7 +168,7 @@ describe("logAssessment", () => {
       ],
     });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     const worstLine = logs.find((l: string) => l.includes("Worst files"));
     expect(worstLine).toContain("a.ts (10)");
     expect(worstLine).toContain("c.ts (30)");
@@ -189,7 +190,7 @@ describe("logAssessment", () => {
       },
     });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     const invLine = logs.find((l: string) => l.includes("Invariants"));
     expect(invLine).toContain("3 specified-only");
     expect(invLine).toContain("1 untested");
@@ -211,7 +212,7 @@ describe("logAssessment", () => {
       },
     });
     logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
     const sugLine = logs.find((l: string) => l.includes("Suggestions"));
     expect(sugLine).toContain("5 specified-only invariants need implementation");
     logSpy.mockRestore();

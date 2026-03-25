@@ -40,6 +40,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: {
         ...emptyBlackboard(),
@@ -72,6 +73,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -86,6 +88,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: true,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -114,6 +117,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -142,6 +146,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -170,6 +175,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };
@@ -198,6 +204,7 @@ describe("shift runner", () => {
       hasWorkItem: false,
       hasCandidates: false,
       workItemSkillType: null,
+      hasPartialWork: false,
       insightCount: 0,
       blackboard: emptyBlackboard(),
     };

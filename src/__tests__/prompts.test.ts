@@ -35,6 +35,7 @@ function makeState(): WorldState {
     hasWorkItem: false,
     hasCandidates: false,
     workItemSkillType: null,
+    hasPartialWork: false,
     insightCount: 0,
     blackboard: {
       ...emptyBlackboard(),
@@ -729,7 +730,7 @@ describe("isInnovationTier boundary", () => {
     return {
       ...freshAssessment,
       invariants: {
-        ...freshAssessment.invariants,
+        ...freshAssessment.invariants!,
         implementedUntested: untested,
         specifiedOnly: 0,
       },

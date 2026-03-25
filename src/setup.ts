@@ -314,9 +314,7 @@ async function buildWorldState(
 
   const blackboard: Blackboard = {
     assessment,
-    priorities: null,
     currentTask: null,
-    verification: null,
   };
 
   return {
