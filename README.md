@@ -108,7 +108,10 @@ branch-prefix: shoemakers
 tick-interval: 5
 wiki-dir: wiki
 assessment-stale-after: 30
+max-ticks-per-shift: 10
 insight-frequency: 0.3
+max-innovation-cycles: 3
+# enabled-skills: implement,test-coverage,doc-sync  # default: all
 ```
 
 `.shoe-makers/schedule.md` (optional):
@@ -124,6 +127,7 @@ end: 6
   protocol.md           # Instructions for the elf
   config.yaml           # Settings with sensible defaults
   invariants.md         # Human-written spec claims (authoritative)
+  claim-evidence.yaml   # Evidence patterns for invariant verification
   schedule.md           # Working hours (optional)
   skills/               # Markdown skill prompts
   state/                # Ephemeral state (assessment, candidates, work items)
@@ -131,6 +135,7 @@ end: 6
   findings/             # Persistent observations
   insights/             # Creative proposals from analogical prompting
   inbox/                # Messages from humans
+  archive/              # Archived state and resolved findings
   known-issues.md       # Troubleshooting
 
 src/                    # The behaviour tree system
