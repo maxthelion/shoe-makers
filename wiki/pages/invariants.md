@@ -3,7 +3,7 @@ title: Invariants
 category: architecture
 tags: [invariants, verification, set-comparison, octowiki]
 summary: The invariants system — extracting falsifiable statements from wiki and code, comparing them to find gaps.
-last-modified-by: user
+last-modified-by: elf
 ---
 
 ## What Are Invariants?
@@ -56,7 +56,7 @@ The current implementation extracts **50 individual claims** from wiki pages and
 
 Each group is a set of alternatives (OR) — any match suffices. All groups must match (AND). This gives precise control: `[["case \"selector\""], ["children"]]` means the code must contain both a selector case and children handling.
 
-The claim-to-evidence mapping is manually curated in `src/verify/invariants.ts`. As the system evolves, claims and evidence patterns are updated to match the current architecture.
+The claim-to-evidence mapping is defined in `.shoe-makers/claim-evidence.yaml` and parsed by `src/verify/parse-evidence.ts`. As the system evolves, claims and evidence patterns are updated to match the current architecture.
 
 ## The Virtuous Cycle
 
