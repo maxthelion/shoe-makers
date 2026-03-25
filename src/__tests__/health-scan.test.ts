@@ -1,5 +1,7 @@
 import { describe, test, expect } from "bun:test";
-import { getHealthScore, getHealthResult, parseHealthSnapshot } from "../skills/health-scan";
+import { getHealthScore, getHealthResult, parseHealthSnapshot, isOctocleanInstalled } from "../skills/health-scan";
+
+const octocleanAvailable = isOctocleanInstalled(process.cwd());
 
 describe("health-scan integration", () => {
   test("getHealthScore returns null for a directory without octoclean", async () => {
@@ -7,7 +9,7 @@ describe("health-scan integration", () => {
     expect(score).toBeNull();
   });
 
-  test("getHealthScore returns a numeric score for the real repo", async () => {
+  test.skipIf(!octocleanAvailable)("getHealthScore returns a numeric score for the real repo", async () => {
     const score = await getHealthScore(process.cwd());
     expect(score).not.toBeNull();
     expect(typeof score).toBe("number");
@@ -20,7 +22,7 @@ describe("health-scan integration", () => {
     expect(result).toBeNull();
   });
 
-  test("getHealthResult returns score and worst files for the real repo", async () => {
+  test.skipIf(!octocleanAvailable)("getHealthResult returns score and worst files for the real repo", async () => {
     const result = await getHealthResult(process.cwd());
     expect(result).not.toBeNull();
     expect(typeof result!.score).toBe("number");

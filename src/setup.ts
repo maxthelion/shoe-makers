@@ -6,7 +6,8 @@ import { writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
 import { generatePrompt } from "./prompts";
-import { saveLastAction } from "./state/last-action";
+import { readLastAction, saveLastAction } from "./state/last-action";
+import { parseActionTypeFromPrompt } from "./prompts/helpers";
 import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights } from "./state/world";
 import { execSync } from "child_process";
 import type { WorldState, Blackboard, ActionType, Config } from "./types";
@@ -17,8 +18,9 @@ import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
 import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
-import { fetchRandomArticle, shouldIncludeLens } from "./creative/wikipedia";
+import { fetchArticleForAction } from "./creative/wikipedia";
 import { archiveConsumedStateFiles } from "./archive/state-archive";
+import { ALL_HOUSEKEEPING_PATHS } from "./utils/housekeeping";
 
 /**
  * Setup script: runs before the elf starts.
@@ -79,24 +81,46 @@ async function main() {
   // 5. Load skills (filtered by enabledSkills config) and evaluate the tree
   const loadedSkills = await loadSkills(repoRoot, config.enabledSkills);
   const { skill, trace } = evaluateWithTrace(defaultTree, state);
+
+  // Annotate trace entries with uncertainty info when relevant
+  const uncertainties = assessment.uncertainties ?? [];
+  if (uncertainties.length > 0) {
+    for (const entry of trace) {
+      if (!entry.passed && entry.condition === "tests-failing") {
+        const fields = uncertainties.map(u => u.field).join(", ");
+        entry.note = `${uncertainties.length} unknown${uncertainties.length > 1 ? "s" : ""}: ${fields}`;
+      }
+    }
+  }
+
   if (trace.length > 0) {
     console.log(`[setup] Tree trace:\n${formatTrace(trace)}`);
   }
 
   // Fetch a Wikipedia article for creative exploration
-  // For innovate: always fetch (deterministic creative brief)
-  // For explore: probabilistic based on config
-  let article: { title: string; summary: string } | undefined;
-  if (skill === "innovate") {
-    article = (await fetchRandomArticle()) ?? undefined;
-  } else if (skill === "explore" && shouldIncludeLens(config.insightFrequency)) {
-    article = (await fetchRandomArticle()) ?? undefined;
-  }
+  const article = await fetchArticleForAction(
+    skill,
+    config.insightFrequency,
+    (entry) => appendToShiftLog(repoRoot, entry),
+  );
 
   // Read wiki overview for innovate action
   let wikiSummary: string | undefined;
   if (skill === "innovate") {
     wikiSummary = await readWikiOverview(repoRoot);
+  }
+
+  // Snapshot the previous action type before detection reads it.
+  // This must happen BEFORE detectPermissionViolations so it reads
+  // the action that was actually issued to the previous elf.
+  const stateDir = join(repoRoot, ".shoe-makers", "state");
+  await mkdir(stateDir, { recursive: true });
+  const previousAction = await readLastAction(repoRoot);
+  if (previousAction) {
+    const prevType = parseActionTypeFromPrompt(previousAction);
+    if (prevType) {
+      await writeFile(join(stateDir, "previous-action-type"), prevType);
+    }
   }
 
   // Detect permission violations for critique actions
@@ -122,8 +146,6 @@ async function main() {
 
   const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary);
 
-  const stateDir = join(repoRoot, ".shoe-makers", "state");
-  await mkdir(stateDir, { recursive: true });
   await writeFile(join(stateDir, "next-action.md"), action);
   await saveLastAction(repoRoot, action);
   console.log(`[setup] Wrote action to ${join(stateDir, "next-action.md")}`);
@@ -143,7 +165,7 @@ async function main() {
 }
 
 /** Paths considered housekeeping (archive moves, shift log entries) */
-export const HOUSEKEEPING_PATHS = [".shoe-makers/findings/", ".shoe-makers/log/", ".shoe-makers/archive/"];
+export const HOUSEKEEPING_PATHS = ALL_HOUSEKEEPING_PATHS;
 
 /**
  * Check if all lines from `git status --porcelain` output are housekeeping changes.
@@ -267,6 +289,10 @@ export function logAssessment(assessment: Awaited<ReturnType<typeof assess>>): v
       const worst = assessment.worstFiles.slice(0, 3).map(f => `${f.path} (${f.score})`).join(", ");
       console.log(`[setup] Worst files: ${worst}`);
     }
+  }
+  if (assessment.uncertainties && assessment.uncertainties.length > 0) {
+    const items = assessment.uncertainties.map(u => `${u.field} (${u.reason})`).join(", ");
+    console.log(`[setup] Uncertainties: ${items}`);
   }
   const suggestions = buildSuggestions(assessment, { includeFindings: false });
   if (suggestions.length > 0) {

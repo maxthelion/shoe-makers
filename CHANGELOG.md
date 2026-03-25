@@ -28,6 +28,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - World state reader — assembles WorldState from git info, blackboard, and config
 - Behaviour tree evaluator — recursive selector/sequence/condition/action evaluation
 
+- Wikipedia creative lens — random article as analogical thinking prompt for explore and innovate actions
+- Innovation pipeline — dedicated `innovate` and `evaluate-insight` tree actions with separate dispositions (divergent/creative vs constructive/convergent)
+- Health regression detection — warns when code health score drops between setup ticks
+- Process pattern analysis — shift log parsing computes reactive ratio, review loop detection, and innovation cycle count
+- Process temperature signals — explore and prioritise prompts adapt guidance based on shift's reactive ratio
+- Permission violation detection — setup automatically detects when elves modify files outside their permitted scope
+- State file archiving — consumed candidates and work items archived to `.shoe-makers/archive/state/` for traceability
+- `insight-frequency` config — controls probability of creative lens appearing in explore ticks (default 0.3)
+- `max-innovation-cycles` config — caps innovation cycles per shift to prevent diminishing-returns loops (default 3)
+- `max-ticks-per-shift` config — limits total ticks per shift (default 10)
+- `enabled-skills` config — filter which skills are loaded (default: all)
+- Known issues documentation (`.shoe-makers/known-issues.md`) — troubleshooting guide for common elf problems
+- Working hours schedule — `.shoe-makers/schedule.md` configures when the shoemakers are active
+- Dead code removal skill — dedicated tree node and skill for removing unused code
+- `bun run setup` command — evaluates tree and writes focused next-action prompt for the elf
+
 ### Changed
 - Open plans now support `status: blocked` and `status: done` in frontmatter — blocked/done plans are excluded from work candidates
 - Invariants checker now uses per-claim granularity instead of per-page mapping. System now correctly identifies 6 spec gaps and 2 untested claims instead of reporting 0 gaps and sleeping.

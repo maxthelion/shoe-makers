@@ -109,14 +109,17 @@ Note: When permission violations are detected, the prompt includes a `PERMISSION
 
 ```
 Selector
-├── [tests failing?] → Fix them
-├── [unresolved critiques?] → Fix the flagged issues
-├── [unreviewed commits?] → Review adversarially (critique)
-├── [uncommitted work?] → Review before committing (review)
-├── [inbox messages?] → Read and act
-├── [work-item.md exists?] → Execute the work item
-├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
-├── [neither?] → Explore: write candidates.md
+├── [tests failing?]         → Fix them
+├── [unresolved critiques?]  → Fix the flagged issues
+├── [unreviewed commits?]    → Review adversarially (critique)
+├── [uncommitted work?]      → Review before committing (review)
+├── [inbox messages?]        → Read and act
+├── [dead-code work-item?]   → Remove dead code
+├── [work-item.md exists?]   → Execute the work item
+├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
+├── [insights exist?]        → Evaluate insight (generous disposition)
+├── [innovation tier?]       → Innovate: creative brief
+└── [always]                 → Explore: write candidates.md
 ```
 
 Critiques sit above unreviewed work — you fix problems before reviewing new work. Unreviewed work sits above new work — you review before starting something new.

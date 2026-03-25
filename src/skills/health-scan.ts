@@ -1,5 +1,6 @@
 import { execSync } from "child_process";
 import { readFile } from "fs/promises";
+import { existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -8,17 +9,28 @@ export interface HealthResult {
   worstFiles: { path: string; score: number }[];
 }
 
+const OCTOCLEAN_CLI = "node_modules/octoclean/src/cli/index.ts";
+
+/**
+ * Check whether octoclean is installed (its CLI entry point exists).
+ */
+export function isOctocleanInstalled(repoRoot: string): boolean {
+  return existsSync(join(repoRoot, OCTOCLEAN_CLI));
+}
+
 /**
  * Run octoclean's codehealth scan and return the health score (0–100)
  * plus the worst files by health score.
  * Returns null if octoclean is not installed or the scan fails.
  */
 export async function getHealthResult(repoRoot: string): Promise<HealthResult | null> {
+  if (!isOctocleanInstalled(repoRoot)) return null;
+
   const outputPath = join(tmpdir(), `codehealth-${Date.now()}.json`);
 
   try {
     execSync(
-      `npx tsx node_modules/octoclean/src/cli/index.ts scan --no-llm --no-dynamic --output ${outputPath}`,
+      `bun run ${OCTOCLEAN_CLI} scan --no-llm --no-dynamic --output ${outputPath}`,
       { cwd: repoRoot, stdio: "pipe", timeout: 120_000 }
     );
 

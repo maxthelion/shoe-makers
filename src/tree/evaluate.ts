@@ -8,6 +8,8 @@ export interface TraceEntry {
   passed: boolean;
   /** The skill that would have been invoked */
   skill: string;
+  /** Optional annotation (e.g., "2 unknowns: typecheckPass, healthScore") */
+  note?: string;
 }
 
 /**
@@ -120,7 +122,8 @@ export function formatTrace(trace: TraceEntry[]): string {
       if (entry.passed) {
         return `  ✓ ${entry.condition} → ${entry.skill}`;
       }
-      return `  ✗ ${entry.condition}`;
+      const suffix = entry.note ? ` (${entry.note})` : "";
+      return `  ✗ ${entry.condition}${suffix}`;
     })
     .join("\n");
 }

@@ -7,9 +7,10 @@ import { RESOLVED_PATTERN } from "../state/world";
 /**
  * Tests for the critique resolution detection pattern.
  *
- * The regex /^## Status\s*\n\s*Resolved\.?\s*$/mi must:
+ * The regex /^## Status\s*\n\s*Resolved\b/mi must:
  * - Match "## Status\nResolved." at end of file
  * - Match "## Status\nResolved" without period
+ * - Match "## Status\nResolved — no action required."
  * - NOT match when "Resolved" appears in body text without Status heading
  * - NOT match "## Status\nNot Resolved"
  */
@@ -27,6 +28,16 @@ describe("critique resolution regex", () => {
 
   test("matches with extra whitespace", () => {
     const content = "# Critique\n\n## Status  \n  Resolved.  \n";
+    expect(RESOLVED_PATTERN.test(content)).toBe(true);
+  });
+
+  test("matches resolved with suffix text", () => {
+    const content = "# Critique\n\n## Status\nResolved — no action required.\n";
+    expect(RESOLVED_PATTERN.test(content)).toBe(true);
+  });
+
+  test("matches resolved with additional sentence", () => {
+    const content = "# Critique\n\n## Status\nResolved. Clean pass.\n";
     expect(RESOLVED_PATTERN.test(content)).toBe(true);
   });
 

@@ -159,6 +159,22 @@ Build it.`,
 
     await rm(tmpDir, { recursive: true });
   });
+
+  test("loads no skills when enabledSkills is empty array", async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "registry-test-"));
+    const skillsDir = join(tmpDir, ".shoe-makers", "skills");
+    await mkdir(skillsDir, { recursive: true });
+
+    await writeFile(
+      join(skillsDir, "fix-tests.md"),
+      `---\nname: fix-tests\ndescription: Fix tests.\nmaps-to: fix\nrisk: low\n---\nFix.`,
+    );
+
+    const skills = await loadSkills(tmpDir, []);
+    expect(skills.size).toBe(0);
+
+    await rm(tmpDir, { recursive: true });
+  });
 });
 
 describe("parseOffLimits", () => {

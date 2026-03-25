@@ -200,6 +200,32 @@ describe("logAssessment", () => {
     expect(sugLine).toContain("5 specified-only invariants need implementation");
     logSpy.mockRestore();
   });
+
+  test("logs uncertainties when present", () => {
+    const logSpy = spyOn(console, "log");
+    const assessment = makeAssessment({
+      uncertainties: [
+        { field: "typecheckPass", reason: "missing type definitions (bun-types)" },
+        { field: "healthScore", reason: "octoclean not installed" },
+      ],
+    });
+    logAssessment(assessment);
+    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const uncLine = logs.find((l: string) => l.includes("Uncertainties"));
+    expect(uncLine).toContain("typecheckPass (missing type definitions (bun-types))");
+    expect(uncLine).toContain("healthScore (octoclean not installed)");
+    logSpy.mockRestore();
+  });
+
+  test("does not log uncertainties when empty or absent", () => {
+    const logSpy = spyOn(console, "log");
+    const assessment = makeAssessment();
+    logAssessment(assessment);
+    const logs = logSpy.mock.calls.map((c) => c[0]);
+    const uncLine = logs.find((l: string) => l.includes("Uncertainties"));
+    expect(uncLine).toBeUndefined();
+    logSpy.mockRestore();
+  });
 });
 
 describe("readInboxMessages", () => {

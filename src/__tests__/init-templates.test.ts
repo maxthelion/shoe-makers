@@ -5,6 +5,7 @@ import {
   INVARIANTS_TEMPLATE,
   PROTOCOL_CONTENT,
 } from "../init-templates";
+import { parseSkillFile } from "../skills/registry";
 import {
   IMPLEMENT_SKILL,
   BUG_FIX_SKILL,
@@ -62,6 +63,19 @@ describe("skill templates", () => {
           expect(template).toContain(section);
         });
       }
+    });
+  }
+});
+
+describe("skill template roundtrip (parseSkillFile)", () => {
+  for (const { name, template } of SKILL_TEMPLATES) {
+    test(`${name} can be parsed by the registry`, () => {
+      const parsed = parseSkillFile(template);
+      expect(parsed.name).toBe(name);
+      expect(parsed.description.length).toBeGreaterThan(0);
+      expect(["low", "medium", "high"]).toContain(parsed.risk);
+      expect(parsed.body.length).toBeGreaterThan(0);
+      expect(parsed.mapsTo.length).toBeGreaterThan(0);
     });
   }
 });

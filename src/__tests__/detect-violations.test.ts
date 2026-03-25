@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { getElfChangedFiles } from "../verify/detect-violations";
+import { getElfChangedFiles, detectPermissionViolations } from "../verify/detect-violations";
 import { execSync } from "child_process";
 import { mkdtemp, rm, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -115,5 +115,96 @@ describe("getElfChangedFiles", () => {
 
     const files = getElfChangedFiles(tempDir, baseCommit);
     expect(files).toEqual(["src/cleanup.ts"]);
+  });
+
+  test("excludes housekeeping files even in elf commits", async () => {
+    const baseCommit = git("rev-parse HEAD", tempDir);
+
+    // Elf commit that also includes shift log changes (mixed commit)
+    await mkdir(join(tempDir, "src"), { recursive: true });
+    await mkdir(join(tempDir, ".shoe-makers", "log"), { recursive: true });
+    await writeFile(join(tempDir, "src", "feature.ts"), "code");
+    await writeFile(join(tempDir, ".shoe-makers", "log", "2026-03-24.md"), "shift log entry");
+    git("add .", tempDir);
+    git('commit -m "Implement feature X"', tempDir);
+
+    const files = getElfChangedFiles(tempDir, baseCommit);
+    expect(files).toContain("src/feature.ts");
+    expect(files).not.toContain(".shoe-makers/log/2026-03-24.md");
+  });
+
+  test("excludes archive files from elf commits", async () => {
+    const baseCommit = git("rev-parse HEAD", tempDir);
+
+    await mkdir(join(tempDir, "src"), { recursive: true });
+    await mkdir(join(tempDir, ".shoe-makers", "archive"), { recursive: true });
+    await writeFile(join(tempDir, "src", "code.ts"), "code");
+    await writeFile(join(tempDir, ".shoe-makers", "archive", "old-finding.md"), "archived");
+    git("add .", tempDir);
+    git('commit -m "Some elf work"', tempDir);
+
+    const files = getElfChangedFiles(tempDir, baseCommit);
+    expect(files).toContain("src/code.ts");
+    expect(files).not.toContain(".shoe-makers/archive/old-finding.md");
+  });
+
+  test("excludes findings directory files from elf commits", async () => {
+    const baseCommit = git("rev-parse HEAD", tempDir);
+
+    await mkdir(join(tempDir, ".shoe-makers", "findings"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "findings", "critique-2026-03-24.md"), "finding");
+    git("add .", tempDir);
+    git('commit -m "Elf commit with findings"', tempDir);
+
+    const files = getElfChangedFiles(tempDir, baseCommit);
+    expect(files).not.toContain(".shoe-makers/findings/critique-2026-03-24.md");
+  });
+});
+
+describe("detectPermissionViolations with previous-action-type", () => {
+  test("reads action type from previous-action-type file instead of last-action.md", async () => {
+    const stateDir = join(tempDir, ".shoe-makers", "state");
+    await mkdir(stateDir, { recursive: true });
+
+    // Write previous-action-type as "execute-work-item" (allows src/ changes)
+    await writeFile(join(stateDir, "previous-action-type"), "execute-work-item");
+
+    // Write last-action.md as a critique action (does NOT allow src/ changes)
+    // This simulates the ABA problem: setup overwrote last-action.md
+    await writeFile(join(stateDir, "last-action.md"), "# Adversarial Review\n\nReview stuff.");
+
+    // Write last-reviewed-commit
+    const baseCommit = git("rev-parse HEAD", tempDir);
+    await writeFile(join(stateDir, "last-reviewed-commit"), baseCommit);
+
+    // Make an elf commit that changes src/
+    await mkdir(join(tempDir, "src"), { recursive: true });
+    await writeFile(join(tempDir, "src", "feature.ts"), "new code");
+    git("add .", tempDir);
+    git('commit -m "Implement feature"', tempDir);
+
+    // With previous-action-type = execute-work-item, src/ is allowed → no violations
+    const violations = await detectPermissionViolations(tempDir);
+    expect(violations).toEqual([]);
+  });
+
+  test("falls back to last-action.md when previous-action-type does not exist", async () => {
+    const stateDir = join(tempDir, ".shoe-makers", "state");
+    await mkdir(stateDir, { recursive: true });
+
+    // Only write last-action.md (no previous-action-type)
+    await writeFile(join(stateDir, "last-action.md"), "# Execute Work Item\n\nDo the work.");
+
+    const baseCommit = git("rev-parse HEAD", tempDir);
+    await writeFile(join(stateDir, "last-reviewed-commit"), baseCommit);
+
+    await mkdir(join(tempDir, "src"), { recursive: true });
+    await writeFile(join(tempDir, "src", "feature.ts"), "code");
+    git("add .", tempDir);
+    git('commit -m "Implement feature"', tempDir);
+
+    // Falls back to last-action.md which says "Execute Work Item" → src/ allowed
+    const violations = await detectPermissionViolations(tempDir);
+    expect(violations).toEqual([]);
   });
 });

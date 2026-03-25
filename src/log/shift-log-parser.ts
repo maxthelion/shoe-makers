@@ -1,11 +1,6 @@
 import { readFile } from "fs/promises";
 import { join } from "path";
-
-/** Actions considered reactive (urgent/corrective) */
-const REACTIVE_ACTIONS = new Set(["fix-tests", "fix-critique", "critique", "review", "inbox"]);
-
-/** Actions considered proactive (planned/creative) */
-const PROACTIVE_ACTIONS = new Set(["explore", "prioritise", "execute-work-item", "dead-code", "innovate", "evaluate-insight"]);
+import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "./action-constants";
 
 /** Map prompt title keywords to action names */
 const TITLE_TO_ACTION: [RegExp, string][] = [

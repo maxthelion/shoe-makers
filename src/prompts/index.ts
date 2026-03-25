@@ -43,7 +43,7 @@ export function generatePrompt(
     case "innovate":
       return buildInnovatePrompt(
         wikiSummary ?? "No wiki summary available.",
-        article ?? { title: "Unknown", summary: "No article fetched." },
+        article,
       );
     case "evaluate-insight":
       return buildEvaluateInsightPrompt();

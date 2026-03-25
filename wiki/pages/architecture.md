@@ -24,15 +24,17 @@ Two zones: reactive (urgent, direct prompt) and orchestrated (proactive, three-p
 
 ```
 Selector
-├── [tests failing?] → Fix tests (direct)
-├── [unresolved critiques?] → Fix critiques (direct)
-├── [unreviewed commits?] → Review adversarially (direct)
-├── [inbox messages?] → Handle inbox (direct)
-├── [work-item.md exists?] → Execute the work item
-├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
-├── [insights exist?] → Evaluate insight (generous disposition)
-├── [innovation tier?] → Innovate: write insight from creative brief
-└── [always] → Explore: write candidates.md
+├── [tests failing?]         → Fix tests (direct)
+├── [unresolved critiques?]  → Fix critiques (direct)
+├── [unreviewed commits?]    → Review adversarially (direct)
+├── [uncommitted changes?]   → Review uncommitted work (direct)
+├── [inbox messages?]        → Handle inbox (direct)
+├── [dead-code work-item?]   → Remove dead code
+├── [work-item.md exists?]   → Execute the work item
+├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
+├── [insights exist?]        → Evaluate insight (generous disposition)
+├── [innovation tier?]       → Innovate: write insight from creative brief
+└── [always]                 → Explore: write candidates.md
 ```
 
 ### Reactive zone
@@ -87,6 +89,7 @@ The branch IS the state. Delete it and start clean. No database, no server, no p
   state/              # ephemeral state files
   log/                # shift logs
   findings/           # persistent observations
+  insights/           # creative proposals from analogical prompting
   inbox/              # messages from humans
   known-issues.md     # troubleshooting for elves
 ```

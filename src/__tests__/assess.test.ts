@@ -126,6 +126,20 @@ describe("assess skill", () => {
     expect(result.healthScore).toBeNull();
     expect(result.worstFiles).toEqual([]);
   });
+
+  test("records uncertainties when typecheck and health scan are unavailable", async () => {
+    const result = await assess(tempDir);
+    // In a temp dir: no bun-types (typecheck undefined) and no octoclean (health null)
+    expect(result.uncertainties).toBeDefined();
+    expect(result.uncertainties!.length).toBeGreaterThan(0);
+    const fields = result.uncertainties!.map(u => u.field);
+    // healthScore should be uncertain (no octoclean in temp dir)
+    expect(fields).toContain("healthScore");
+    // Each uncertainty has a reason
+    for (const u of result.uncertainties!) {
+      expect(u.reason.length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe("buildSuggestions", () => {

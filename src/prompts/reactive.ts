@@ -37,18 +37,17 @@ There are commits since the last review that need adversarial scrutiny. You are 
 2. Read \`.shoe-makers/state/last-reviewed-commit\` to find the last reviewed commit hash
 3. Run \`git log <last-reviewed-commit>..HEAD --oneline\` to see what was done
 4. Run \`git diff <last-reviewed-commit>..HEAD\` to see the actual changes
-5. Review adversarially — check compliance with the rules in last-action.md, and look for:
-   - Bugs, logic errors, off-by-ones
-   - Tests that don't actually test what they claim
-   - Evidence patterns that are too loose (e.g. checking a word exists rather than verifying behaviour)
-   - Spec misalignment — does the code match the wiki?
-   - Architectural violations — pure function agents doing side effects, etc.
-   - Cheating — writing tests/evidence designed to pass rather than to verify
+5. Review against these 5 criteria (from the verification spec):
+   1. Did the elf stay within its permitted files?
+   2. Does the code correctly implement what was asked?
+   3. Do the tests actually verify the behaviour, or are they trivial?
+   4. Were any invariants or evidence patterns modified to game the system?
+   5. Does the change match the wiki spec?
 6. Write your critique to \`.shoe-makers/findings/critique-{YYYY-MM-DD}-{NNN}.md\` where NNN is a sequence number
 7. Commit your critique
 8. Update \`.shoe-makers/state/last-reviewed-commit\` to the current HEAD commit hash (this file is gitignored — just write it to disk, don't try to commit it)
 
-Be honest and thorough. If the work is good, say so briefly. If there are problems, describe them clearly.
+**Verdict format**: State "Compliant" or "Non-compliant" for each criterion. For any non-compliant item, cite specific file paths and line numbers so the fixer elf can verify. If the work is correct and compliant, write a brief "Clean" verdict and mark the critique as Resolved. Not every review must find problems.
 
 **Off-limits — do NOT modify these files:**
 - \`.shoe-makers/invariants.md\` — only humans maintain the spec claims
@@ -58,14 +57,14 @@ Be honest and thorough. If the work is good, say so briefly. If there are proble
 export function buildReviewPrompt(): string {
   return `# Review Uncommitted Work
 
-There are uncommitted changes on the branch. Review them adversarially before committing.
+There are uncommitted changes on the branch. Review them before committing.
 
-Run \`git diff\` to see the changes. Check for:
-- Correctness: does the code do what it should?
-- Tests: are there tests for the changes?
-- Spec alignment: does this match the wiki?
+Run \`git diff\` to see the changes. Check against these criteria:
+1. Does the code correctly implement what was asked?
+2. Are there tests for the changes, and do they verify actual behaviour?
+3. Does the change match the wiki spec?
 
-If the changes are good, commit them. If not, fix the issues first.${OFF_LIMITS}`;
+If the changes are good, commit them with a descriptive message. If not, fix the issues first.${OFF_LIMITS}`;
 }
 
 export function buildInboxPrompt(state: WorldState): string {

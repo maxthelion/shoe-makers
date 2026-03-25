@@ -3,7 +3,7 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { execSync } from "child_process";
 import { join } from "path";
 import { tmpdir } from "os";
-import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType } from "../state/world";
+import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType, getCurrentBranch, hasUncommittedChanges } from "../state/world";
 
 describe("readWorldState", () => {
   test("reads current repo world state", async () => {
@@ -30,6 +30,54 @@ describe("readWorldState", () => {
     // Gatekeeping fields should exist
     expect(typeof state.hasUnreviewedCommits).toBe("boolean");
     expect(typeof state.unresolvedCritiqueCount).toBe("number");
+  });
+});
+
+describe("getCurrentBranch", () => {
+  test("returns current branchName for a git repo", () => {
+    const branchName = getCurrentBranch(process.cwd());
+    expect(typeof branchName).toBe("string");
+    expect(branchName.length).toBeGreaterThan(0);
+    // We should be on a shoemakers branch
+    expect(branchName).toContain("shoemakers");
+  });
+
+  test("returns branchName from a fresh git repo", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-branch-"));
+    try {
+      execSync("git init", { cwd: tempDir, stdio: "pipe" });
+      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: tempDir, stdio: "pipe" });
+      const branchName = getCurrentBranch(tempDir);
+      expect(typeof branchName).toBe("string");
+      expect(branchName.length).toBeGreaterThan(0);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("hasUncommittedChanges", () => {
+  test("returns false for a clean repo", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-clean-"));
+    try {
+      execSync("git init", { cwd: tempDir, stdio: "pipe" });
+      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: tempDir, stdio: "pipe" });
+      expect(hasUncommittedChanges(tempDir)).toBe(false);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("returns true when files are modified", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-dirty-"));
+    try {
+      execSync("git init", { cwd: tempDir, stdio: "pipe" });
+      execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: tempDir, stdio: "pipe" });
+      await writeFile(join(tempDir, "new-file.txt"), "hello");
+      expect(hasUncommittedChanges(tempDir)).toBe(true);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -71,8 +119,13 @@ describe("checkUnreviewedCommits", () => {
   });
 
   test("returns true when elf-authored commits exist after marker", async () => {
-    // Find a commit far enough back to include at least one non-housekeeping commit
-    const parent = execSync("git rev-parse HEAD~5", {
+    // Find the most recent commit that touched src/ (non-housekeeping),
+    // then set the marker to its parent so there's at least one elf-authored commit
+    const srcCommit = execSync("git log --format=%H -1 -- src/", {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    }).trim();
+    const parent = execSync(`git rev-parse ${srcCommit}~1`, {
       cwd: repoRoot,
       encoding: "utf-8",
     }).trim();

@@ -86,6 +86,30 @@ describe("appendToShiftLog", () => {
 
     expect(content).toMatch(/## \d{2}:\d{2} UTC — Tick/);
   });
+
+  test("logs Wikipedia article fetched for innovate observability", async () => {
+    await appendToShiftLog(tempDir, 'Wikipedia article fetched: "Mycelial Networks"\n');
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8"
+    );
+
+    expect(content).toContain('Wikipedia article fetched: "Mycelial Networks"');
+  });
+
+  test("logs Wikipedia article fetch failed for innovate observability", async () => {
+    await appendToShiftLog(tempDir, "Wikipedia article fetch failed\n");
+
+    const today = new Date().toISOString().slice(0, 10);
+    const content = await readFile(
+      join(tempDir, ".shoe-makers/log", `${today}.md`),
+      "utf-8"
+    );
+
+    expect(content).toContain("Wikipedia article fetch failed");
+  });
 });
 
 describe("formatTickLog", () => {

@@ -18,15 +18,17 @@ The tree has two zones: **reactive** conditions at the top (urgent, handled dire
 
 ```
 Selector
-├── [tests failing?] → Fix tests (direct prompt)
-├── [unresolved critiques?] → Fix critiques (direct prompt)
-├── [unreviewed commits?] → Review adversarially (direct prompt)
-├── [inbox messages?] → Handle inbox (direct prompt)
-├── [work-item.md exists?] → Execute it
-├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
-├── [insights exist?] → Evaluate insight (generous disposition)
-├── [innovation tier?] → Innovate: write insight from creative brief
-└── [always] → Explore: write candidates.md
+├── [tests failing?]         → Fix tests (direct prompt)
+├── [unresolved critiques?]  → Fix critiques (direct prompt)
+├── [unreviewed commits?]    → Review adversarially (direct prompt)
+├── [uncommitted changes?]   → Review uncommitted work (direct prompt)
+├── [inbox messages?]        → Handle inbox (direct prompt)
+├── [dead-code work-item?]   → Remove dead code
+├── [work-item.md exists?]   → Execute it
+├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
+├── [insights exist?]        → Evaluate insight (generous disposition)
+├── [innovation tier?]       → Innovate: write insight from creative brief
+└── [always]                 → Explore: write candidates.md
 ```
 
 ### Reactive zone (top)
@@ -36,6 +38,7 @@ These fire immediately with a direct prompt. No orchestration needed — the act
 - **Tests failing** — always highest priority. The elf gets the test output and fixes it.
 - **Unresolved critiques** — blocking findings from a previous reviewer. Must fix before new work.
 - **Unreviewed commits** — a previous elf's commits need adversarial review. The reviewer gets the diff and the rules the previous elf was given.
+- **Uncommitted changes** — uncommitted work on the branch needs review before continuing.
 - **Inbox messages** — human instructions take priority over self-directed work.
 
 ### Three-phase orchestration (bottom)

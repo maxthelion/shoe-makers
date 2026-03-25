@@ -10,7 +10,7 @@ import { getElfChangedFiles } from "../verify/detect-violations";
 /**
  * Get the current git branch name.
  */
-function getCurrentBranch(repoRoot: string): string {
+export function getCurrentBranch(repoRoot: string): string {
   return execSync("git rev-parse --abbrev-ref HEAD", {
     cwd: repoRoot,
     encoding: "utf-8",
@@ -99,8 +99,8 @@ export async function checkUnreviewedCommits(repoRoot: string): Promise<boolean>
 /**
  * Count unresolved critique findings.
  */
-/** Pattern to detect resolved findings: matches `## Status\nResolved.` */
-export const RESOLVED_PATTERN = /^## Status\s*\n\s*Resolved\.?\s*$/mi;
+/** Pattern to detect resolved findings: matches `## Status\n` followed by a line starting with `Resolved` */
+export const RESOLVED_PATTERN = /^## Status\s*\n\s*Resolved\b/mi;
 
 export async function countUnresolvedCritiques(repoRoot: string): Promise<number> {
   const findingsDir = join(repoRoot, ".shoe-makers", "findings");

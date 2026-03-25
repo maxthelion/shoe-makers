@@ -93,6 +93,8 @@ end: 6
 | `wiki-dir` | `wiki` | Path to wiki directory |
 | `assessment-stale-after` | `30` | Minutes before assessment needs refreshing |
 | `insight-frequency` | `0.3` | Fraction of explore cycles with Wikipedia lens |
+| `max-ticks-per-shift` | `10` | Maximum ticks per shift |
+| `max-innovation-cycles` | `3` | Maximum innovation ticks per shift |
 | `enabled-skills` | all | Comma-separated list of enabled skills |
 
 ## Communicating with Elves

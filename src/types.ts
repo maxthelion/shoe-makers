@@ -73,6 +73,8 @@ export interface Assessment {
   recentGitActivity: string[];
   /** Process patterns from current shift (reactive ratio, review loops) */
   processPatterns?: { reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number };
+  /** Fields that couldn't be checked and why (e.g. missing tool, network error) */
+  uncertainties?: { field: string; reason: string }[];
 }
 
 /** A finding from .shoe-makers/findings/ */

@@ -42,6 +42,12 @@ export async function runSkill(
     case "prioritise":
       return "Action: prioritise — elf should read candidates.md, pick one, and write a detailed work-item.md.";
 
+    case "innovate":
+      return "Action: innovate — elf should write a creative insight from the innovation brief.";
+
+    case "evaluate-insight":
+      return "Action: evaluate-insight — elf should read an insight and evaluate whether to act on it.";
+
     default:
       return `Unknown action: ${action}`;
   }

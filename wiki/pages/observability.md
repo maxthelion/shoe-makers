@@ -37,6 +37,14 @@ The `ShiftSummary` also includes a `TraceAnalysis` that classifies each tick by 
 
 This is factual and terse. It's for the human reviewing the branch in the morning and for debugging when something goes wrong.
 
+The shift log also drives **process pattern** analysis. `parseShiftLogActions()` in `src/log/shift-log-parser.ts` extracts action names from log entries, and `computeProcessPatterns()` derives three signals:
+
+- **Reactive ratio**: the fraction of ticks spent on reactive work (fix-tests, fix-critique, critique, review, inbox) vs proactive work (explore, prioritise, execute, innovate, evaluate-insight, dead-code). A ratio above 0.6 indicates the shift is mostly firefighting — the explore prompt tells the elf to look for root causes of churn. Below 0.3 means the codebase is stable and the elf should focus on high-impact improvements.
+- **Review loop count**: sequences of 3+ consecutive critique/fix-critique actions. These indicate either quality issues in elf output or an overly aggressive reviewer — either way, something structural needs attention.
+- **Innovation cycle count**: how many innovate ticks have occurred this shift. Capped by `config.maxInnovationCycles` (default 3) to prevent diminishing-returns creative loops.
+
+These patterns are stored in `Assessment.processPatterns` and surfaced in the explore prompt as a "Process signal" section (e.g. "high reactive ratio (63%)"). They help elves calibrate whether to fix symptoms or dig into root causes.
+
 ### 2. Findings
 
 **What the agent learned.** Observations that persist until they're resolved. These are the most valuable output an agent can leave — they're context that would otherwise be lost between sessions.
@@ -86,6 +94,16 @@ During the **explore** action:
 During **implementation** actions (implement-spec, implement-plan):
 - Read findings related to the current task — previous agents may have tried this before
 - Factor suggestions into selecting which item to work on
+
+## Uncertainties
+
+Not every field in the assessment can always be checked. When a tool is missing (e.g. `bun-types` not installed for typecheck, `octoclean` not available for health scores), the assessment records the gap in `Assessment.uncertainties` — an array of `{ field, reason }` pairs.
+
+Uncertainties appear in two places:
+- The **tree trace** appends them to failed conditions: `✗ tests-failing (2 unknowns: typecheckPass, healthScore)`
+- The **shift log** via `logAssessment()`: `Uncertainties: typecheckPass (missing type definitions (bun-types)), healthScore (octoclean not installed)`
+
+This lets the human (and future elves) distinguish between "everything is fine" and "we couldn't check" — an important difference when deciding whether to trust the assessment.
 
 ## The Morning Review
 

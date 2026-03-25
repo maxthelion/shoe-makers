@@ -1,6 +1,7 @@
 import { readdir } from "fs/promises";
 import { join } from "path";
 import type { Skill } from "../types";
+import { parseFrontmatter } from "../utils/frontmatter";
 
 /** Extended skill definition with fields from the markdown file */
 export interface SkillDefinition extends Skill {
@@ -25,12 +26,12 @@ export interface SkillDefinition extends Skill {
  * (markdown body with instructions, verification criteria, etc.)
  */
 export function parseSkillFile(content: string): SkillDefinition {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  if (!frontmatterMatch) {
+  const result = parseFrontmatter(content);
+  if (!result) {
     throw new Error("Skill file must have YAML frontmatter");
   }
 
-  const [, frontmatter, body] = frontmatterMatch;
+  const { frontmatter, body } = result;
   const fields: Record<string, string> = {};
 
   for (const line of frontmatter.split("\n")) {

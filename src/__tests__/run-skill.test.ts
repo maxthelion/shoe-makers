@@ -54,6 +54,21 @@ describe("runSkill", () => {
     expect(result).toContain("candidates.md");
   });
 
+  test("returns descriptive message for dead-code", async () => {
+    const result = await runSkill(tempDir, "dead-code");
+    expect(result).toContain("dead-code");
+  });
+
+  test("returns descriptive message for innovate", async () => {
+    const result = await runSkill(tempDir, "innovate");
+    expect(result).toContain("innovate");
+  });
+
+  test("returns descriptive message for evaluate-insight", async () => {
+    const result = await runSkill(tempDir, "evaluate-insight");
+    expect(result).toContain("evaluate-insight");
+  });
+
   test("handles unknown action type", async () => {
     const result = await runSkill(tempDir, "unknown-action");
     expect(result).toContain("Unknown action");

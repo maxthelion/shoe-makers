@@ -85,7 +85,7 @@ describe("generatePrompt", () => {
     ["fix-critique prompt tells elf NOT to delete critique files", "fix-critique", ["Do NOT delete the critique files"]],
     ["fix-critique prompt tells elf to run bun test", "fix-critique", ["bun test"]],
     ["review prompt tells elf to run git diff", "review", ["git diff"]],
-    ["review prompt checks correctness, tests, and spec alignment", "review", ["Correctness", "Tests", "Spec alignment"]],
+    ["review prompt checks correctness, tests, and spec alignment", "review", ["correctly implement", "tests for the changes", "wiki spec"]],
     ["review prompt tells elf to commit if good or fix if not", "review", ["commit them", "fix the issues"]],
     ["critique prompt restricts reviewer to findings only", "critique", ["only write findings"]],
     ["execute-work-item prompt tells elf to read work-item.md", "execute-work-item", ["work-item.md", "Delete"]],
@@ -478,6 +478,33 @@ describe("innovate prompt", () => {
     const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("Off-limits");
     expect(prompt).toContain("invariants.md");
+  });
+
+  test("requires Wikipedia article as the lens — MUST use the Wikipedia article", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("**MUST** use the Wikipedia article");
+    expect(prompt).toContain("Do not use general knowledge");
+  });
+
+  test("Lens section format says Start with the article title", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("Start with the article title");
+    expect(prompt).toContain("Mycelial Networks");
+  });
+
+  test("handles missing article gracefully", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
+    expect(prompt).not.toContain("Wikipedia article provided above");
+    expect(prompt).toContain("No Wikipedia article was available");
+    expect(prompt).toContain("Pick your own creative lens");
+    expect(prompt).toContain("MUST");
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("still requires insight file when no article", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
+    expect(prompt).toContain("YYYY-MM-DD-NNN");
+    expect(prompt).toContain("NOT acceptable");
   });
 });
 

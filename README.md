@@ -18,7 +18,9 @@ Selector
 ├── [dead-code work-item?]   → Remove dead code
 ├── [work-item.md exists?]   → Execute the detailed work item
 ├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
-├── [always true]            → Explore: assess the codebase, write candidates.md
+├── [insights exist?]        → Evaluate insight (generous/convergent)
+├── [innovation tier?]       → Innovate: creative brief with Wikipedia lens
+└── [always true]            → Explore: assess the codebase, write candidates.md
 ```
 
 **Reactive conditions** (top) handle urgent work with direct prompts. **Three-phase orchestration** (bottom) handles proactive work across separate invocations:
@@ -28,6 +30,8 @@ Selector
 3. **Execute** — narrow context. Read the work item. Do exactly what it says. Commit. Optionally hand off a follow-up (e.g. "review what I just built").
 
 Each phase narrows the context for the next. The prioritiser's job is to write a really good prompt for the executor.
+
+When all invariants are met and code health is good, the system enters the **innovation tier**: prompted with a random Wikipedia article as an analogical lens, the elf writes a creative insight. A separate evaluation phase (generous/convergent disposition) decides whether to promote the insight to a work item, rework it, or dismiss it.
 
 ## The wiki is the spec
 
@@ -84,6 +88,7 @@ Log your work to .shoe-makers/log/.
 ```bash
 bun run setup          # Evaluate the tree, write next-action.md
 bun run tick           # Run one tick of the behaviour tree
+bun run shift          # Run a full shift (multiple ticks in sequence)
 bun test               # Run tests
 bun run wiki           # Start octowiki on port 4570
 ```
@@ -103,7 +108,10 @@ branch-prefix: shoemakers
 tick-interval: 5
 wiki-dir: wiki
 assessment-stale-after: 30
+max-ticks-per-shift: 10
+enabled-skills: fix-tests, implement, test-coverage, doc-sync, health  # omit to enable all
 insight-frequency: 0.3
+max-innovation-cycles: 3
 ```
 
 `.shoe-makers/schedule.md` (optional):
@@ -126,6 +134,8 @@ end: 6
   findings/             # Persistent observations
   insights/             # Creative proposals from analogical prompting
   inbox/                # Messages from humans
+  archive/              # Archived state files for traceability
+  claim-evidence.yaml   # Evidence patterns for invariant verification
   known-issues.md       # Troubleshooting
 
 src/                    # The behaviour tree system

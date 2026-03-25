@@ -1,5 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { parseShiftLogActions, computeProcessPatterns } from "../log/shift-log-parser";
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
+import { parseShiftLogActions, computeProcessPatterns, getShiftProcessPatterns } from "../log/shift-log-parser";
 
 describe("parseShiftLogActions", () => {
   test("extracts action names from shift log entries", () => {
@@ -32,6 +35,12 @@ describe("parseShiftLogActions", () => {
   test("returns empty array for log with no actions", () => {
     const log = `# Shift Log — 2026-03-23\n`;
     expect(parseShiftLogActions(log)).toEqual([]);
+  });
+
+  test("skips unrecognized action titles", () => {
+    const log = `- Action: Fix Failing Tests\n- Action: Something Completely Unknown\n- Action: Explore — Survey\n`;
+    const actions = parseShiftLogActions(log);
+    expect(actions).toEqual(["fix-tests", "explore"]);
   });
 
   test("handles all action types", () => {
@@ -96,5 +105,83 @@ describe("computeProcessPatterns", () => {
   test("returns 0 innovation cycles when none present", () => {
     const patterns = computeProcessPatterns(["explore", "prioritise", "execute-work-item"]);
     expect(patterns.innovationCycleCount).toBe(0);
+  });
+
+  test("detects multiple review loops", () => {
+    const patterns = computeProcessPatterns([
+      "critique", "fix-critique", "critique", // loop 1
+      "explore",
+      "critique", "fix-critique", "critique", "fix-critique", // loop 2
+    ]);
+    expect(patterns.reviewLoopCount).toBe(2);
+  });
+
+  test("counts review loop at end of actions", () => {
+    const patterns = computeProcessPatterns(["explore", "critique", "fix-critique", "critique"]);
+    expect(patterns.reviewLoopCount).toBe(1);
+  });
+});
+
+describe("getShiftProcessPatterns", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shift-log-parser-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true });
+  });
+
+  test("returns undefined when no shift log exists", async () => {
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeUndefined();
+  });
+
+  test("returns undefined when shift log has no action entries", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    await mkdir(join(tempDir, ".shoe-makers", "log"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "log", `${today}.md`), "# Empty shift log\n");
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeUndefined();
+  });
+
+  test("reads and parses today's shift log", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    await mkdir(join(tempDir, ".shoe-makers", "log"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers", "log", `${today}.md`),
+      `- Action: Fix Failing Tests\n- Action: Explore — Survey\n`
+    );
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeDefined();
+    expect(result!.reactiveRatio).toBe(0.5);
+    expect(result!.innovationCycleCount).toBe(0);
+  });
+
+  test("computes patterns from realistic multi-action log", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    await mkdir(join(tempDir, ".shoe-makers", "log"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers", "log", `${today}.md`),
+      [
+        "- Action: Explore — Survey and Write Candidates",
+        "- Action: Adversarial Review — Critique Previous Elf's Work",
+        "- Action: Review Uncommitted Work",
+        "- Action: Prioritise — Pick a Work Item",
+        "- Action: Adversarial Review — Critique Previous Elf's Work",
+        "- Action: Review Uncommitted Work",
+        "- Action: Execute Work Item",
+        "- Action: Adversarial Review — Critique Previous Elf's Work",
+        "- Action: Review Uncommitted Work",
+        "- Action: Explore — Survey and Write Candidates",
+      ].join("\n"),
+    );
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeDefined();
+    // 6 reactive (3 critique + 3 review), 4 proactive (2 explore + 1 prioritise + 1 execute)
+    expect(result!.reactiveRatio).toBe(0.6);
+    expect(result!.reviewLoopCount).toBe(0);
+    expect(result!.innovationCycleCount).toBe(0);
   });
 });

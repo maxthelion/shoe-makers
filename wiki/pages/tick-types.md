@@ -12,14 +12,17 @@ Each tick evaluates the [[behaviour-tree]] against cached world state. The first
 
 ```
 Selector
-├── [tests failing?] → Fix them
-├── [unresolved critiques?] → Fix the flagged issues
-├── [unreviewed commits?] → Review adversarially
-├── [uncommitted changes?] → Review before committing
-├── [inbox messages?] → Read and act
-├── [work-item.md exists?] → Execute the work item
-├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
-├── [neither?] → Explore: write candidates.md
+├── [tests failing?]         → Fix them
+├── [unresolved critiques?]  → Fix the flagged issues
+├── [unreviewed commits?]    → Review adversarially
+├── [uncommitted changes?]   → Review before committing
+├── [inbox messages?]        → Read and act
+├── [dead-code work-item?]   → Remove dead code
+├── [work-item.md exists?]   → Execute the work item
+├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
+├── [insights exist?]        → Evaluate insight (generous disposition)
+├── [innovation tier?]       → Innovate: write insight from creative brief
+└── [always]                 → Explore: write candidates.md
 ```
 
 The tree has two zones: **reactive** conditions at the top (urgent, direct prompt) and **three-phase orchestration** at the bottom (proactive work).
@@ -31,6 +34,11 @@ Proactive work goes through three phases across three separate invocations:
 1. **Explore** — reads everything (wiki, code, invariants, health, findings), writes `candidates.md`
 2. **Prioritise** — reads `candidates.md` + relevant code/wiki, picks one, writes `work-item.md`
 3. **Execute** — reads `work-item.md`, does the work, deletes it
+
+At innovation tier (all invariants met, health good), two additional actions replace explore:
+
+4. **Innovate** — receives a creative brief (wiki overview + random Wikipedia article), must write an insight file to `.shoe-makers/insights/`
+5. **Evaluate-insight** — when insight files exist, evaluates with generous disposition: promote to work item, rework, or dismiss
 
 ## State Files
 

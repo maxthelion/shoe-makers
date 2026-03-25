@@ -259,6 +259,28 @@ describe("formatTrace", () => {
     expect(lines[0]).toContain("✗");
     expect(lines[1]).toContain("✓");
   });
+
+  test("includes note annotation for failed conditions with notes", () => {
+    const output = formatTrace([
+      { condition: "tests-failing", passed: false, skill: "fix-tests", note: "2 unknowns: typecheckPass, healthScore" },
+    ]);
+    expect(output).toContain("✗ tests-failing (2 unknowns: typecheckPass, healthScore)");
+  });
+
+  test("does not include parentheses when note is absent", () => {
+    const output = formatTrace([
+      { condition: "tests-failing", passed: false, skill: "fix-tests" },
+    ]);
+    expect(output).toBe("  ✗ tests-failing");
+    expect(output).not.toContain("(");
+  });
+
+  test("does not show note for passing conditions", () => {
+    const output = formatTrace([
+      { condition: "tests-failing", passed: true, skill: "fix-tests", note: "should not appear" },
+    ]);
+    expect(output).not.toContain("should not appear");
+  });
 });
 
 describe("game-style behaviour tree — priority ordering", () => {

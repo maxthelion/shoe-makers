@@ -44,9 +44,17 @@ describe("isAllHousekeeping", () => {
     expect(isAllHousekeeping(status)).toBe(true);
   });
 
-  test("returns false when state files are changed", () => {
-    const status = " M .shoe-makers/state/assessment.json";
-    expect(isAllHousekeeping(status)).toBe(false);
+  test("returns true when state files are changed (consumed work-item, candidates)", () => {
+    const status = " D .shoe-makers/state/work-item.md";
+    expect(isAllHousekeeping(status)).toBe(true);
+  });
+
+  test("returns true for mixed state and log housekeeping", () => {
+    const status = [
+      " D .shoe-makers/state/work-item.md",
+      " M .shoe-makers/log/2026-03-24.md",
+    ].join("\n");
+    expect(isAllHousekeeping(status)).toBe(true);
   });
 
   test("handles trailing newline from git status output", () => {

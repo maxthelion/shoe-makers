@@ -42,3 +42,33 @@ export async function fetchRandomArticle(): Promise<{
 export function shouldIncludeLens(frequency: number = 0.3): boolean {
   return Math.random() < frequency;
 }
+
+/**
+ * Fetch a Wikipedia article for the given skill action.
+ * For innovate: always fetch and log to shift log.
+ * For explore: probabilistic based on insightFrequency.
+ * Returns undefined for all other skills.
+ */
+export async function fetchArticleForAction(
+  skill: string | null,
+  insightFrequency: number,
+  logToShiftLog: (entry: string) => Promise<void>,
+): Promise<{ title: string; summary: string } | undefined> {
+  if (skill === "innovate") {
+    const article = (await fetchRandomArticle()) ?? undefined;
+    if (article) {
+      console.log(`[setup] Wikipedia article fetched: "${article.title}"`);
+      await logToShiftLog(`- **Wikipedia article**: "${article.title}"\n`);
+    } else {
+      console.log("[setup] Wikipedia article fetch failed");
+      await logToShiftLog("- **Wikipedia article**: fetch failed — no article available\n");
+    }
+    return article;
+  }
+
+  if (skill === "explore" && shouldIncludeLens(insightFrequency)) {
+    return (await fetchRandomArticle()) ?? undefined;
+  }
+
+  return undefined;
+}

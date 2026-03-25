@@ -22,6 +22,12 @@ Most of the time: nothing useful. That's fine. Brainstorming has a low hit rate.
 
 ## How It Works
 
+### Wikipedia lens in `explore`
+
+During regular `explore` actions, a Wikipedia lens is included **probabilistically** — controlled by the `insight-frequency` config (default `0.3`, meaning 30% of explore cycles). When included, the elf receives a random Wikipedia article as a creative lens alongside the normal exploration prompt. If the elf discovers a non-obvious connection, it writes an insight file to `.shoe-makers/insights/`. This is optional — the elf's primary job during explore is still to write candidates.
+
+The `insight-frequency` is set in `.shoe-makers/config.yaml`.
+
 ### The `innovate` action
 
 Creative exploration is a dedicated action in the behaviour tree, not an optional add-on to explore. When the system reaches innovation tier (all invariants met, health good), the tree routes to `innovate` instead of `explore`.

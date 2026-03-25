@@ -6,8 +6,9 @@ import { RESOLVED_PATTERN } from "../state/world";
 import { writeAssessment } from "../state/blackboard";
 import { checkInvariants } from "../verify/invariants";
 import { loadConfig } from "../config/load-config";
-import { getHealthResult } from "./health-scan";
+import { getHealthResult, isOctocleanInstalled } from "./health-scan";
 import { getShiftProcessPatterns } from "../log/shift-log-parser";
+import { parseFrontmatter, getFrontmatterField } from "../utils/frontmatter";
 
 /**
  * Gather recent git activity (last 10 commits, one-line).
@@ -37,13 +38,19 @@ export function runTests(repoRoot: string): boolean {
 }
 
 /**
- * Run `npx tsc --noEmit` and return whether TypeScript compilation passes.
+ * Run `tsc --noEmit` and return whether TypeScript compilation passes.
+ * Returns undefined if the type checker can't run (e.g. missing type definitions).
  */
-function runTypecheck(repoRoot: string): boolean {
+function runTypecheck(repoRoot: string): boolean | undefined {
   try {
-    execSync("npx tsc --noEmit", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
+    execSync("tsc --noEmit", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
     return true;
-  } catch {
+  } catch (err: unknown) {
+    const e = err as { stderr?: unknown; stdout?: unknown };
+    const output = String(e?.stderr ?? "") + String(e?.stdout ?? "");
+    // If the failure is due to missing type definitions (e.g. bun-types not installed),
+    // treat as "unable to check" rather than "code has type errors"
+    if (output.includes("Cannot find type definition file")) return undefined;
     return false;
   }
 }
@@ -61,11 +68,13 @@ async function findOpenPlans(repoRoot: string, wikiDir: string = "wiki"): Promis
     for (const file of files) {
       if (!file.endsWith(".md")) continue;
       const content = await readFile(join(pagesDir, file), "utf-8");
-      const frontmatter = content.match(/^---[\s\S]*?---/m)?.[0] ?? "";
+      const parsed = parseFrontmatter(content);
+      if (!parsed) continue;
       // Check frontmatter for category: plan (per wiki spec: plans-vs-spec.md)
-      if (!frontmatter.match(/category:\s*plan/)) continue;
+      if (getFrontmatterField(parsed.frontmatter, "category") !== "plan") continue;
       // Skip plans that are blocked or done
-      if (frontmatter.match(/status:\s*(blocked|done)/)) continue;
+      const status = getFrontmatterField(parsed.frontmatter, "status");
+      if (status === "blocked" || status === "done") continue;
       plans.push(file.replace(".md", ""));
     }
   } catch {
@@ -171,6 +180,15 @@ export async function assess(repoRoot: string): Promise<Assessment> {
     getShiftProcessPatterns(repoRoot),
   ]);
 
+  // Track fields that couldn't be checked
+  const uncertainties: { field: string; reason: string }[] = [];
+  if (typecheckPass === undefined) {
+    uncertainties.push({ field: "typecheckPass", reason: "missing type definitions (bun-types)" });
+  }
+  if (healthResult === null && !isOctocleanInstalled(repoRoot)) {
+    uncertainties.push({ field: "healthScore", reason: "octoclean not installed" });
+  }
+
   const assessment: Assessment = {
     timestamp: new Date().toISOString(),
     invariants,
@@ -182,6 +200,7 @@ export async function assess(repoRoot: string): Promise<Assessment> {
     typecheckPass,
     recentGitActivity,
     processPatterns,
+    ...(uncertainties.length > 0 ? { uncertainties } : {}),
   };
 
   await writeAssessment(repoRoot, assessment);

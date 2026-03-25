@@ -4,18 +4,37 @@ import { execSync } from "child_process";
 import { readLastAction } from "../state/last-action";
 import { parseActionTypeFromPrompt } from "../prompts/helpers";
 import { checkPermissionViolations } from "./permissions";
+import { SETUP_HOUSEKEEPING_PATHS } from "../utils/housekeeping";
+import type { ActionType } from "../types";
+
+/**
+ * Read the previous action type from the snapshot file.
+ * Falls back to parsing last-action.md if the snapshot doesn't exist.
+ */
+async function readPreviousActionType(repoRoot: string): Promise<ActionType | null> {
+  // Prefer the snapshot file — it's written before last-action.md is overwritten,
+  // so it survives multiple setup runs in the same session.
+  try {
+    const raw = (await readFile(join(repoRoot, ".shoe-makers", "state", "previous-action-type"), "utf-8")).trim();
+    if (raw) return raw as ActionType;
+  } catch {
+    // Fall through to legacy approach
+  }
+
+  // Fallback: parse last-action.md directly
+  const lastAction = await readLastAction(repoRoot);
+  if (!lastAction) return null;
+  return parseActionTypeFromPrompt(lastAction);
+}
 
 /**
  * Detect permission violations by the previous elf.
- * Reads last-action.md to determine the action type, then checks
- * changed files since last-reviewed-commit against that role's permissions.
+ * Reads previous-action-type (or falls back to last-action.md) to determine
+ * the action type, then checks changed files against that role's permissions.
  */
 export async function detectPermissionViolations(repoRoot: string): Promise<string[] | undefined> {
   try {
-    const lastAction = await readLastAction(repoRoot);
-    if (!lastAction) return undefined;
-
-    const actionType = parseActionTypeFromPrompt(lastAction);
+    const actionType = await readPreviousActionType(repoRoot);
     if (!actionType) return undefined;
 
     // Read last-reviewed-commit to get the diff range
@@ -79,5 +98,9 @@ export function getElfChangedFiles(repoRoot: string, sinceCommit: string): strin
     }
   }
 
-  return [...changedFiles];
+  // Filter out files under housekeeping paths — these are setup-authored,
+  // not elf-authored, even when they appear in elf commits
+  return [...changedFiles].filter(f =>
+    !SETUP_HOUSEKEEPING_PATHS.some(p => f.startsWith(p))
+  );
 }

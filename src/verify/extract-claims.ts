@@ -1,6 +1,7 @@
 import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import type { EvidenceRule } from "./parse-evidence";
+import { parseFrontmatter as parseFm, getFrontmatterField } from "../utils/frontmatter";
 
 /**
  * A wiki page with parsed frontmatter.
@@ -26,12 +27,11 @@ export interface Claim {
  * Parse frontmatter from a wiki page.
  */
 function parseFrontmatter(content: string): { title: string; category: string } {
-  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (!match) return { title: "", category: "" };
+  const result = parseFm(content);
+  if (!result) return { title: "", category: "" };
 
-  const fm = match[1];
-  const title = fm.match(/title:\s*(.+)/)?.[1]?.trim() ?? "";
-  const category = fm.match(/category:\s*(.+)/)?.[1]?.trim() ?? "";
+  const title = getFrontmatterField(result.frontmatter, "title") ?? "";
+  const category = getFrontmatterField(result.frontmatter, "category") ?? "";
   return { title, category };
 }
 

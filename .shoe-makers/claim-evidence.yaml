@@ -12,16 +12,16 @@ behaviour-tree.tree-evaluator:
 behaviour-tree.selector-tries-children:
   source:
     - ["\"selector\""]
-    - [children]
+    - ["node.children", "child of node.children"]
   test:
-    - [selector]
+    - [selector, "first success"]
 
 behaviour-tree.sequence-runs-in-order:
   source:
     - ["\"sequence\""]
-    - [children]
+    - ["for (const child", "node.children"]
   test:
-    - [sequence]
+    - [sequence, "runs children in order"]
 
 behaviour-tree.re-evaluates-from-scratch:
   source:
@@ -34,7 +34,7 @@ behaviour-tree.tree-order-priority:
     - [makeConditionAction]
     - [defaultTree]
   test:
-    - [priority]
+    - [priority, "tree order"]
 
 behaviour-tree.macro-micro-priority:
   source:
@@ -62,7 +62,7 @@ behaviour-tree.blackboard-pattern:
     - [readBlackboard]
     - [writeAssessment]
   test:
-    - [blackboard]
+    - [readBlackboard, blackboard]
 
 behaviour-tree.game-style-selector:
   source:
@@ -84,7 +84,7 @@ architecture.tree-routes-to-actions:
     - [ActionType]
     - ["evaluate("]
   test:
-    - [action]
+    - [ActionType, "evaluate("]
 
 architecture.blackboard-state-files:
   source:
@@ -112,7 +112,7 @@ architecture.branch-is-state:
   source:
     - [getCurrentBranch]
   test:
-    - [branch]
+    - [getCurrentBranch, branchName]
 
 # === pure-function-agents.md ===
 pure-function-agents.agent-interface:
@@ -273,8 +273,8 @@ verification.role-based-permissions:
     - [canWrite, permittedFiles, allowedPaths]
     - [role]
   test:
-    - [permission]
-    - [role]
+    - [permission, permittedFiles]
+    - [role, "role-based"]
 
 verification.tdd-enforcement:
   source:
@@ -323,13 +323,13 @@ observability.findings-directory:
   source:
     - ["readFindings(", "loadFindings(", shoe-makers/findings]
   test:
-    - [findings]
+    - [readFindings, findings]
 
 observability.timestamped-entries:
   source:
     - [timeStamp, timestamp]
   test:
-    - [timestamp]
+    - [timestamp, toISOString]
 
 # === wiki-as-spec.md ===
 wiki-as-spec.four-statuses:
@@ -361,27 +361,27 @@ branching-strategy.one-branch-per-shift:
   source:
     - [branchPrefix]
   test:
-    - [branch]
+    - [branchPrefix, "shoemakers/"]
 
 branching-strategy.branch-is-state:
   source:
     - [getCurrentBranch]
     - [hasUncommittedChanges]
   test:
-    - [branch]
+    - [getCurrentBranch, hasUncommittedChanges]
 
 # === functionality.md ===
 functionality.inbox-reads-messages:
   source:
     - [shoe-makers/inbox, .shoe-makers/inbox]
   test:
-    - [inbox]
+    - [inbox, readInboxMessages]
 
 functionality.findings-persist-across-shifts:
   source:
     - ["readFindings(", shoe-makers/findings]
   test:
-    - [findings]
+    - [readFindings, findings]
 
 functionality.shift-log-narrative:
   source:
@@ -402,7 +402,7 @@ functionality.config-yaml:
 functionality.plan-status-lifecycle:
   source:
     - [findOpenPlans]
-    - ["status:\\s*(blocked|done)", "status: blocked", "status: done"]
+    - ["status:\\s*(blocked|done)", "status: blocked", "status: done", "=== \"blocked\"", "=== \"done\""]
   test:
     - [plan]
 
@@ -1160,13 +1160,13 @@ spec.steer-the-elves.drop-a-markdown-file-in-shoemakersinbox-and-the-next-elf-ac
 spec.steer-the-elves.write-a-plan-page-in-the-wiki-category-plan-and-elves-work-t:
   source:
     - [findOpenPlans]
-    - ["category: plan", "category:\\s*plan"]
+    - ["category: plan", "category:\\s*plan", "\"category\") !== \"plan\""]
   test:
     - [plan]
 
 spec.steer-the-elves.mark-a-plan-as-status-blocked-or-status-done-to-control-what:
   source:
-    - ["status: blocked", "status: done", "status:\\s*(blocked|done)"]
+    - ["status: blocked", "status: done", "status:\\s*(blocked|done)", "=== \"blocked\"", "=== \"done\""]
   test:
     - [blocked, done]
 
@@ -1285,7 +1285,7 @@ spec.self-improvement.agents-can-modify-the-protocol-add-scripts-create-skills-u
 spec.maintain-a-living-spec.plans-describe-what-the-system-should-become-deltas-that-are:
   source:
     - [findOpenPlans]
-    - ["category: plan", "category:\\s*plan"]
+    - ["category: plan", "category:\\s*plan", "\"category\") !== \"plan\""]
   test:
     - [plan]
 
@@ -1964,3 +1964,43 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-in
     - [NOT the prioritise elf]
   test:
     - [NOT the prioritise elf]
+
+# === innovate observability (invariants.md 2.6.1) ===
+
+# The insight file must reference the Wikipedia article (section 2.6 bullet)
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-insight-file-must-reference-the-wikipedia-article-that-w:
+  source:
+    - [use the Wikipedia article]
+    - [forced serendipity]
+  test:
+    - [use the Wikipedia article]
+
+# Setup logs which Wikipedia article was fetched
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-setup-script-logs-which-wikipedia-article-was-fetched-ti:
+  source:
+    - [Wikipedia article fetched]
+  test:
+    - [Wikipedia article fetched]
+
+# Insight file must include article title in Lens section
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-innovate-prompt-output-the-insight-file-must-include-the:
+  source:
+    - [Start with the article title]
+  test:
+    - [Start with the article title]
+
+# Shift log entry for innovate tick should include article, insight written, filename
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-shift-log-entry-for-an-innovate-tick-should-include-the-:
+  source:
+    - [Wikipedia article fetched]
+  test:
+    - [Wikipedia article fetched]
+
+# Observability for morning review
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.this-observability-allows-the-human-to-verify-in-the-morning:
+  source:
+    - [Wikipedia article fetched]
+    - [Wikipedia article fetch failed]
+  test:
+    - [Wikipedia article fetched]
+    - [Wikipedia article fetch failed]
