@@ -47,6 +47,7 @@ const allActions: ActionType[] = [
   "fix-tests",
   "fix-critique",
   "critique",
+  "continue-work",
   "review",
   "inbox",
   "execute-work-item",
@@ -387,6 +388,15 @@ describe("parseActionTypeFromPrompt", () => {
 
   test("returns null for empty string", () => {
     expect(parseActionTypeFromPrompt("")).toBeNull();
+  });
+
+  test("round-trip: generatePrompt then parseActionTypeFromPrompt for all actions", () => {
+    const state = makeState();
+    for (const action of allActions) {
+      const prompt = generatePrompt(action, state);
+      const parsed = parseActionTypeFromPrompt(prompt);
+      expect(parsed).toBe(action);
+    }
   });
 });
 
