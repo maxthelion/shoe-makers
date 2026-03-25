@@ -14,26 +14,26 @@ Verification is not self-review. The executor and verifier must be different elv
 
 Each action from the [[behaviour-tree]] has a **role** that determines what the elf is allowed to touch. The elf's prompt includes both the task and the permission boundary.
 
-The reactive conditions (tests failing, critiques, reviews, uncommitted work, inbox) appear directly in the tree. The remaining rows (open plans, specified-only invariants, untested code, undocumented code, code health) describe roles applied when executing work items through the three-phase orchestration cycle.
+The reactive conditions (tests failing, critiques, reviews, uncommitted work, inbox) appear directly in the tree. The remaining actions (execute-work-item, dead-code, prioritise, innovate, evaluate-insight, explore) are part of the three-phase orchestration cycle.
 
-| Tree condition / work type | Role | Can write | Cannot write |
+| Action | Role | Can write | Cannot write |
 |---|---|---|---|
-| Tests failing? | **test-fixer** | `src/` | invariants, wiki |
-| Unresolved critiques? | **critique-fixer** | `src/`, `.shoe-makers/findings/` | invariants, wiki |
-| Unreviewed commits? | **reviewer** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
-| Uncommitted work? | **reviewer** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
-| Inbox? | **inbox-handler** | `src/`, `wiki/`, `.shoe-makers/` | invariants |
-| Open plans? | **plan-implementer** | `src/`, `wiki/` | `src/__tests__/`, invariants |
-| Specified-only invariant? | **implementer** | `src/` | `src/__tests__/`, wiki, invariants |
-| Untested code? | **test-writer** | `src/__tests__/` only | `src/` (non-test), invariants, wiki |
-| Undocumented code? | **doc-writer** | `wiki/` only | `src/`, tests, invariants |
-| Code health? | **refactorer** | `src/` | `src/__tests__/`, wiki, invariants |
-| Explore? | **assessor** | `.shoe-makers/findings/` only | `src/`, tests, wiki, invariants |
+| fix-tests | **test-fixer** | `src/` | invariants, wiki |
+| fix-critique | **critique-fixer** | `src/`, `.shoe-makers/findings/` | invariants, wiki |
+| critique | **reviewer** | `.shoe-makers/findings/` only | `src/`, wiki, invariants |
+| review | **reviewer** | `.shoe-makers/findings/` only | `src/`, wiki, invariants |
+| inbox | **inbox-handler** | `src/`, `wiki/`, `.shoe-makers/` | invariants |
+| execute-work-item | **executor** | `src/`, `wiki/`, `.shoe-makers/state/` | invariants |
+| dead-code | **dead-code-remover** | `src/` | invariants, wiki |
+| prioritise | **prioritiser** | `.shoe-makers/state/` only | `src/`, wiki, invariants |
+| innovate | **innovator** | `.shoe-makers/insights/` only | `src/`, wiki, invariants |
+| evaluate-insight | **insight-evaluator** | `.shoe-makers/insights/`, `.shoe-makers/state/`, `.shoe-makers/log/` | `src/`, wiki, invariants |
+| explore | **explorer** | `.shoe-makers/state/`, `.shoe-makers/findings/` | `src/`, wiki, invariants |
 
 Key constraints:
 - **Invariants are never writable by elves.** Only humans maintain `.shoe-makers/invariants.md`. This prevents the cheating problem where elves tailor claims to match their code.
 - **Reviewers can only write findings.** They can't "fix" problems they find — they document them for the next elf.
-- **Implementers write tests first.** TDD is enforced by the permission model: write tests, commit, then next tick the "tests failing" condition fires and the elf can write implementation code.
+- **Executors have broad permissions.** The `execute-work-item` role can write both source and tests because it handles varied skill types. The skill prompt determines what should be changed.
 
 ## TDD Enforcement
 
