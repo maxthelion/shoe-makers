@@ -5,6 +5,8 @@ import { parseFrontmatter } from "../utils/frontmatter";
 
 /** Extended skill definition with fields from the markdown file */
 export interface SkillDefinition extends Skill {
+  /** Source filename of the skill definition */
+  filename?: string;
   /** Which priority item type this skill handles */
   mapsTo: string;
   /** Full markdown body (instructions, verification, etc.) */

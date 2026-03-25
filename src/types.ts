@@ -42,7 +42,9 @@ export type ActionType =
 /** The blackboard — shared state written as files on the branch */
 export interface Blackboard {
   assessment: Assessment | null;
+  priorities?: unknown | null;
   currentTask: CurrentTask | null;
+  verification?: unknown | null;
 }
 
 /** Output of the ASSESS tick */
@@ -71,7 +73,7 @@ export interface Assessment {
   typecheckPass?: boolean | null;
   recentGitActivity: string[];
   /** Process patterns from current shift (reactive ratio, review loops) */
-  processPatterns?: { reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number };
+  processPatterns?: { reactiveRatio: number; reviewLoopCount?: number; reviewLoopDetected?: boolean; innovationCycleCount: number };
   /** Fields that couldn't be checked and why (e.g. missing tool, network error) */
   uncertainties?: { field: string; reason: string }[];
 }
