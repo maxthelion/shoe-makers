@@ -18,14 +18,18 @@ Selector
 ├── [dead-code work-item?]   → Remove dead code
 ├── [work-item.md exists?]   → Execute the detailed work item
 ├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
-├── [always true]            → Explore: assess the codebase, write candidates.md
+├── [insights exist?]        → Evaluate insight (generous disposition)
+├── [innovation tier?]       → Innovate: creative insight from random concept
+└── [always true]            → Explore: assess the codebase, write candidates.md
 ```
 
 **Reactive conditions** (top) handle urgent work with direct prompts. **Three-phase orchestration** (bottom) handles proactive work across separate invocations:
 
-1. **Explore** — broad context. Read the wiki, code, invariants, health scores, findings. Write a ranked list of candidates. Occasionally prompted with a random Wikipedia article as an analogical lens for creative thinking.
+1. **Explore** — broad context. Read the wiki, code, invariants, health scores, findings. Write a ranked list of candidates.
 2. **Prioritise** — medium context. Read the candidates, read the relevant code and wiki. Pick one and write a detailed work item with full context — not "implement something" but specific instructions with relevant code and patterns.
 3. **Execute** — narrow context. Read the work item. Do exactly what it says. Commit. Optionally hand off a follow-up (e.g. "review what I just built").
+
+At **innovation tier** (all invariants met, health good), the tree routes to **Innovate** instead of Explore. The setup script prepares a creative brief with a random Wikipedia article, and the elf writes an insight connecting the random concept to the system. A separate **Evaluate-insight** action fires when insight files exist — it has a generous disposition, building on ideas constructively rather than filtering them.
 
 Each phase narrows the context for the next. The prioritiser's job is to write a really good prompt for the executor.
 
