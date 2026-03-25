@@ -82,15 +82,31 @@ describe("generatePrompt", () => {
     }
   });
 
-  // Tests for individual builder content are in prompt-builders.test.ts.
-  // These test dispatcher-level concerns: actions that need state or aren't directly testable.
   const promptCases: [string, ActionType, string[]][] = [
+    ["fix-critique prompt tells elf to read critique findings", "fix-critique", [".shoe-makers/findings/", "critique-"]],
+    ["fix-critique prompt tells elf to mark critiques as resolved", "fix-critique", ["## Status", "Resolved."]],
+    ["fix-critique prompt tells elf NOT to delete critique files", "fix-critique", ["Do NOT delete the critique files"]],
+    ["fix-critique prompt tells elf to run bun test", "fix-critique", ["bun test"]],
+    ["review prompt tells elf to run git diff", "review", ["git diff"]],
+    ["review prompt checks correctness, tests, and spec alignment", "review", ["correctly implement", "tests for the changes", "wiki spec"]],
+    ["review prompt tells elf to commit if good or fix if not", "review", ["commit them", "fix the issues"]],
+    ["critique prompt restricts reviewer to findings only", "critique", ["only write findings"]],
     ["continue-work prompt tells elf to read partial-work.md", "continue-work", ["partial-work.md"]],
     ["continue-work prompt tells elf to delete partial-work.md when done", "continue-work", ["delete", "partial-work.md"]],
     ["continue-work prompt tells elf to run bun test", "continue-work", ["bun test"]],
-    ["explore prompt mentions README accuracy check", "explore", ["README.md", "accurately"]],
-    ["explore prompt mentions suggesting new invariants", "explore", ["suggesting a new invariant"]],
+    ["execute-work-item prompt tells elf to read work-item.md", "execute-work-item", ["work-item.md", "Delete"]],
+    ["prioritise prompt tells elf to read candidates and write work-item", "prioritise", ["candidates.md", "work-item.md", "Delete"]],
     ["prioritise prompt mentions skill-type metadata", "prioritise", ["skill-type:"]],
+    ["prioritise prompt asks for decision rationale", "prioritise", ["Decision Rationale"]],
+    ["explore prompt tells elf to write candidates.md", "explore", ["candidates.md", "ranked"]],
+    ["explore prompt mentions README accuracy check", "explore", ["README.md", "accurately"]],
+    ["explore prompt mentions writing insights", "explore", [".shoe-makers/insights/", "proposals, not problems"]],
+    ["explore prompt mentions suggesting new invariants", "explore", ["suggesting a new invariant"]],
+    ["execute prompt mentions never reverting the wiki", "execute-work-item", ["never revert the wiki", "source of truth"]],
+    ["dead-code prompt tells elf to read work-item.md", "dead-code", ["work-item.md"]],
+    ["dead-code prompt tells elf to verify with grep", "dead-code", ["grep"]],
+    ["dead-code prompt permits deleting test files", "dead-code", ["You ARE permitted to delete test files"]],
+    ["dead-code prompt tells elf to run bun test", "dead-code", ["bun test"]],
   ];
 
   for (const [label, action, contains] of promptCases) {
@@ -213,8 +229,21 @@ describe("ACTION_TO_SKILL_TYPE matches real skill files", () => {
   });
 });
 
-describe("explore prompt creative lens (dispatcher integration)", () => {
-  test("creative lens is only added for explore action, not fix-tests", () => {
+describe("explore prompt creative lens", () => {
+  test("includes creative lens section when article provided", () => {
+    const article = { title: "Fractal Geometry", summary: "Fractals are self-similar patterns..." };
+    const prompt = generatePrompt("explore", makeState(), undefined, article);
+    expect(prompt).toContain("## Creative Lens");
+    expect(prompt).toContain("Fractal Geometry");
+    expect(prompt).toContain("Fractals are self-similar patterns...");
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("does NOT include creative lens when no article provided", () => {
+    expectPromptContains("explore", makeState(), [], ["## Creative Lens"]);
+  });
+
+  test("creative lens is only added for explore action", () => {
     const prompt = generatePrompt("fix-tests", makeState(), undefined, { title: "Test", summary: "A".repeat(100) });
     expect(prompt).not.toContain("## Creative Lens");
   });
@@ -237,7 +266,43 @@ function makeStateWithAssessment(assessment: Assessment): WorldState {
   };
 }
 
-// Process temperature tests are in prompt-builders.test.ts (buildExplorePrompt)
+describe("explore prompt process temperature", () => {
+  function makeStateWithProcessPatterns(reactiveRatio: number, reviewLoopCount: number = 0): WorldState {
+    return makeStateWithAssessment(makeAssessment({}, {
+      processPatterns: { reactiveRatio, reviewLoopCount, innovationCycleCount: 0 },
+    }));
+  }
+
+  test("includes high reactive ratio guidance when ratio > 0.6", () => {
+    const state = makeStateWithProcessPatterns(0.75);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("high reactive ratio");
+    expect(prompt).toContain("75%");
+    expect(prompt).toContain("root causes");
+  });
+
+  test("includes stability guidance when ratio < 0.3", () => {
+    const state = makeStateWithProcessPatterns(0.1);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("stable shift");
+    expect(prompt).toContain("10%");
+    expect(prompt).toContain("ambitious");
+  });
+
+  test("no extra guidance when ratio is moderate", () => {
+    const state = makeStateWithProcessPatterns(0.45);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).not.toContain("high reactive ratio");
+    expect(prompt).not.toContain("stable shift");
+    expect(prompt).not.toContain("Process signal");
+  });
+
+  test("no extra guidance when processPatterns is missing", () => {
+    const state = makeState();
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).not.toContain("Process signal");
+  });
+});
 
 describe("explore and prioritise tier switching", () => {
   function makeStateWithGaps(specifiedOnly: number, implementedUntested: number): WorldState {
@@ -328,9 +393,52 @@ describe("parseActionTypeFromPrompt", () => {
   });
 });
 
-// Critique permission violation tests are in prompt-builders.test.ts (buildCritiquePrompt)
+describe("critique prompt permission violations", () => {
+  test("includes violation warning when violations are present", () => {
+    const violations = ["src/types.ts", "wiki/pages/foo.md"];
+    const prompt = generatePrompt("critique", makeState(), undefined, undefined, violations);
+    expect(prompt).toContain("PERMISSION VIOLATIONS DETECTED");
+    expect(prompt).toContain("`src/types.ts`");
+    expect(prompt).toContain("`wiki/pages/foo.md`");
+    expect(prompt).toContain("outside their permitted scope");
+  });
 
-describe("insight lifecycle in prompts (dispatcher integration)", () => {
+  test("omits violation warning when no violations", () => {
+    const prompt = generatePrompt("critique", makeState(), undefined, undefined, []);
+    expect(prompt).not.toContain("PERMISSION VIOLATIONS");
+  });
+
+  test("omits violation warning when violations undefined", () => {
+    const prompt = generatePrompt("critique", makeState());
+    expect(prompt).not.toContain("PERMISSION VIOLATIONS");
+  });
+});
+
+describe("insight lifecycle in prompts", () => {
+  const article = { title: "Mycelial Networks", summary: "Fungi connect trees underground." };
+
+  test("explore prompt includes creative lens when article provided", () => {
+    const prompt = generatePrompt("explore", makeState(), undefined, article);
+    expect(prompt).toContain("Creative Lens");
+    expect(prompt).toContain("Mycelial Networks");
+    expect(prompt).toContain("Fungi connect trees underground.");
+  });
+
+  test("explore prompt omits creative lens when no article", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).not.toContain("Creative Lens");
+  });
+
+  test("explore prompt mentions writing insights to .shoe-makers/insights/", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("evaluate-insight prompt mentions reading insights from .shoe-makers/insights/", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
   test("innovate and evaluate-insight reference the same insight path", () => {
     const innovatePrompt = generatePrompt("innovate", makeState());
     const evaluatePrompt = generatePrompt("evaluate-insight", makeState());
@@ -338,11 +446,116 @@ describe("insight lifecycle in prompts (dispatcher integration)", () => {
     expect(innovatePrompt).toContain(insightPath);
     expect(evaluatePrompt).toContain(insightPath);
   });
+
+  test("explore prompt mentions insight file naming format", () => {
+    const prompt = generatePrompt("explore", makeState());
+    expect(prompt).toContain("YYYY-MM-DD");
+  });
 });
 
-// Detailed innovate prompt tests are in prompt-builders.test.ts (buildInnovatePrompt)
+describe("innovate prompt", () => {
+  const article = { title: "Mycelial Networks", summary: "Fungi connect trees underground via root networks." };
+  const wikiSummary = "Shoe-makers is a behaviour tree system for autonomous overnight codebase improvement.";
 
-// Detailed evaluate-insight tests are in prompt-builders.test.ts (buildEvaluateInsightPrompt)
+  test("includes wiki summary and article", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("Mycelial Networks");
+    expect(prompt).toContain("Fungi connect trees underground");
+    expect(prompt).toContain("behaviour tree system");
+  });
+
+  test("mandates writing an insight file", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("MUST");
+    expect(prompt).toContain(".shoe-makers/insights/");
+    expect(prompt).toContain("YYYY-MM-DD-NNN");
+  });
+
+  test("says no connection found is not acceptable", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("No connection found");
+    expect(prompt).toContain("NOT acceptable");
+  });
+
+  test("mentions divergent/creative mode", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("divergent/creative mode");
+  });
+
+  test("mentions off-limits", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("Off-limits");
+    expect(prompt).toContain("invariants.md");
+  });
+
+  test("requires Wikipedia article as the lens — MUST use the Wikipedia article", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("**MUST** use the Wikipedia article");
+    expect(prompt).toContain("Do not use general knowledge");
+  });
+
+  test("Lens section format says Start with the article title", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("Start with the article title");
+    expect(prompt).toContain("Mycelial Networks");
+  });
+
+  test("Lens section references article.title", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
+    expect(prompt).toContain("Lens");
+    expect(prompt).toContain(article.title);
+  });
+
+  test("handles missing article gracefully", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
+    expect(prompt).not.toContain("Wikipedia article provided above");
+    expect(prompt).toContain("No Wikipedia article was available");
+    expect(prompt).toContain("Pick your own creative lens");
+    expect(prompt).toContain("MUST");
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("still requires insight file when no article", () => {
+    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
+    expect(prompt).toContain("YYYY-MM-DD-NNN");
+    expect(prompt).toContain("NOT acceptable");
+  });
+});
+
+describe("evaluate-insight prompt", () => {
+  test("mentions generous disposition", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("generous disposition");
+  });
+
+  test("mentions promote, rework, dismiss actions", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("Promote");
+    expect(prompt).toContain("Rework");
+    expect(prompt).toContain("Dismiss");
+  });
+
+  test("says it is NOT the prioritise elf", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("NOT the prioritise elf");
+  });
+
+  test("mentions constructive/convergent mode", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("constructive/convergent mode");
+  });
+
+  test("mentions reading insights directory", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain(".shoe-makers/insights/");
+  });
+
+  test("mentions off-limits", () => {
+    const prompt = generatePrompt("evaluate-insight", makeState());
+    expect(prompt).toContain("Off-limits");
+    expect(prompt).toContain("invariants.md");
+  });
+});
 
 describe("determineTier", () => {
   test("null assessment returns no gaps", () => {
