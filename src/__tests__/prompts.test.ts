@@ -155,6 +155,7 @@ function makeSkill(overrides: Partial<SkillDefinition> & { name: string; mapsTo:
     risk: "medium",
     body: "## Instructions\n\nDo the thing.\n\n## Verification criteria\n\n- It works",
     offLimits: ["Do not break things"],
+    validationPatterns: [],
     ...overrides,
   };
 }

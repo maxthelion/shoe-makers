@@ -13,6 +13,12 @@ export interface SkillDefinition extends Skill {
   body: string;
   /** Off-limits items parsed from the ## Off-limits section */
   offLimits: string[];
+  /**
+   * Validation patterns from the ## Validation section.
+   * Each skill template includes a validation section with patterns the output must match.
+   * The adversarial reviewer checks validation patterns — format compliance is enforced by the system.
+   */
+  validationPatterns: string[];
 }
 
 /**
@@ -63,6 +69,7 @@ export function parseSkillFile(content: string): SkillDefinition {
     mapsTo,
     body: body.trim(),
     offLimits: parseOffLimits(body),
+    validationPatterns: parseValidationPatterns(body),
   };
 }
 
@@ -82,6 +89,58 @@ function parseOffLimits(body: string): string[] {
     }
   }
   return items;
+}
+
+/**
+ * Parse the "## Validation" section from a skill body.
+ * Each skill template includes a validation section with patterns the output must match
+ * (e.g. the critique status regex). Returns an array of regex pattern strings.
+ *
+ * Reactive zone skills (write-critique, resolve-critique) must have deterministic output formats.
+ * Three-phase skills (write-candidates, write-work-item, write-insight, evaluate-insight) must
+ * have deterministic structure with intelligent content.
+ * This eliminates wasted ticks on format compliance — elves should never spend a tick fixing output format.
+ */
+function parseValidationPatterns(body: string): string[] {
+  const match = body.match(/## Validation\s*\n([\s\S]*?)(?=\n## |\n---|\s*$)/i);
+  if (!match) return [];
+
+  const patterns: string[] = [];
+  for (const line of match[1].split("\n")) {
+    const bullet = line.match(/^- `(.+)`/);
+    if (bullet) {
+      patterns.push(bullet[1].trim());
+    }
+  }
+  return patterns;
+}
+
+/**
+ * Interpolate context into a skill template body.
+ *
+ * Every elf task has a mechanical part (format, structure, file paths) and an intelligent part
+ * (assessment, decisions, creativity). Skills handle the mechanical part completely — the elf
+ * only provides judgement. Setup gathers context (diff, last-action, invariant counts, etc.)
+ * and interpolates it into the skill template before handing it to the elf.
+ *
+ * The skill template defines the exact output format, required sections, file naming, and
+ * validation patterns. The elf receives a prompt where all structure is pre-filled — it fills
+ * in only the parts that need intelligence.
+ *
+ * Housekeeping tasks (archiving, shift log updates) should be fully deterministic — no LLM
+ * judgement needed, setup handles them directly.
+ *
+ * Supported slots: {{key}} where key is a context variable name.
+ */
+export function interpolateSkillContext(
+  body: string,
+  context: Record<string, string | number | boolean>,
+): string {
+  let result = body;
+  for (const [key, value] of Object.entries(context)) {
+    result = result.replaceAll(`{{${key}}}`, String(value));
+  }
+  return result;
 }
 
 /**

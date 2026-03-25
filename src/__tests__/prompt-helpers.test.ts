@@ -224,8 +224,8 @@ describe("parseActionTypeFromPrompt", () => {
 
 describe("findSkillForAction", () => {
   const skills = new Map<string, SkillDefinition>([
-    ["impl", { name: "implement", filename: "implement.md", mapsTo: "implement", description: "Implement", body: "", prompt: "", risk: "low" as const, offLimits: [] }],
-    ["fix", { name: "fix-tests", filename: "fix.md", mapsTo: "fix", description: "Fix", body: "", prompt: "", risk: "low" as const, offLimits: [] }],
+    ["impl", { name: "implement", filename: "implement.md", mapsTo: "implement", description: "Implement", body: "", prompt: "", risk: "low" as const, offLimits: [], validationPatterns: [] }],
+    ["fix", { name: "fix-tests", filename: "fix.md", mapsTo: "fix", description: "Fix", body: "", prompt: "", risk: "low" as const, offLimits: [], validationPatterns: [] }],
   ]);
 
   test("returns undefined when no skills map", () => {
@@ -255,7 +255,7 @@ describe("formatSkillCatalog", () => {
 
   test("formats skills as bullet list", () => {
     const skills = new Map<string, SkillDefinition>([
-      ["impl", { name: "implement", filename: "implement.md", mapsTo: "implement", description: "Implement a feature", body: "", prompt: "", risk: "low" as const, offLimits: [] }],
+      ["impl", { name: "implement", filename: "implement.md", mapsTo: "implement", description: "Implement a feature", body: "", prompt: "", risk: "low" as const, offLimits: [], validationPatterns: [] }],
     ]);
     const result = formatSkillCatalog(skills);
     expect(result).toContain("**implement** (implement)");
@@ -274,6 +274,7 @@ describe("formatSkillSection", () => {
       prompt: "",
       risk: "low",
       offLimits: [],
+      validationPatterns: [],
     };
     const result = formatSkillSection(skill);
     expect(result).toContain("## Skill: implement");

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { parseSkillFile, loadSkills, findSkillForType, type SkillDefinition } from "../skills/registry";
+import { parseSkillFile, loadSkills, findSkillForType, interpolateSkillContext, type SkillDefinition } from "../skills/registry";
 import { mkdtemp, mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -221,10 +221,80 @@ Fix things.`;
   });
 });
 
+describe("parseValidationPatterns", () => {
+  test("extracts validation patterns from skill body", () => {
+    const content = `---
+name: write-critique
+description: Write a critique of the previous elf's work.
+maps-to: fix
+risk: low
+---
+
+## Instructions
+
+Review the work.
+
+## Validation
+
+- \`^## Status: (Approved|Blocked|Advisory)\`
+- \`^## Scope: \`
+- \`^## Summary\``;
+
+    const skill = parseSkillFile(content);
+    expect(skill.validationPatterns).toEqual([
+      "^## Status: (Approved|Blocked|Advisory)",
+      "^## Scope:",
+      "^## Summary",
+    ]);
+  });
+
+  test("returns empty array when no validation section", () => {
+    const content = `---
+name: fix-tests
+description: Fix tests
+maps-to: fix
+risk: low
+---
+
+## Instructions
+
+Fix things.`;
+
+    const skill = parseSkillFile(content);
+    expect(skill.validationPatterns).toEqual([]);
+  });
+});
+
+describe("interpolateSkillContext", () => {
+  test("replaces context slots in skill body", () => {
+    const body = "There are {{spec_gap_count}} unimplemented spec claims and {{untested_count}} untested claims.";
+    const result = interpolateSkillContext(body, {
+      spec_gap_count: 5,
+      untested_count: 2,
+    });
+    expect(result).toBe("There are 5 unimplemented spec claims and 2 untested claims.");
+  });
+
+  test("replaces multiple occurrences of same slot", () => {
+    const body = "Count: {{n}}. Again: {{n}}.";
+    expect(interpolateSkillContext(body, { n: 42 })).toBe("Count: 42. Again: 42.");
+  });
+
+  test("leaves body unchanged when no slots", () => {
+    const body = "No slots here.";
+    expect(interpolateSkillContext(body, { x: 1 })).toBe("No slots here.");
+  });
+
+  test("handles boolean context values", () => {
+    const body = "Tests pass: {{tests_pass}}";
+    expect(interpolateSkillContext(body, { tests_pass: true })).toBe("Tests pass: true");
+  });
+});
+
 describe("findSkillForType", () => {
   const skills = new Map<string, SkillDefinition>([
-    ["fix-tests", { name: "fix-tests", description: "Fix tests", prompt: "", risk: "low", mapsTo: "fix", body: "", offLimits: [] }],
-    ["implement", { name: "implement", description: "Implement", prompt: "", risk: "medium", mapsTo: "implement", body: "", offLimits: [] }],
+    ["fix-tests", { name: "fix-tests", description: "Fix tests", prompt: "", risk: "low", mapsTo: "fix", body: "", offLimits: [], validationPatterns: [] }],
+    ["implement", { name: "implement", description: "Implement", prompt: "", risk: "medium", mapsTo: "implement", body: "", offLimits: [], validationPatterns: [] }],
   ]);
 
   test("finds skill by priority type", () => {
