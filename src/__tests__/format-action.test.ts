@@ -166,6 +166,19 @@ describe("readWikiOverview", () => {
     expect(result).not.toContain("undefined");
   });
 
+  test("preserves content from files without frontmatter", async () => {
+    const pagesDir = join(tempDir, "wiki", "pages");
+    await mkdir(pagesDir, { recursive: true });
+    await writeFile(
+      join(pagesDir, "architecture.md"),
+      "# No Frontmatter\nJust content."
+    );
+
+    const result = await readWikiOverview(tempDir);
+    expect(result).toContain("# No Frontmatter");
+    expect(result).toContain("Just content.");
+  });
+
   test("respects custom wikiDir parameter", async () => {
     const pagesDir = join(tempDir, "custom-wiki", "pages");
     await mkdir(pagesDir, { recursive: true });
