@@ -98,6 +98,24 @@ describe("logAssessment", () => {
     logSpy.mockRestore();
   });
 
+  test("logs FAIL when typecheck fails", () => {
+    const logSpy = spyOn(console, "log");
+    const assessment = makeAssessment({ typecheckPass: false });
+    logAssessment(assessment);
+    const logs = logSpy.mock.calls.map((c) => c[0]);
+    expect(logs).toContain("[setup] Typecheck: FAIL");
+    logSpy.mockRestore();
+  });
+
+  test("logs skipped when typecheck is null (missing type defs)", () => {
+    const logSpy = spyOn(console, "log");
+    const assessment = makeAssessment({ typecheckPass: null });
+    logAssessment(assessment);
+    const logs = logSpy.mock.calls.map((c) => c[0]);
+    expect(logs).toContain("[setup] Typecheck: skipped");
+    logSpy.mockRestore();
+  });
+
   test("logs health score when present", () => {
     const logSpy = spyOn(console, "log");
     const assessment = makeAssessment({ healthScore: 85 });
