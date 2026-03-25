@@ -42,10 +42,25 @@ export async function detectPermissionViolations(repoRoot: string): Promise<stri
 
 const HOUSEKEEPING_PREFIX = "Auto-commit setup housekeeping";
 
+/** Paths that are orchestration state — commits touching only these don't need review */
+const STATE_PREFIX = ".shoe-makers/state/";
+
 /**
- * Get files changed by elf commits only, excluding auto-commit housekeeping.
- * This prevents false-positive permission violations from setup script commits
- * (shift log entries, archived findings) being attributed to the elf.
+ * Get the files changed by a single commit.
+ */
+function getCommitFiles(repoRoot: string, hash: string): string[] {
+  const files = execSync(`git diff-tree --no-commit-id --name-only -r ${hash}`, {
+    cwd: repoRoot,
+    encoding: "utf-8",
+  }).trim();
+  return files ? files.split("\n").filter(f => f.length > 0) : [];
+}
+
+/**
+ * Get files changed by elf commits only, excluding auto-commit housekeeping
+ * and state-file-only commits (orchestration artifacts like candidates.md,
+ * work-item.md). This prevents false-positive permission violations and
+ * unnecessary review cycles for planning commits.
  */
 export function getElfChangedFiles(repoRoot: string, sinceCommit: string): string[] {
   const commitsRaw = execSync(
@@ -55,7 +70,7 @@ export function getElfChangedFiles(repoRoot: string, sinceCommit: string): strin
 
   if (!commitsRaw) return [];
 
-  const elfCommitHashes = commitsRaw
+  const nonHousekeepingCommits = commitsRaw
     .split("\n")
     .filter(line => {
       const subject = line.substring(line.indexOf(" ") + 1);
@@ -64,18 +79,20 @@ export function getElfChangedFiles(repoRoot: string, sinceCommit: string): strin
     .map(line => line.split(" ")[0])
     .filter(Boolean);
 
+  if (nonHousekeepingCommits.length === 0) return [];
+
+  // Filter out commits that only touch orchestration state files
+  const elfCommitHashes = nonHousekeepingCommits.filter(hash => {
+    const files = getCommitFiles(repoRoot, hash);
+    return files.length === 0 || !files.every(f => f.startsWith(STATE_PREFIX));
+  });
+
   if (elfCommitHashes.length === 0) return [];
 
   const changedFiles = new Set<string>();
   for (const hash of elfCommitHashes) {
-    const files = execSync(`git diff-tree --no-commit-id --name-only -r ${hash}`, {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
-    if (files) {
-      for (const f of files.split("\n")) {
-        if (f.length > 0) changedFiles.add(f);
-      }
+    for (const f of getCommitFiles(repoRoot, hash)) {
+      changedFiles.add(f);
     }
   }
 

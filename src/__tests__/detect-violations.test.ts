@@ -116,4 +116,43 @@ describe("getElfChangedFiles", () => {
     const files = getElfChangedFiles(tempDir, baseCommit);
     expect(files).toEqual(["src/cleanup.ts"]);
   });
+
+  test("excludes commits that only change .shoe-makers/state/ files", async () => {
+    const baseCommit = git("rev-parse HEAD", tempDir);
+
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "candidates.md"), "candidates");
+    git("add .", tempDir);
+    git('commit -m "Explore: write candidates"', tempDir);
+
+    const files = getElfChangedFiles(tempDir, baseCommit);
+    expect(files).toEqual([]);
+  });
+
+  test("excludes commits that only change work-item.md", async () => {
+    const baseCommit = git("rev-parse HEAD", tempDir);
+
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "work-item.md"), "work item");
+    git("add .", tempDir);
+    git('commit -m "Prioritise: pick a work item"', tempDir);
+
+    const files = getElfChangedFiles(tempDir, baseCommit);
+    expect(files).toEqual([]);
+  });
+
+  test("includes commits that change both state files and source files", async () => {
+    const baseCommit = git("rev-parse HEAD", tempDir);
+
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await mkdir(join(tempDir, "src"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "work-item.md"), "work item");
+    await writeFile(join(tempDir, "src", "feature.ts"), "code");
+    git("add .", tempDir);
+    git('commit -m "Execute: implement feature"', tempDir);
+
+    const files = getElfChangedFiles(tempDir, baseCommit);
+    expect(files).toContain("src/feature.ts");
+    expect(files).toContain(".shoe-makers/state/work-item.md");
+  });
 });
