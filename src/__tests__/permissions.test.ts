@@ -91,6 +91,14 @@ describe("isFileAllowed", () => {
     expect(isFileAllowed("fix-tests", "src/types.ts")).toBe(true);
   });
 
+  test("continue-work has executor-level permissions", () => {
+    expect(isFileAllowed("continue-work", "src/foo.ts")).toBe(true);
+    expect(isFileAllowed("continue-work", "src/__tests__/foo.test.ts")).toBe(true);
+    expect(isFileAllowed("continue-work", "wiki/pages/bar.md")).toBe(true);
+    expect(isFileAllowed("continue-work", ".shoe-makers/state/partial-work.md")).toBe(true);
+    expect(isFileAllowed("continue-work", ".shoe-makers/invariants.md")).toBe(false);
+  });
+
   test("explore can write state and findings", () => {
     expect(isFileAllowed("explore", ".shoe-makers/state/candidates.md")).toBe(true);
     expect(isFileAllowed("explore", ".shoe-makers/findings/note.md")).toBe(true);
