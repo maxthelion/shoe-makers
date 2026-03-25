@@ -42,8 +42,14 @@ export async function detectPermissionViolations(repoRoot: string): Promise<stri
 
 const HOUSEKEEPING_PREFIX = "Auto-commit setup housekeeping";
 
-/** Paths that are orchestration state — commits touching only these don't need review */
-const STATE_PREFIX = ".shoe-makers/state/";
+/** Paths that are orchestration output — commits touching only these don't need review */
+export const ORCHESTRATION_PREFIXES = [
+  ".shoe-makers/state/",
+  ".shoe-makers/findings/",
+  ".shoe-makers/insights/",
+  ".shoe-makers/log/",
+  ".shoe-makers/archive/",
+];
 
 /**
  * Get the files changed by a single commit.
@@ -84,7 +90,7 @@ export function getElfChangedFiles(repoRoot: string, sinceCommit: string): strin
   // Filter out commits that only touch orchestration state files
   const elfCommitHashes = nonHousekeepingCommits.filter(hash => {
     const files = getCommitFiles(repoRoot, hash);
-    return files.length === 0 || !files.every(f => f.startsWith(STATE_PREFIX));
+    return files.length === 0 || !files.every(f => ORCHESTRATION_PREFIXES.some(p => f.startsWith(p)));
   });
 
   if (elfCommitHashes.length === 0) return [];
