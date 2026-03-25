@@ -3,6 +3,7 @@ dist/
 *.log
 .DS_Store
 wiki/.meta/
+.codehealth/
 
 # Ephemeral blackboard state files — recreated each tick
 .shoe-makers/state/
