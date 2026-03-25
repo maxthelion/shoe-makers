@@ -3,6 +3,9 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseShiftLogActions, computeProcessPatterns, getShiftProcessPatterns } from "../log/shift-log-parser";
+import { generatePrompt } from "../prompts";
+import { makeState } from "./test-utils";
+import type { ActionType } from "../types";
 
 describe("parseShiftLogActions", () => {
   test("extracts action names from shift log entries", () => {
@@ -156,5 +159,42 @@ describe("getShiftProcessPatterns", () => {
     expect(result!.reactiveRatio).toBeCloseTo(2 / 3);
     expect(result!.reviewLoopCount).toBe(0);
     expect(result!.innovationCycleCount).toBe(0);
+  });
+});
+
+describe("computeProcessPatterns edge cases", () => {
+  test("counts multiple non-contiguous review loops", () => {
+    const patterns = computeProcessPatterns([
+      "critique", "fix-critique", "critique",
+      "explore",
+      "critique", "fix-critique", "critique",
+    ]);
+    expect(patterns.reviewLoopCount).toBe(2);
+  });
+
+  test("single long review loop counts as 1", () => {
+    const patterns = computeProcessPatterns([
+      "critique", "fix-critique", "critique", "fix-critique", "critique",
+    ]);
+    expect(patterns.reviewLoopCount).toBe(1);
+  });
+});
+
+describe("TITLE_TO_ACTION drift prevention", () => {
+  const allActions: ActionType[] = [
+    "fix-tests", "fix-critique", "critique", "continue-work",
+    "review", "inbox", "execute-work-item", "dead-code",
+    "prioritise", "innovate", "evaluate-insight", "explore",
+  ];
+
+  test("parseShiftLogActions recognizes all prompt titles", () => {
+    const state = makeState();
+    for (const action of allActions) {
+      const prompt = generatePrompt(action, state);
+      const title = prompt.split("\n")[0].replace(/^#\s*/, "");
+      const logEntry = `- Action: ${title}`;
+      const parsed = parseShiftLogActions(logEntry);
+      expect(parsed.length).toBe(1);
+    }
   });
 });
