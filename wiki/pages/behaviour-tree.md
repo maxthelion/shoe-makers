@@ -19,9 +19,12 @@ The tree has two zones: **reactive** conditions at the top (urgent, handled dire
 ```
 Selector
 ├── [tests failing?] → Fix tests (direct prompt)
+├── [review-loop ≥3?] → Break out to explore (circuit breaker)
 ├── [unresolved critiques?] → Fix critiques (direct prompt)
 ├── [unreviewed commits?] → Review adversarially (direct prompt)
+├── [uncommitted changes?] → Review uncommitted work (direct prompt)
 ├── [inbox messages?] → Handle inbox (direct prompt)
+├── [dead-code work-item?] → Remove dead code
 ├── [work-item.md exists?] → Execute it
 ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
 ├── [insights exist?] → Evaluate insight (generous disposition)
@@ -34,8 +37,10 @@ Selector
 These fire immediately with a direct prompt. No orchestration needed — the action is obvious.
 
 - **Tests failing** — always highest priority. The elf gets the test output and fixes it.
+- **Review-loop circuit breaker** — if the review loop has fired 3+ times this shift, break out to explore to reassess rather than continuing the loop.
 - **Unresolved critiques** — blocking findings from a previous reviewer. Must fix before new work.
 - **Unreviewed commits** — a previous elf's commits need adversarial review. The reviewer gets the diff and the rules the previous elf was given.
+- **Uncommitted changes** — review uncommitted work before proceeding with new actions.
 - **Inbox messages** — human instructions take priority over self-directed work.
 
 ### Three-phase orchestration (bottom)

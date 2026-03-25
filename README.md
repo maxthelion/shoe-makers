@@ -11,6 +11,7 @@ Shoe-makers uses a **behaviour tree** inspired by game AI. Each scheduled invoca
 ```
 Selector
 ├── [tests failing?]         → Fix tests
+├── [review-loop ≥3?]        → Break out to explore
 ├── [unresolved critiques?]  → Fix issues flagged by reviewer
 ├── [unreviewed commits?]    → Adversarial review of previous elf's work
 ├── [uncommitted changes?]   → Review uncommitted work
