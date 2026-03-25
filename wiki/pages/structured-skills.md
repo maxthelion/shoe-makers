@@ -3,7 +3,7 @@ title: Structured Skills
 category: spec
 tags: [skills, templates, deterministic, format, output]
 summary: Skills as semi-deterministic templates — setup fills in context, the skill defines output format, the elf provides judgement only.
-last-modified-by: user
+last-modified-by: elf
 ---
 
 ## The Problem
@@ -111,17 +111,32 @@ The elf fills in the assessment and issues. Everything else is deterministic.
 
 The skill registry already loads markdown files from `.shoe-makers/skills/`. The change is that skill templates become more structured — they include output format specifications that setup can use to build deterministic prompts.
 
+## Validation — Implemented
+
+Each skill file in `.shoe-makers/skills/` includes a `## Validation` section with backtick-wrapped patterns that the output must match. All 9 skills now have validation patterns.
+
+### How it works
+
+1. `parseValidationPatterns()` in `src/skills/registry.ts` extracts patterns from the `## Validation` section of each skill markdown file
+2. Patterns are stored in `SkillDefinition.validationPatterns: string[]`
+3. When the tree routes to `critique`, `setup.ts` looks up the previous elf's action type, finds the corresponding skill, and extracts its validation patterns
+4. The patterns are passed to `buildCritiquePrompt()` which includes them in a "Validation patterns to check" section
+5. The adversarial reviewer uses these patterns to verify format compliance
+
+### Example: implement skill validation
+
+```markdown
 ## Validation
 
-Each skill template can include a `## Validation` section with patterns that the output must match. The adversarial reviewer checks these. For example:
-
-```yaml
-validation:
-  - pattern: "^## Status\\s*\\n\\s*Resolved\\.?\\s*$"
-    description: "Status line must be exactly 'Resolved.' on its own line"
-  - required-sections: ["Assessment", "Issues Found", "Status"]
+- `bun test passes`
+- `tests cover the new functionality`
+- `code follows existing conventions`
 ```
 
-This turns format compliance from "the elf has to remember" into "the system enforces."
+The reviewer sees these patterns in the critique prompt and checks whether the previous elf's work satisfies them.
+
+### Housekeeping skills — fully deterministic
+
+**archive-findings** and **update-shift-log** are handled by `setup.ts` directly — no LLM judgement needed. The setup script detects resolved findings, archives them, and appends to the shift log automatically.
 
 See also: [[skills]], [[behaviour-tree]], [[verification]]
