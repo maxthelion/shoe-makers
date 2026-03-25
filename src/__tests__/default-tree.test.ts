@@ -129,6 +129,39 @@ describe("review-loop circuit breaker", () => {
     expect(result.skill).toBe("fix-critique");
   });
 
+  test("does not fire when review loop count >= 3 but no critiques or unreviewed commits", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 0,
+      hasUnreviewedCommits: false,
+      hasCandidates: true,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 5, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("prioritise");
+  });
+
+  test("fires when review loop count >= 3 and unreviewed commits exist", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 0,
+      hasUnreviewedCommits: true,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 3, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("explore");
+  });
+
   test("tests-failing still takes priority over circuit breaker", () => {
     const state = makeState({
       unresolvedCritiqueCount: 2,

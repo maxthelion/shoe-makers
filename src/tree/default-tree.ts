@@ -29,7 +29,10 @@ function testsFailing(state: WorldState): boolean {
 
 function inReviewLoop(state: WorldState): boolean {
   const loopCount = state.blackboard.assessment?.processPatterns?.reviewLoopCount ?? 0;
-  return loopCount >= 3;
+  // Only break the loop if we're actually IN a loop right now
+  // (i.e., there are unresolved critiques or unreviewed commits that would cause looping)
+  const wouldLoop = state.unresolvedCritiqueCount > 0 || state.hasUnreviewedCommits;
+  return loopCount >= 3 && wouldLoop;
 }
 
 function hasUnresolvedCritiques(state: WorldState): boolean {
