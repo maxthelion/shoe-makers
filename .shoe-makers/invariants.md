@@ -155,6 +155,19 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - Planned: octoclean-fix (octoclean-specific), bug-fix (from issues), dependency-update, dead-code removal
 - Humans and elves can both add new skills — they're just files
 
+### 3.2.1 Structured skills — semi-deterministic templates
+- Every elf task has a mechanical part (format, structure, file paths) and an intelligent part (assessment, decisions, creativity)
+- Skills handle the mechanical part completely — the elf only provides judgement
+- Setup gathers context (diff, last-action, invariant counts, etc.) and interpolates it into the skill template before handing it to the elf
+- The skill template defines the exact output format, required sections, file naming, and validation patterns
+- The elf receives a prompt where all structure is pre-filled — it fills in only the parts that need intelligence
+- Housekeeping tasks (archiving, shift log updates) should be fully deterministic — no LLM judgement needed, setup handles them directly
+- Each skill template includes a validation section with patterns the output must match (e.g. the critique status regex)
+- The adversarial reviewer checks validation patterns — format compliance is enforced by the system, not remembered by the elf
+- Reactive zone skills (write-critique, resolve-critique) must have deterministic output formats — the elf decides "is this good?" not "what format should I use?"
+- Three-phase skills (write-candidates, write-work-item, write-insight, evaluate-insight) must have deterministic structure with intelligent content
+- This eliminates wasted ticks on format compliance — elves should never spend a tick fixing output format
+
 ### 3.3 Role-based permissions
 - Each action has a role that determines which files the elf can write
 - Reviewers can only write findings — they cannot modify code
