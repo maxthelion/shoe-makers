@@ -12,10 +12,10 @@ export function formatProcessTemperature(assessment: WorldState["blackboard"]["a
 
   const details: string[] = [];
 
-  if (patterns.reviewLoopCount > 0) {
+  if ((patterns.reviewLoopCount ?? 0) > 0) {
     details.push(`- Review loops this shift: ${patterns.reviewLoopCount} (3+ consecutive critique/fix-critique sequences)`);
   }
-  if (patterns.innovationCycleCount > 0) {
+  if ((patterns.innovationCycleCount ?? 0) > 0) {
     details.push(`- Innovation cycles: ${patterns.innovationCycleCount}`);
   }
 
