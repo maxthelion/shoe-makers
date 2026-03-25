@@ -65,7 +65,7 @@ Examples of good findings:
 
 **What the agent recommends.** Direct input to the prioritise action. These are opinions about what should be worked on next and why.
 
-Suggestions live in the shift log or as findings tagged with a recommendation. The PRIORITISE tick reads them alongside the assessment data.
+Suggestions live in the shift log or as findings tagged with a recommendation. The prioritise action reads them alongside the assessment data.
 
 ## How Agents Write These
 
