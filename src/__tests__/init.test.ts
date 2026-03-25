@@ -59,10 +59,13 @@ describe("init", () => {
     expect(hasImplement).toBe(true);
   });
 
-  test("scaffolds all core skills: fix-tests, implement, test-coverage, doc-sync, health", async () => {
+  test("scaffolds all core skills", async () => {
     await init(tempDir);
 
-    const coreSkills = ["fix-tests.md", "implement.md", "test-coverage.md", "doc-sync.md", "health.md"];
+    const coreSkills = [
+      "fix-tests.md", "implement.md", "test-coverage.md", "doc-sync.md", "health.md",
+      "octoclean-fix.md", "bug-fix.md", "dead-code.md", "dependency-update.md",
+    ];
     const skillFiles = await readdir(join(tempDir, ".shoe-makers", "skills"));
 
     for (const skill of coreSkills) {
@@ -73,7 +76,10 @@ describe("init", () => {
   test("scaffolded skills have valid frontmatter", async () => {
     await init(tempDir);
 
-    const coreSkills = ["fix-tests.md", "implement.md", "test-coverage.md", "doc-sync.md", "health.md"];
+    const coreSkills = [
+      "fix-tests.md", "implement.md", "test-coverage.md", "doc-sync.md", "health.md",
+      "octoclean-fix.md", "bug-fix.md", "dead-code.md", "dependency-update.md",
+    ];
     for (const skill of coreSkills) {
       const content = await readFile(join(tempDir, ".shoe-makers", "skills", skill), "utf-8");
       // Each skill should have frontmatter with name, description, maps-to, risk
