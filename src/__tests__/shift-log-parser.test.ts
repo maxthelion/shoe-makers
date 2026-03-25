@@ -1,5 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { parseShiftLogActions, computeProcessPatterns } from "../log/shift-log-parser";
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
+import { parseShiftLogActions, computeProcessPatterns, getShiftProcessPatterns } from "../log/shift-log-parser";
 
 describe("parseShiftLogActions", () => {
   test("extracts action names from shift log entries", () => {
@@ -96,5 +99,60 @@ describe("computeProcessPatterns", () => {
   test("returns 0 innovation cycles when none present", () => {
     const patterns = computeProcessPatterns(["explore", "prioritise", "execute-work-item"]);
     expect(patterns.innovationCycleCount).toBe(0);
+  });
+});
+
+describe("getShiftProcessPatterns", () => {
+  let tempDir: string;
+  const today = new Date().toISOString().slice(0, 10);
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-shift-patterns-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns undefined when no shift log exists", async () => {
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeUndefined();
+  });
+
+  test("returns undefined when shift log has no actions", async () => {
+    const logDir = join(tempDir, ".shoe-makers", "log");
+    await mkdir(logDir, { recursive: true });
+    await writeFile(join(logDir, `${today}.md`), "# Shift Log\n\nNo actions yet.\n");
+
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeUndefined();
+  });
+
+  test("returns process patterns from shift log with actions", async () => {
+    const logDir = join(tempDir, ".shoe-makers", "log");
+    await mkdir(logDir, { recursive: true });
+    await writeFile(
+      join(logDir, `${today}.md`),
+      [
+        "# Shift Log",
+        "",
+        "## Setup",
+        "- Action: Adversarial Review — Critique Previous Elf's Work",
+        "",
+        "## Setup",
+        "- Action: Fix Unresolved Critiques",
+        "",
+        "## Setup",
+        "- Action: Explore — Survey and Write Candidates",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await getShiftProcessPatterns(tempDir);
+    expect(result).toBeDefined();
+    // 2 reactive (critique, fix-critique) out of 3 total
+    expect(result!.reactiveRatio).toBeCloseTo(2 / 3);
+    expect(result!.reviewLoopCount).toBe(0);
+    expect(result!.innovationCycleCount).toBe(0);
   });
 });
