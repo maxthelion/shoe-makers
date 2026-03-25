@@ -286,3 +286,14 @@ describe("formatAction", () => {
     expect(result).toContain("bun run setup");
   });
 });
+
+describe("innovate observability — setup logs Wikipedia article fetched", () => {
+  test("setup.ts source contains shift log entry for Wikipedia article fetched", async () => {
+    const { readFile } = await import("fs/promises");
+    const { join } = await import("path");
+    const setupSource = await readFile(join(process.cwd(), "src", "setup.ts"), "utf-8");
+    expect(setupSource).toContain("Wikipedia article fetched");
+    expect(setupSource).toContain("Wikipedia article fetch failed");
+    expect(setupSource).toContain("appendToShiftLog");
+  });
+});
