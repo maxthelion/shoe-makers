@@ -10,12 +10,23 @@ export function formatProcessTemperature(assessment: WorldState["blackboard"]["a
   const patterns = assessment?.processPatterns;
   if (!patterns) return "";
 
+  const details: string[] = [];
+
+  if (patterns.reviewLoopCount > 0) {
+    details.push(`- Review loops this shift: ${patterns.reviewLoopCount} (3+ consecutive critique/fix-critique sequences)`);
+  }
+  if (patterns.innovationCycleCount > 0) {
+    details.push(`- Innovation cycles: ${patterns.innovationCycleCount}`);
+  }
+
+  const detailBlock = details.length > 0 ? `\n\n${details.join("\n")}` : "";
+
   if (patterns.reactiveRatio > 0.6) {
     return `
 
 ## Process signal: high reactive ratio (${Math.round(patterns.reactiveRatio * 100)}%)
 
-This shift has been mostly reactive — fixes, reviews, and critiques dominating over proactive work. Look for **root causes** of churn rather than more surface-level fixes. What architectural issues, missing infrastructure, or quality gaps are causing repeated reactive cycles?`;
+This shift has been mostly reactive — fixes, reviews, and critiques dominating over proactive work. Look for **root causes** of churn rather than more surface-level fixes. What architectural issues, missing infrastructure, or quality gaps are causing repeated reactive cycles?${detailBlock}`;
   }
 
   if (patterns.reactiveRatio < 0.3) {
@@ -23,7 +34,15 @@ This shift has been mostly reactive — fixes, reviews, and critiques dominating
 
 ## Process signal: stable shift (${Math.round(patterns.reactiveRatio * 100)}% reactive)
 
-This shift has been running smoothly with mostly proactive work. Candidates can be more ambitious — new features, creative improvements, or spec extensions. The system is stable enough to take risks.`;
+This shift has been running smoothly with mostly proactive work. Candidates can be more ambitious — new features, creative improvements, or spec extensions. The system is stable enough to take risks.${detailBlock}`;
+  }
+
+  if (details.length > 0) {
+    return `
+
+## Process signal
+
+${details.join("\n")}`;
   }
 
   return "";

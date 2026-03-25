@@ -288,7 +288,7 @@ describe("explore prompt process temperature", () => {
     expect(prompt).toContain("ambitious");
   });
 
-  test("no extra guidance when ratio is moderate", () => {
+  test("no ratio guidance when ratio is moderate and no loops", () => {
     const state = makeStateWithProcessPatterns(0.45);
     const prompt = generatePrompt("explore", state);
     expect(prompt).not.toContain("high reactive ratio");
@@ -300,6 +300,27 @@ describe("explore prompt process temperature", () => {
     const state = makeState();
     const prompt = generatePrompt("explore", state);
     expect(prompt).not.toContain("Process signal");
+  });
+
+  test("includes review loop count in process signal when loops > 0", () => {
+    const state = makeStateWithProcessPatterns(0.75, 3);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("Review loops this shift: 3");
+  });
+
+  test("includes innovation cycle count when cycles > 0", () => {
+    const state = makeStateWithAssessment(makeAssessment({}, {
+      processPatterns: { reactiveRatio: 0.1, reviewLoopCount: 0, innovationCycleCount: 2 },
+    }));
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("Innovation cycles: 2");
+  });
+
+  test("shows process signal section for moderate ratio with review loops", () => {
+    const state = makeStateWithProcessPatterns(0.45, 2);
+    const prompt = generatePrompt("explore", state);
+    expect(prompt).toContain("Process signal");
+    expect(prompt).toContain("Review loops this shift: 2");
   });
 });
 
