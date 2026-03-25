@@ -6,11 +6,6 @@ Nothing is queued for work. Your job is to survey the codebase and produce a ran
 
 Survey the codebase for issues that the invariants may not cover: code smells, stale documentation, missing tests, spec-code inconsistencies.
 
-## Process signal
-
-- Review loops this shift: 3 (3+ consecutive critique/fix-critique sequences)
-- Innovation cycles: 3
-
 ## Steps
 
 1. Read wiki pages in `wiki/pages/` — what does the spec say should exist?
@@ -21,6 +16,16 @@ Survey the codebase for issues that the invariants may not cover: code smells, s
 6. Check code quality — files too complex or duplicated?
 7. Check whether `README.md` accurately describes current capabilities
 
+
+## Creative Lens
+
+A random concept for analogical thinking:
+
+**Pareto Efficiency**
+
+A state where no one can be made better off without making someone else worse off. It doesn't mean everyone is happy — a distribution where one person has everything is Pareto efficient. The concept reveals that 'optimal' depends entirely on what you're optimising for.
+
+Read the codebase through this lens. If anything about this concept suggests a better pattern, structure, or approach for the shoe-makers system, write it up as a candidate. Creative connections are valuable — they're how the system improves beyond its spec.
 
 ## Available skills
 
