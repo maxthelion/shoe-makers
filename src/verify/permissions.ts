@@ -42,6 +42,11 @@ function buildRoleMap(wikiDir: string): Record<ActionType, RolePermissions> {
       canWrite: [".shoe-makers/findings/"],
       cannotWrite: [...ALWAYS_FORBIDDEN, "src/", wikiPath],
     },
+    "continue-work": {
+      role: "executor",
+      canWrite: ["src/", wikiPath, ".shoe-makers/state/", ".shoe-makers/claim-evidence.yaml", "CHANGELOG.md", "README.md"],
+      cannotWrite: [...ALWAYS_FORBIDDEN],
+    },
     review: {
       role: "reviewer",
       canWrite: [".shoe-makers/findings/"],

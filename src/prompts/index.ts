@@ -1,7 +1,7 @@
 import type { ActionType, WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { findSkillForAction, formatSkillSection } from "./helpers";
-import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
+import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildContinueWorkPrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
 import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDeadCodePrompt, buildInnovatePrompt, buildEvaluateInsightPrompt } from "./three-phase";
 
 export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
@@ -30,6 +30,8 @@ export function generatePrompt(
       return buildFixCritiquePrompt();
     case "critique":
       return buildCritiquePrompt(permissionViolations);
+    case "continue-work":
+      return buildContinueWorkPrompt();
     case "review":
       return buildReviewPrompt();
     case "inbox":

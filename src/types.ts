@@ -28,6 +28,7 @@ export type ActionType =
   | "fix-tests"
   | "fix-critique"
   | "critique"
+  | "continue-work"
   | "review"
   | "inbox"
   | "execute-work-item"
@@ -130,6 +131,8 @@ export interface WorldState {
   hasCandidates: boolean;
   /** The skill type of the current work item, or null if no work item or unknown type */
   workItemSkillType: string | null;
+  /** Whether .shoe-makers/state/partial-work.md exists (agent exited with partial status) */
+  hasPartialWork: boolean;
   /** Number of insight files in .shoe-makers/insights/ */
   insightCount: number;
   /** Configuration (optional — defaults used if absent) */

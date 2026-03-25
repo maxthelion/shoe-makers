@@ -3,7 +3,7 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { execSync } from "child_process";
 import { join } from "path";
 import { tmpdir } from "os";
-import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType, checkHasWorkItem, checkHasCandidates, countInsights, hasUncommittedChanges, countUnresolvedCritiques } from "../state/world";
+import { readWorldState, checkUnreviewedCommits, readWorkItemSkillType, checkHasWorkItem, checkHasCandidates, checkHasPartialWork, countInsights, hasUncommittedChanges, countUnresolvedCritiques } from "../state/world";
 
 describe("readWorldState", () => {
   test("reads current repo world state", async () => {
@@ -202,6 +202,33 @@ describe("checkHasCandidates", () => {
   test("returns false when candidates.md does not exist", async () => {
     await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
     expect(await checkHasCandidates(tempDir)).toBe(false);
+  });
+});
+
+describe("checkHasPartialWork", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-has-partial-work-"));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test("returns true when partial-work.md exists", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    await writeFile(join(tempDir, ".shoe-makers", "state", "partial-work.md"), "# Partial work");
+    expect(await checkHasPartialWork(tempDir)).toBe(true);
+  });
+
+  test("returns false when partial-work.md does not exist", async () => {
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    expect(await checkHasPartialWork(tempDir)).toBe(false);
+  });
+
+  test("returns false when state directory does not exist", async () => {
+    expect(await checkHasPartialWork(tempDir)).toBe(false);
   });
 });
 

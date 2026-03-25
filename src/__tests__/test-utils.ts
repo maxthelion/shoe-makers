@@ -38,6 +38,7 @@ export function makeState(overrides: Partial<WorldState> = {}): WorldState {
     hasWorkItem: false,
     hasCandidates: false,
     workItemSkillType: null,
+    hasPartialWork: false,
     insightCount: 0,
     blackboard: {
       ...emptyBlackboard(),

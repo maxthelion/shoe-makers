@@ -133,6 +133,13 @@ export async function checkHasCandidates(repoRoot: string): Promise<boolean> {
 }
 
 /**
+ * Check if .shoe-makers/state/partial-work.md exists (agent exited with partial status).
+ */
+export async function checkHasPartialWork(repoRoot: string): Promise<boolean> {
+  return fileExists(join(repoRoot, ".shoe-makers", "state", "partial-work.md"));
+}
+
+/**
  * Read the skill type from a `skill-type:` metadata line in work-item.md.
  * Scans the first 10 lines for a line like `skill-type: dead-code`.
  * Returns the skill type if found, null otherwise.
@@ -155,7 +162,7 @@ export async function readWorkItemSkillType(repoRoot: string): Promise<string | 
  * Read the full world state: git info + blackboard + inbox count.
  */
 export async function readWorldState(repoRoot: string): Promise<WorldState> {
-  const [branch, dirty, blackboard, config, inboxCount, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType, insightCount] = await Promise.all([
+  const [branch, dirty, blackboard, config, inboxCount, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType, insightCount, hasPartialWork] = await Promise.all([
     getCurrentBranch(repoRoot),
     hasUncommittedChanges(repoRoot),
     readBlackboard(repoRoot),
@@ -167,6 +174,7 @@ export async function readWorldState(repoRoot: string): Promise<WorldState> {
     checkHasCandidates(repoRoot),
     readWorkItemSkillType(repoRoot),
     countInsights(repoRoot),
+    checkHasPartialWork(repoRoot),
   ]);
 
   return {
@@ -179,6 +187,7 @@ export async function readWorldState(repoRoot: string): Promise<WorldState> {
     hasWorkItem,
     hasCandidates,
     workItemSkillType,
+    hasPartialWork,
     insightCount,
     config,
   };

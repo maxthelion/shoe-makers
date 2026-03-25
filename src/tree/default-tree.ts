@@ -9,6 +9,7 @@ import { isInnovationTier } from "../prompts/helpers";
  * ├── [tests failing?] → Fix tests
  * ├── [review loop ≥3?] → Break out to explore
  * ├── [unresolved critiques?] → Fix critiques
+ * ├── [partial work?] → Continue partial work
  * ├── [unreviewed commits?] → Review adversarially
  * ├── [uncommitted changes?] → Review before committing
  * ├── [inbox messages?] → Handle inbox
@@ -33,6 +34,10 @@ function inReviewLoop(state: WorldState): boolean {
 
 function hasUnresolvedCritiques(state: WorldState): boolean {
   return state.unresolvedCritiqueCount > 0;
+}
+
+function hasPartialWork(state: WorldState): boolean {
+  return state.hasPartialWork;
 }
 
 function hasUnreviewedCommits(state: WorldState): boolean {
@@ -102,6 +107,7 @@ export const defaultTree: TreeNode = {
     makeConditionAction("tests-failing", testsFailing, "fix-tests"),
     makeConditionAction("review-loop-breaker", inReviewLoop, "explore"),
     makeConditionAction("unresolved-critiques", hasUnresolvedCritiques, "fix-critique"),
+    makeConditionAction("partial-work", hasPartialWork, "continue-work"),
     makeConditionAction("unreviewed-commits", hasUnreviewedCommits, "critique"),
     makeConditionAction("unverified-work", hasUnverifiedWork, "review"),
     makeConditionAction("inbox-messages", hasInboxMessages, "inbox"),
