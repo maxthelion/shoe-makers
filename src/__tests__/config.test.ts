@@ -199,6 +199,39 @@ describe("loadConfig", () => {
     expect(config.insightFrequency).toBe(0.3);
   });
 
+  test("enabled-skills with trailing comma ignores empty entries", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "enabled-skills: fix-tests,implement,\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toEqual(["fix-tests", "implement"]);
+  });
+
+  test("enabled-skills with extra whitespace trims correctly", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "enabled-skills:   fix-tests ,  implement  \n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toEqual(["fix-tests", "implement"]);
+  });
+
+  test("enabled-skills with single skill returns one-element array", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      "enabled-skills: fix-tests\n"
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.enabledSkills).toEqual(["fix-tests"]);
+  });
+
   test("warns on unknown config key", async () => {
     await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
     await writeFile(
