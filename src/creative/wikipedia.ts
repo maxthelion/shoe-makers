@@ -94,7 +94,8 @@ export async function fetchRandomArticle(): Promise<{
   try {
     // Get a random article title
     const randomRes = await fetch(
-      "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json"
+      "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json",
+      { signal: AbortSignal.timeout(10_000) }
     );
     if (!randomRes.ok) return getRandomFallbackConcept();
     const randomData = await randomRes.json();
@@ -103,7 +104,8 @@ export async function fetchRandomArticle(): Promise<{
 
     // Get the article extract
     const extractRes = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=true&explaintext=true&format=json`
+      `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=true&explaintext=true&format=json`,
+      { signal: AbortSignal.timeout(10_000) }
     );
     if (!extractRes.ok) return getRandomFallbackConcept();
     const extractData = await extractRes.json();
