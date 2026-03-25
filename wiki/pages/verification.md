@@ -128,9 +128,12 @@ Selector
 ├── [unreviewed commits?] → Review adversarially (critique)
 ├── [uncommitted work?] → Review before committing (review)
 ├── [inbox messages?] → Read and act
+├── [dead-code work-item?] → Remove dead code
 ├── [work-item.md exists?] → Execute the work item
 ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
-├── [neither?] → Explore: write candidates.md
+├── [insights exist?] → Evaluate insight
+├── [innovation tier?] → Innovate: write insight from creative brief
+└── [always] → Explore: write candidates.md
 ```
 
 The review-loop circuit breaker prevents infinite critique/fix-critique cycles. If the shift has seen 3+ review loop iterations (detected via the shift log parser), the tree routes to explore instead of continuing the loop. This ensures the shift makes progress even when a critique can't be resolved.
