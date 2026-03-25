@@ -4,6 +4,28 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
+const originalFetch = globalThis.fetch;
+
+function mockFetch(fn: (...args: Parameters<typeof fetch>) => Promise<Response> | never): void {
+  globalThis.fetch = Object.assign(fn, { preconnect: originalFetch.preconnect }) as typeof fetch;
+}
+
+function mockSuccessfulFetch(): void {
+  const longSummary = "A".repeat(200);
+  let callCount = 0;
+  mockFetch(async () => {
+    callCount++;
+    if (callCount === 1) {
+      return new Response(JSON.stringify({
+        query: { random: [{ title: "Mock Article" }] },
+      }));
+    }
+    return new Response(JSON.stringify({
+      query: { pages: { "1": { extract: longSummary } } },
+    }));
+  });
+}
+
 describe("shouldIncludeLens", () => {
   test("returns false when frequency is 0", () => {
     expect(shouldIncludeLens(0)).toBe(false);
@@ -53,15 +75,9 @@ describe("getRandomFallbackConcept", () => {
 });
 
 describe("fetchRandomArticle", () => {
-  const originalFetch = globalThis.fetch;
-
   afterEach(() => {
     globalThis.fetch = originalFetch;
   });
-
-  function mockFetch(fn: (...args: Parameters<typeof fetch>) => Promise<Response> | never): void {
-    globalThis.fetch = Object.assign(fn, { preconnect: (originalFetch as any).preconnect }) as typeof fetch;
-  }
 
   test("returns fallback concept on network error", async () => {
     mockFetch(() => { throw new Error("Network error"); });
@@ -136,31 +152,9 @@ describe("fetchRandomArticle", () => {
 });
 
 describe("fetchArticleForAction", () => {
-  const originalFetch = globalThis.fetch;
-
   afterEach(() => {
     globalThis.fetch = originalFetch;
   });
-
-  function mockFetch(fn: (...args: Parameters<typeof fetch>) => Promise<Response> | never): void {
-    globalThis.fetch = Object.assign(fn, { preconnect: originalFetch.preconnect }) as typeof fetch;
-  }
-
-  function mockSuccessfulFetch(): void {
-    const longSummary = "A".repeat(200);
-    let callCount = 0;
-    mockFetch(async () => {
-      callCount++;
-      if (callCount === 1) {
-        return new Response(JSON.stringify({
-          query: { random: [{ title: "Mock Article" }] },
-        }));
-      }
-      return new Response(JSON.stringify({
-        query: { pages: { "1": { extract: longSummary } } },
-      }));
-    });
-  }
 
   test("returns article for innovate skill", async () => {
     mockSuccessfulFetch();
