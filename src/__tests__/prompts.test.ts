@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { generatePrompt, ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "../prompts";
+import { determineTier, isInnovationTier, findSkillForAction, formatTopGaps, formatCodebaseSnapshot, formatSkillCatalog } from "../prompts/helpers";
 import type { ActionType, WorldState, Assessment } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { loadSkills } from "../skills/registry";
@@ -524,5 +525,176 @@ describe("evaluate-insight prompt", () => {
     const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain("Off-limits");
     expect(prompt).toContain("invariants.md");
+  });
+});
+
+describe("determineTier", () => {
+  function makeAssessmentWithInvariants(specifiedOnly: number, implementedUntested: number): Assessment {
+    return {
+      ...freshAssessment,
+      invariants: {
+        ...freshAssessment.invariants!,
+        specifiedOnly,
+        implementedUntested,
+      },
+    };
+  }
+
+  test("null assessment returns no gaps", () => {
+    const tier = determineTier(null);
+    expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
+  });
+
+  test("assessment with null invariants returns no gaps", () => {
+    const tier = determineTier({ ...freshAssessment, invariants: null });
+    expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
+  });
+
+  test("specifiedOnly > 0 means hasGaps", () => {
+    const tier = determineTier(makeAssessmentWithInvariants(1, 0));
+    expect(tier.hasGaps).toBe(true);
+    expect(tier.specOnlyCount).toBe(1);
+  });
+
+  test("untestedCount=4 does not trigger hasGaps (below threshold)", () => {
+    const tier = determineTier(makeAssessmentWithInvariants(0, 4));
+    expect(tier.hasGaps).toBe(false);
+  });
+
+  test("untestedCount=5 triggers hasGaps (at threshold)", () => {
+    const tier = determineTier(makeAssessmentWithInvariants(0, 5));
+    expect(tier.hasGaps).toBe(true);
+    expect(tier.untestedCount).toBe(5);
+  });
+
+  test("both zero means no gaps", () => {
+    const tier = determineTier(makeAssessmentWithInvariants(0, 0));
+    expect(tier.hasGaps).toBe(false);
+  });
+
+  test("both non-zero means hasGaps", () => {
+    const tier = determineTier(makeAssessmentWithInvariants(3, 10));
+    expect(tier.hasGaps).toBe(true);
+    expect(tier.specOnlyCount).toBe(3);
+    expect(tier.untestedCount).toBe(10);
+  });
+});
+
+describe("isInnovationTier", () => {
+  test("null assessment returns false", () => {
+    expect(isInnovationTier(null)).toBe(false);
+  });
+
+  test("assessment with gaps returns false", () => {
+    const assessment: Assessment = {
+      ...freshAssessment,
+      invariants: { ...freshAssessment.invariants!, specifiedOnly: 3, implementedUntested: 0 },
+    };
+    expect(isInnovationTier(assessment)).toBe(false);
+  });
+
+  test("assessment with no gaps returns true", () => {
+    const assessment: Assessment = {
+      ...freshAssessment,
+      invariants: { ...freshAssessment.invariants!, specifiedOnly: 0, implementedUntested: 0 },
+    };
+    expect(isInnovationTier(assessment)).toBe(true);
+  });
+});
+
+describe("findSkillForAction", () => {
+  const skills = makeSkillMap(
+    makeSkill({ name: "implement", mapsTo: "implement" }),
+    makeSkill({ name: "fix-tests", mapsTo: "fix" }),
+  );
+
+  test("returns undefined when skills map is undefined", () => {
+    expect(findSkillForAction("fix-tests", undefined)).toBeUndefined();
+  });
+
+  test("returns undefined when skills map is empty", () => {
+    expect(findSkillForAction("fix-tests", new Map())).toBeUndefined();
+  });
+
+  test("returns undefined for action with no skill mapping", () => {
+    expect(findSkillForAction("critique", skills)).toBeUndefined();
+  });
+
+  test("finds skill for fix-tests action", () => {
+    const skill = findSkillForAction("fix-tests", skills);
+    expect(skill).toBeDefined();
+    expect(skill!.name).toBe("fix-tests");
+  });
+
+  test("finds skill for execute-work-item action", () => {
+    const skill = findSkillForAction("execute-work-item", skills);
+    expect(skill).toBeDefined();
+    expect(skill!.name).toBe("implement");
+  });
+
+  test("returns undefined when mapped skill type not in map", () => {
+    const partialSkills = makeSkillMap(makeSkill({ name: "implement", mapsTo: "implement" }));
+    expect(findSkillForAction("fix-tests", partialSkills)).toBeUndefined();
+  });
+});
+
+describe("formatTopGaps", () => {
+  test("returns empty string for null assessment", () => {
+    expect(formatTopGaps(null)).toBe("");
+  });
+
+  test("returns empty string when no gaps", () => {
+    const assessment: Assessment = {
+      ...freshAssessment,
+      invariants: { ...freshAssessment.invariants!, topSpecGaps: [] },
+    };
+    expect(formatTopGaps(assessment)).toBe("");
+  });
+
+  test("formats gaps as bullet list", () => {
+    const result = formatTopGaps(freshAssessment);
+    expect(result).toContain("Top invariant gaps");
+    expect(result).toContain("- gap (core)");
+  });
+});
+
+describe("formatCodebaseSnapshot", () => {
+  test("returns empty string for null assessment", () => {
+    expect(formatCodebaseSnapshot(null)).toBe("");
+  });
+
+  test("includes health score", () => {
+    const result = formatCodebaseSnapshot(freshAssessment);
+    expect(result).toContain("Health: 40/100");
+  });
+
+  test("shows 'none' for no worst files", () => {
+    const result = formatCodebaseSnapshot(freshAssessment);
+    expect(result).toContain("Worst files: none");
+  });
+
+  test("shows worst files when present", () => {
+    const assessment: Assessment = {
+      ...freshAssessment,
+      worstFiles: [{ path: "src/foo.ts", score: 30 }],
+    };
+    const result = formatCodebaseSnapshot(assessment);
+    expect(result).toContain("src/foo.ts (30)");
+  });
+});
+
+describe("formatSkillCatalog", () => {
+  test("returns empty string when no skills", () => {
+    expect(formatSkillCatalog(undefined)).toBe("");
+    expect(formatSkillCatalog(new Map())).toBe("");
+  });
+
+  test("formats skills as bullet list", () => {
+    const skills = makeSkillMap(
+      makeSkill({ name: "implement", mapsTo: "implement", description: "Build features" }),
+    );
+    const result = formatSkillCatalog(skills);
+    expect(result).toContain("Available skills");
+    expect(result).toContain("**implement** (implement): Build features");
   });
 });
