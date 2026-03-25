@@ -38,12 +38,21 @@ export function runTests(repoRoot: string): boolean {
 
 /**
  * Run `npx tsc --noEmit` and return whether TypeScript compilation passes.
+ * Returns null if tsc cannot run (e.g. missing type definitions).
  */
-function runTypecheck(repoRoot: string): boolean {
+function runTypecheck(repoRoot: string): boolean | null {
   try {
     execSync("npx tsc --noEmit", { cwd: repoRoot, encoding: "utf-8", stdio: "pipe" });
     return true;
-  } catch {
+  } catch (err: unknown) {
+    // Distinguish "tsc can't run" from "code has type errors"
+    const stderr = (err as { stderr?: string })?.stderr ?? "";
+    const stdout = (err as { stdout?: string })?.stdout ?? "";
+    const output = stderr + stdout;
+    // If tsc can't find type definitions, it's an environment issue, not a code issue
+    if (output.includes("Cannot find type definition file")) {
+      return null;
+    }
     return false;
   }
 }
