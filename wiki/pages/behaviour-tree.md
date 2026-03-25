@@ -21,6 +21,7 @@ Selector
 ├── [tests failing?] → Fix tests (direct prompt)
 ├── [review-loop ≥3?] → Break out to explore (circuit breaker)
 ├── [unresolved critiques?] → Fix critiques (direct prompt)
+├── [partial work?] → Continue partial work (direct prompt)
 ├── [unreviewed commits?] → Review adversarially (direct prompt)
 ├── [uncommitted changes?] → Review uncommitted work (direct prompt)
 ├── [inbox messages?] → Handle inbox (direct prompt)
@@ -39,6 +40,7 @@ These fire immediately with a direct prompt. No orchestration needed — the act
 - **Tests failing** — always highest priority. The elf gets the test output and fixes it.
 - **Review-loop circuit breaker** — if the review loop has fired 3+ times this shift, break out to explore to reassess rather than continuing the loop.
 - **Unresolved critiques** — blocking findings from a previous reviewer. Must fix before new work.
+- **Partial work** — a previous elf started work but didn't finish. The elf reads the partial-work description and resumes where the previous elf left off.
 - **Unreviewed commits** — a previous elf's commits need adversarial review. The reviewer gets the diff and the rules the previous elf was given.
 - **Uncommitted changes** — review uncommitted work before proceeding with new actions.
 - **Inbox messages** — human instructions take priority over self-directed work.
@@ -72,6 +74,7 @@ This solves the problem of elves getting generic prompts. The prioritiser's enti
   assessment.json   ← cached world state, read by tree conditions
   candidates.md     ← written by explore, read by prioritise
   work-item.md      ← written by prioritise (or by executor as handoff), read by executor
+  partial-work.md   ← written by agent on partial exit, read by continue-work
   last-action.md    ← copy of previous action, read by reviewer
 ```
 
