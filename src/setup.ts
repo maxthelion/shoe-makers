@@ -4,12 +4,11 @@ import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
 import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
-import { generatePrompt } from "./prompts";
 import { readLastAction, saveLastAction } from "./state/last-action";
 import { parseActionTypeFromPrompt, findValidationPatterns } from "./prompts/helpers";
 import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights, checkHasPartialWork } from "./state/world";
 import { execSync } from "child_process";
-import type { WorldState, Blackboard, ActionType, Config } from "./types";
+import type { WorldState, Blackboard, Config } from "./types";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
 import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
@@ -20,6 +19,10 @@ import { archiveConsumedStateFiles } from "./archive/state-archive";
 import { autoCommitHousekeeping } from "./scheduler/housekeeping";
 import { runVerificationGate } from "./scheduler/verification-gate";
 import { setupPermissionContext } from "./scheduler/permission-setup";
+import { formatAction, readWikiOverview } from "./scheduler/format-action";
+
+// Re-export for backward compatibility (tests import from setup.ts)
+export { formatAction, readWikiOverview } from "./scheduler/format-action";
 
 async function main() {
   const repoRoot = process.cwd();
@@ -270,69 +273,6 @@ async function buildWorldState(
   };
 }
 
-
-export function formatAction(
-  skill: string | null,
-  state: WorldState,
-  inboxMessages: { file: string; content: string }[],
-  loadedSkills?: Map<string, SkillDefinition>,
-  article?: { title: string; summary: string },
-  permissionViolations?: string[],
-  wikiSummary?: string,
-  validationPatterns?: string[],
-): string {
-  if (skill === "inbox" && inboxMessages.length > 0) {
-    const msgs = inboxMessages
-      .map((m) => `### ${m.file}\n\n${m.content}`)
-      .join("\n\n---\n\n");
-    return `# Inbox Messages — Act on These First
-
-The human has left ${inboxMessages.length} message(s) for you. Read them, do what they ask, commit your work, then delete the message files from \`.shoe-makers/inbox/\`. Log what you did in the shift log.
-
-${msgs}
-
-## After handling inbox
-
-Run \`bun run setup\` again to get your next action.
-`;
-  }
-
-  if (skill) {
-    const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary, validationPatterns);
-    return `${prompt}
-
-## After ${skill === "explore" ? "exploring" : "completing"}
-
-Run \`bun run setup\` again to get your next action.
-`;
-  }
-
-  return `# Nothing to Do
-
-The tree found no applicable action. This shouldn't happen — check the tree definition.
-`;
-}
-
-export async function readWikiOverview(repoRoot: string, wikiDir: string = "wiki"): Promise<string> {
-  const overviewFiles = ["architecture.md", "behaviour-tree.md", "pure-function-agents.md"];
-  const sections: string[] = [];
-
-  for (const file of overviewFiles) {
-    try {
-      const content = await readFile(join(repoRoot, wikiDir, "pages", file), "utf-8");
-      // Strip frontmatter
-      const stripped = content.replace(/^---[\s\S]*?---\n*/, "");
-      sections.push(stripped.trim());
-    } catch {
-      // File doesn't exist — skip
-    }
-  }
-
-  return sections.length > 0
-    ? sections.join("\n\n---\n\n")
-    : "Shoe-makers is a behaviour tree system that runs autonomous AI agents to improve codebases overnight.";
-}
 
 if (import.meta.main) {
   main().catch((err) => {
