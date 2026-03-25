@@ -1,6 +1,5 @@
 import { describe, test, expect } from "bun:test";
 import { generatePrompt, ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "../prompts";
-import { determineTier, isInnovationTier, findSkillForAction, formatTopGaps, formatCodebaseSnapshot, formatSkillCatalog } from "../prompts/helpers";
 import type { ActionType, WorldState, Assessment } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { loadSkills } from "../skills/registry";
@@ -456,258 +455,97 @@ describe("insight lifecycle in prompts", () => {
 describe("innovate prompt", () => {
   const article = { title: "Mycelial Networks", summary: "Fungi connect trees underground via root networks." };
   const wikiSummary = "Shoe-makers is a behaviour tree system for autonomous overnight codebase improvement.";
+  const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
 
   test("includes wiki summary and article", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("Mycelial Networks");
     expect(prompt).toContain("Fungi connect trees underground");
     expect(prompt).toContain("behaviour tree system");
   });
 
   test("mandates writing an insight file", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("MUST");
     expect(prompt).toContain(".shoe-makers/insights/");
     expect(prompt).toContain("YYYY-MM-DD-NNN");
   });
 
   test("says no connection found is not acceptable", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("No connection found");
     expect(prompt).toContain("NOT acceptable");
   });
 
   test("mentions divergent/creative mode", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("divergent/creative mode");
   });
 
   test("mentions off-limits", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("Off-limits");
     expect(prompt).toContain("invariants.md");
   });
 
   test("requires Wikipedia article as the lens — MUST use the Wikipedia article", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("**MUST** use the Wikipedia article");
     expect(prompt).toContain("Do not use general knowledge");
   });
 
   test("Lens section format says Start with the article title", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("Start with the article title");
     expect(prompt).toContain("Mycelial Networks");
   });
 
   test("Lens section references article.title", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
     expect(prompt).toContain("Lens");
     expect(prompt).toContain(article.title);
   });
 
   test("handles missing article gracefully", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
-    expect(prompt).not.toContain("Wikipedia article provided above");
-    expect(prompt).toContain("No Wikipedia article was available");
-    expect(prompt).toContain("Pick your own creative lens");
-    expect(prompt).toContain("MUST");
-    expect(prompt).toContain(".shoe-makers/insights/");
-  });
-
-  test("still requires insight file when no article", () => {
-    const prompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
-    expect(prompt).toContain("YYYY-MM-DD-NNN");
-    expect(prompt).toContain("NOT acceptable");
+    const noArticlePrompt = generatePrompt("innovate", makeState(), undefined, undefined, undefined, wikiSummary);
+    expect(noArticlePrompt).not.toContain("Wikipedia article provided above");
+    expect(noArticlePrompt).toContain("No Wikipedia article was available");
+    expect(noArticlePrompt).toContain("Pick your own creative lens");
+    expect(noArticlePrompt).toContain("MUST");
+    expect(noArticlePrompt).toContain(".shoe-makers/insights/");
+    expect(noArticlePrompt).toContain("YYYY-MM-DD-NNN");
+    expect(noArticlePrompt).toContain("NOT acceptable");
   });
 });
 
 describe("evaluate-insight prompt", () => {
+  const prompt = generatePrompt("evaluate-insight", makeState());
+
   test("mentions generous disposition", () => {
-    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain("generous disposition");
   });
 
   test("mentions promote, rework, dismiss actions", () => {
-    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain("Promote");
     expect(prompt).toContain("Rework");
     expect(prompt).toContain("Dismiss");
   });
 
   test("says it is NOT the prioritise elf", () => {
-    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain("NOT the prioritise elf");
   });
 
   test("mentions constructive/convergent mode", () => {
-    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain("constructive/convergent mode");
   });
 
   test("mentions reading insights directory", () => {
-    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain(".shoe-makers/insights/");
   });
 
   test("mentions off-limits", () => {
-    const prompt = generatePrompt("evaluate-insight", makeState());
     expect(prompt).toContain("Off-limits");
     expect(prompt).toContain("invariants.md");
   });
 });
 
-describe("determineTier", () => {
-  test("null assessment returns no gaps", () => {
-    const tier = determineTier(null);
-    expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
-  });
 
-  test("assessment with null invariants returns no gaps", () => {
-    const tier = determineTier({ ...freshAssessment, invariants: null });
-    expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
-  });
 
-  test("specifiedOnly > 0 means hasGaps", () => {
-    const tier = determineTier(makeAssessment({ specifiedOnly: 1, implementedUntested: 0 }));
-    expect(tier.hasGaps).toBe(true);
-    expect(tier.specOnlyCount).toBe(1);
-  });
 
-  test("untestedCount=4 does not trigger hasGaps (below threshold)", () => {
-    const tier = determineTier(makeAssessment({ specifiedOnly: 0, implementedUntested: 4 }));
-    expect(tier.hasGaps).toBe(false);
-  });
 
-  test("untestedCount=5 triggers hasGaps (at threshold)", () => {
-    const tier = determineTier(makeAssessment({ specifiedOnly: 0, implementedUntested: 5 }));
-    expect(tier.hasGaps).toBe(true);
-    expect(tier.untestedCount).toBe(5);
-  });
 
-  test("both zero means no gaps", () => {
-    const tier = determineTier(makeAssessment({ specifiedOnly: 0, implementedUntested: 0 }));
-    expect(tier.hasGaps).toBe(false);
-  });
-
-  test("both non-zero means hasGaps", () => {
-    const tier = determineTier(makeAssessment({ specifiedOnly: 3, implementedUntested: 10 }));
-    expect(tier.hasGaps).toBe(true);
-    expect(tier.specOnlyCount).toBe(3);
-    expect(tier.untestedCount).toBe(10);
-  });
-});
-
-describe("isInnovationTier", () => {
-  test("null assessment returns false", () => {
-    expect(isInnovationTier(null)).toBe(false);
-  });
-
-  test("assessment with gaps returns false", () => {
-    expect(isInnovationTier(makeAssessment({ specifiedOnly: 3, implementedUntested: 0 }))).toBe(false);
-  });
-
-  test("assessment with no gaps returns true", () => {
-    expect(isInnovationTier(makeAssessment({ specifiedOnly: 0, implementedUntested: 0 }))).toBe(true);
-  });
-});
-
-describe("findSkillForAction", () => {
-  const skills = makeSkillMap(
-    makeSkill({ name: "implement", mapsTo: "implement" }),
-    makeSkill({ name: "fix-tests", mapsTo: "fix" }),
-  );
-
-  test("returns undefined when skills map is undefined", () => {
-    expect(findSkillForAction("fix-tests", undefined)).toBeUndefined();
-  });
-
-  test("returns undefined when skills map is empty", () => {
-    expect(findSkillForAction("fix-tests", new Map())).toBeUndefined();
-  });
-
-  test("returns undefined for action with no skill mapping", () => {
-    expect(findSkillForAction("critique", skills)).toBeUndefined();
-  });
-
-  test("finds skill for fix-tests action", () => {
-    const skill = findSkillForAction("fix-tests", skills);
-    expect(skill).toBeDefined();
-    expect(skill!.name).toBe("fix-tests");
-  });
-
-  test("finds skill for execute-work-item action", () => {
-    const skill = findSkillForAction("execute-work-item", skills);
-    expect(skill).toBeDefined();
-    expect(skill!.name).toBe("implement");
-  });
-
-  test("returns undefined when mapped skill type not in map", () => {
-    const partialSkills = makeSkillMap(makeSkill({ name: "implement", mapsTo: "implement" }));
-    expect(findSkillForAction("fix-tests", partialSkills)).toBeUndefined();
-  });
-});
-
-describe("formatTopGaps", () => {
-  test("returns empty string for null assessment", () => {
-    expect(formatTopGaps(null)).toBe("");
-  });
-
-  test("returns empty string when no gaps", () => {
-    const assessment: Assessment = {
-      ...freshAssessment,
-      invariants: { ...freshAssessment.invariants!, topSpecGaps: [] },
-    };
-    expect(formatTopGaps(assessment)).toBe("");
-  });
-
-  test("formats gaps as bullet list", () => {
-    const result = formatTopGaps(freshAssessment);
-    expect(result).toContain("Top invariant gaps");
-    expect(result).toContain("- gap (core)");
-  });
-});
-
-describe("formatCodebaseSnapshot", () => {
-  test("returns empty string for null assessment", () => {
-    expect(formatCodebaseSnapshot(null)).toBe("");
-  });
-
-  test("includes health score", () => {
-    const result = formatCodebaseSnapshot(freshAssessment);
-    expect(result).toContain("Health: 40/100");
-  });
-
-  test("shows 'none' for no worst files", () => {
-    const result = formatCodebaseSnapshot(freshAssessment);
-    expect(result).toContain("Worst files: none");
-  });
-
-  test("shows worst files when present", () => {
-    const assessment: Assessment = {
-      ...freshAssessment,
-      worstFiles: [{ path: "src/foo.ts", score: 30 }],
-    };
-    const result = formatCodebaseSnapshot(assessment);
-    expect(result).toContain("src/foo.ts (30)");
-  });
-});
-
-describe("formatSkillCatalog", () => {
-  test("returns empty string when no skills", () => {
-    expect(formatSkillCatalog(undefined)).toBe("");
-    expect(formatSkillCatalog(new Map())).toBe("");
-  });
-
-  test("formats skills as bullet list", () => {
-    const skills = makeSkillMap(
-      makeSkill({ name: "implement", mapsTo: "implement", description: "Build features" }),
-    );
-    const result = formatSkillCatalog(skills);
-    expect(result).toContain("Available skills");
-    expect(result).toContain("**implement** (implement): Build features");
-  });
-});
 
 describe("generatePrompt exhaustiveness", () => {
   test("returns non-empty prompt with heading for all action types", () => {
@@ -720,20 +558,3 @@ describe("generatePrompt exhaustiveness", () => {
   });
 });
 
-describe("isInnovationTier boundary", () => {
-  test("4 untested claims allows innovation tier", () => {
-    expect(isInnovationTier(makeAssessment({ specifiedOnly: 0, implementedUntested: 4 }))).toBe(true);
-  });
-
-  test("5 untested claims blocks innovation tier", () => {
-    expect(isInnovationTier(makeAssessment({ specifiedOnly: 0, implementedUntested: 5 }))).toBe(false);
-  });
-
-  test("0 untested and 0 spec-only allows innovation tier", () => {
-    expect(isInnovationTier(makeAssessment({ specifiedOnly: 0, implementedUntested: 0 }))).toBe(true);
-  });
-
-  test("null assessment does not allow innovation tier", () => {
-    expect(isInnovationTier(null)).toBe(false);
-  });
-});

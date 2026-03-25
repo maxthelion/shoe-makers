@@ -72,6 +72,34 @@ describe("determineTier", () => {
     const tier = determineTier(assessment);
     expect(tier.hasGaps).toBe(false);
   });
+
+  test("returns no gaps when invariants is null", () => {
+    const assessment = {
+      testsPass: true,
+      openPlans: [],
+      findings: [],
+      worstFiles: [],
+      healthScore: 100,
+      invariants: null,
+    } as any;
+    const tier = determineTier(assessment);
+    expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
+  });
+
+  test("both non-zero means hasGaps", () => {
+    const assessment = {
+      testsPass: true,
+      openPlans: [],
+      findings: [],
+      worstFiles: [],
+      healthScore: 100,
+      invariants: { specifiedOnly: 3, implementedUntested: 10, unspecified: 0, topSpecGaps: [] },
+    } as any;
+    const tier = determineTier(assessment);
+    expect(tier.hasGaps).toBe(true);
+    expect(tier.specOnlyCount).toBe(3);
+    expect(tier.untestedCount).toBe(10);
+  });
 });
 
 describe("isInnovationTier", () => {
@@ -101,6 +129,30 @@ describe("isInnovationTier", () => {
       invariants: { specifiedOnly: 0, implementedUntested: 0, unspecified: 0, topSpecGaps: [] },
     } as any;
     expect(isInnovationTier(assessment)).toBe(true);
+  });
+
+  test("4 untested claims allows innovation tier (below threshold)", () => {
+    const assessment = {
+      testsPass: true,
+      openPlans: [],
+      findings: [],
+      worstFiles: [],
+      healthScore: 100,
+      invariants: { specifiedOnly: 0, implementedUntested: 4, unspecified: 0, topSpecGaps: [] },
+    } as any;
+    expect(isInnovationTier(assessment)).toBe(true);
+  });
+
+  test("5 untested claims blocks innovation tier (at threshold)", () => {
+    const assessment = {
+      testsPass: true,
+      openPlans: [],
+      findings: [],
+      worstFiles: [],
+      healthScore: 100,
+      invariants: { specifiedOnly: 0, implementedUntested: 5, unspecified: 0, topSpecGaps: [] },
+    } as any;
+    expect(isInnovationTier(assessment)).toBe(false);
   });
 });
 
