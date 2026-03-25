@@ -24,7 +24,7 @@ The reactive conditions (tests failing, critiques, reviews, uncommitted work, in
 | review | **reviewer** | `.shoe-makers/findings/` only | `src/`, wiki, invariants |
 | inbox | **inbox-handler** | `src/`, `wiki/`, `.shoe-makers/` | invariants |
 | continue-work | **executor** | `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/claim-evidence.yaml`, `CHANGELOG.md`, `README.md` | invariants |
-| execute-work-item | **executor** | `src/`, `wiki/`, `.shoe-makers/state/` | invariants |
+| execute-work-item | **executor** | `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/claim-evidence.yaml`, `CHANGELOG.md`, `README.md` | invariants |
 | dead-code | **dead-code-remover** | `src/` | invariants, wiki |
 | prioritise | **prioritiser** | `.shoe-makers/state/` only | `src/`, wiki, invariants |
 | innovate | **innovator** | `.shoe-makers/insights/` only | `src/`, wiki, invariants |
