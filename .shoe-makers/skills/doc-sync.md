@@ -30,6 +30,12 @@ The invariants pipeline reports `unspecified` items — code that exists but isn
 - Modify existing wiki pages in `wiki/pages/`
 - Create new wiki pages if a topic warrants its own page
 
+## Validation
+
+- `wiki pages accurately describe the current code`
+- `frontmatter is preserved and correct`
+- `no speculative content added`
+
 ## Off-limits
 
 - Do not modify source code (this skill is docs-only)

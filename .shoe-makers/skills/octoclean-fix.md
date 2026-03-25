@@ -34,6 +34,12 @@ The assessment shows a health score below threshold, and octoclean has identifie
 - Modify source files in `src/`
 - Create new helper/utility files if needed for extraction
 
+## Validation
+
+- `health score does not regress`
+- `all tests pass`
+- `refactoring preserves behaviour`
+
 ## Off-limits
 
 - Do not modify test files — only refactor implementation
