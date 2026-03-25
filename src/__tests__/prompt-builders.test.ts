@@ -15,7 +15,7 @@ import {
   buildInnovatePrompt,
   buildEvaluateInsightPrompt,
 } from "../prompts/three-phase";
-import { makeState, freshAssessment } from "./test-utils";
+import { makeState, freshAssessment, makeAssessment, makeStateWithAssessment } from "./test-utils";
 import type { Assessment } from "../types";
 
 // ---------- reactive.ts ----------
@@ -191,17 +191,7 @@ describe("buildExplorePrompt", () => {
   });
 
   test("with gaps shows hygiene/implementation tier", () => {
-    const assessment: Assessment = {
-      ...freshAssessment,
-      invariants: {
-        ...freshAssessment.invariants!,
-        specifiedOnly: 5,
-        implementedUntested: 2,
-      },
-    };
-    const state = makeState({
-      blackboard: { assessment, priorities: null, currentTask: null, verification: null },
-    });
+    const state = makeStateWithAssessment(makeAssessment({ specifiedOnly: 5, implementedUntested: 2 }));
     const result = buildExplorePrompt(state);
     expect(result).toContain("5 unimplemented spec claim(s)");
     expect(result).toContain("2 untested claim(s)");
@@ -223,50 +213,26 @@ describe("buildExplorePrompt", () => {
   });
 
   test("with high reactive ratio includes process signal", () => {
-    const assessment: Assessment = {
-      ...freshAssessment,
-      processPatterns: {
-        reactiveRatio: 0.7,
-        reviewLoopDetected: false,
-        innovationCycleCount: 0,
-      },
-    };
-    const state = makeState({
-      blackboard: { assessment, priorities: null, currentTask: null, verification: null },
-    });
+    const state = makeStateWithAssessment(makeAssessment({}, {
+      processPatterns: { reactiveRatio: 0.7, reviewLoopDetected: false, innovationCycleCount: 0 },
+    }));
     const result = buildExplorePrompt(state);
     expect(result).toContain("high reactive ratio (70%)");
     expect(result).toContain("root causes");
   });
 
   test("with low reactive ratio includes stable signal", () => {
-    const assessment: Assessment = {
-      ...freshAssessment,
-      processPatterns: {
-        reactiveRatio: 0.2,
-        reviewLoopDetected: false,
-        innovationCycleCount: 0,
-      },
-    };
-    const state = makeState({
-      blackboard: { assessment, priorities: null, currentTask: null, verification: null },
-    });
+    const state = makeStateWithAssessment(makeAssessment({}, {
+      processPatterns: { reactiveRatio: 0.2, reviewLoopDetected: false, innovationCycleCount: 0 },
+    }));
     const result = buildExplorePrompt(state);
     expect(result).toContain("stable shift (20% reactive)");
   });
 
   test("with moderate reactive ratio has no process signal", () => {
-    const assessment: Assessment = {
-      ...freshAssessment,
-      processPatterns: {
-        reactiveRatio: 0.45,
-        reviewLoopDetected: false,
-        innovationCycleCount: 0,
-      },
-    };
-    const state = makeState({
-      blackboard: { assessment, priorities: null, currentTask: null, verification: null },
-    });
+    const state = makeStateWithAssessment(makeAssessment({}, {
+      processPatterns: { reactiveRatio: 0.45, reviewLoopDetected: false, innovationCycleCount: 0 },
+    }));
     const result = buildExplorePrompt(state);
     expect(result).not.toContain("Process signal");
   });
@@ -288,17 +254,7 @@ describe("buildPrioritisePrompt", () => {
   });
 
   test("with gaps prefers closing gaps", () => {
-    const assessment: Assessment = {
-      ...freshAssessment,
-      invariants: {
-        ...freshAssessment.invariants!,
-        specifiedOnly: 3,
-        implementedUntested: 1,
-      },
-    };
-    const state = makeState({
-      blackboard: { assessment, priorities: null, currentTask: null, verification: null },
-    });
+    const state = makeStateWithAssessment(makeAssessment({ specifiedOnly: 3, implementedUntested: 1 }));
     const result = buildPrioritisePrompt(state);
     expect(result).toContain("3 unimplemented spec claim(s)");
     expect(result).toContain("1 untested claim(s)");

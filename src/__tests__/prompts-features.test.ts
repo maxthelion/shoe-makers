@@ -1,68 +1,23 @@
 import { describe, test, expect } from "bun:test";
 import { generatePrompt, parseActionTypeFromPrompt } from "../prompts";
-import type { ActionType, WorldState, Assessment } from "../types";
+import type { ActionType, WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
-import { emptyBlackboard } from "./test-utils";
+import { makeState as _makeState, makeAssessment, makeStateWithAssessment } from "./test-utils";
 
-const freshAssessment: Assessment = {
-  timestamp: new Date().toISOString(),
-  invariants: {
-    specifiedOnly: 2,
-    implementedUntested: 1,
-    implementedTested: 50,
-    unspecified: 1,
-    topSpecGaps: [{ id: "foo", description: "gap", group: "core" }],
-    topUntested: [{ id: "bar", description: "untested", group: "core" }],
-    topUnspecified: [{ id: "baz", description: "unspec", group: "core" }],
-  },
-  healthScore: 40,
-  worstFiles: [],
-  openPlans: ["test-plan"],
-  findings: [],
-  testsPass: true,
-  recentGitActivity: [],
-};
-
+// Local makeState with inboxCount: 2 to match original test expectations
 function makeState(): WorldState {
-  return {
-    branch: "shoemakers/2026-03-21",
-    hasUncommittedChanges: false,
-    inboxCount: 2,
-    hasUnreviewedCommits: false,
-    unresolvedCritiqueCount: 0,
-    hasWorkItem: false,
-    hasCandidates: false,
-    workItemSkillType: null,
-    hasPartialWork: false,
-    insightCount: 0,
-    blackboard: {
-      ...emptyBlackboard(),
-      assessment: freshAssessment,
-    },
-  };
+  return _makeState({ inboxCount: 2 });
 }
 
 const allActions: ActionType[] = [
-  "fix-tests",
-  "fix-critique",
-  "critique",
-  "continue-work",
-  "review",
-  "inbox",
-  "execute-work-item",
-  "dead-code",
-  "prioritise",
-  "innovate",
-  "evaluate-insight",
-  "explore",
+  "fix-tests", "fix-critique", "critique", "continue-work", "review",
+  "inbox", "execute-work-item", "dead-code", "prioritise", "innovate",
+  "evaluate-insight", "explore",
 ];
 
 function expectPromptContains(
-  action: ActionType,
-  state: WorldState,
-  contains: string[],
-  notContains: string[] = [],
-  skills?: Map<string, SkillDefinition>,
+  action: ActionType, state: WorldState, contains: string[],
+  notContains: string[] = [], skills?: Map<string, SkillDefinition>,
 ): string {
   const prompt = generatePrompt(action, state, skills);
   for (const s of contains) expect(prompt).toContain(s);
@@ -72,9 +27,7 @@ function expectPromptContains(
 
 function makeSkillMap(...skills: SkillDefinition[]): Map<string, SkillDefinition> {
   const map = new Map<string, SkillDefinition>();
-  for (const skill of skills) {
-    map.set(skill.name, skill);
-  }
+  for (const skill of skills) map.set(skill.name, skill);
   return map;
 }
 
@@ -87,23 +40,6 @@ function makeSkill(overrides: Partial<SkillDefinition> & { name: string; mapsTo:
     offLimits: ["Do not break things"],
     validationPatterns: [],
     ...overrides,
-  };
-}
-
-/** Create an assessment with specific invariant overrides */
-function makeAssessment(invariantOverrides: Partial<NonNullable<Assessment["invariants"]>> = {}, extra: Partial<Assessment> = {}): Assessment {
-  return {
-    ...freshAssessment,
-    invariants: { ...freshAssessment.invariants!, ...invariantOverrides },
-    ...extra,
-  };
-}
-
-/** Create a world state with a custom assessment */
-function makeStateWithAssessment(assessment: Assessment): WorldState {
-  return {
-    ...makeState(),
-    blackboard: { ...emptyBlackboard(), assessment },
   };
 }
 
@@ -168,7 +104,11 @@ describe("explore prompt process temperature", () => {
 
 describe("explore and prioritise tier switching", () => {
   function makeStateWithGaps(specifiedOnly: number, implementedUntested: number): WorldState {
-    return makeStateWithAssessment(makeAssessment({ specifiedOnly, implementedUntested }));
+    return makeStateWithAssessment(makeAssessment({
+      specifiedOnly,
+      implementedUntested,
+      topSpecGaps: specifiedOnly > 0 ? [{ id: "foo", description: "gap", group: "core" }] : [],
+    }));
   }
 
   const tierCases: [string, ActionType, () => WorldState, string[], string[]][] = [

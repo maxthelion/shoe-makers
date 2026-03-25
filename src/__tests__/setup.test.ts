@@ -3,7 +3,8 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { logAssessment, readInboxMessages, formatAction } from "../setup";
-import type { WorldState, Blackboard, Config, Assessment } from "../types";
+import type { WorldState, Config, Assessment } from "../types";
+import { makeState, emptyBlackboard } from "./test-utils";
 
 let tempDir: string;
 
@@ -15,6 +16,7 @@ afterEach(async () => {
   await rm(tempDir, { recursive: true });
 });
 
+/** Assessment factory with null defaults (matching setup.test expectations) */
 function makeAssessment(overrides: Partial<Assessment> = {}): Assessment {
   return {
     timestamp: new Date().toISOString(),
@@ -29,136 +31,93 @@ function makeAssessment(overrides: Partial<Assessment> = {}): Assessment {
   };
 }
 
+const defaultConfig: Config = {
+  branchPrefix: "shoemakers",
+  tickInterval: 5,
+  wikiDir: "wiki",
+  assessmentStaleAfter: 30,
+  maxTicksPerShift: 10,
+  enabledSkills: null,
+  insightFrequency: 0.3,
+  maxInnovationCycles: 3,
+};
+
 function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {
-  const config: Config = {
-    branchPrefix: "shoemakers",
-    tickInterval: 5,
-    wikiDir: "wiki",
-    assessmentStaleAfter: 30,
-    maxTicksPerShift: 10,
-    enabledSkills: null,
-    insightFrequency: 0.3,
-    maxInnovationCycles: 3,
-  };
-  const blackboard: Blackboard = {
-    assessment: null,
-    currentTask: null,
-  };
-  return {
-    branch: "shoemakers/2026-03-22",
-    hasUncommittedChanges: false,
-    blackboard,
-    inboxCount: 0,
-    hasUnreviewedCommits: false,
-    unresolvedCritiqueCount: 0,
-    hasWorkItem: false,
-    hasCandidates: false,
-    workItemSkillType: null,
-    hasPartialWork: false,
-    insightCount: 0,
-    config,
+  return makeState({
+    blackboard: { ...emptyBlackboard() },
+    config: defaultConfig,
     ...overrides,
-  };
+  });
+}
+
+function withLogSpy(fn: (logs: () => string[]) => void): void {
+  const logSpy = spyOn(console, "log");
+  try {
+    fn(() => logSpy.mock.calls.map((c: any[]) => c[0]));
+  } finally {
+    logSpy.mockRestore();
+  }
 }
 
 describe("logAssessment", () => {
-  test("logs pass when tests pass", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({ testsPass: true });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    expect(logs).toContain("[setup] Tests: pass");
-    logSpy.mockRestore();
-  });
+  test("logs pass when tests pass", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({ testsPass: true }));
+    expect(logs()).toContain("[setup] Tests: pass");
+  }));
 
-  test("logs FAIL when tests fail", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({ testsPass: false });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    expect(logs).toContain("[setup] Tests: FAIL");
-    logSpy.mockRestore();
-  });
+  test("logs FAIL when tests fail", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({ testsPass: false }));
+    expect(logs()).toContain("[setup] Tests: FAIL");
+  }));
 
-  test("logs typecheck status when present", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({ typecheckPass: true });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    expect(logs).toContain("[setup] Typecheck: pass");
-    logSpy.mockRestore();
-  });
+  test("logs typecheck status when present", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({ typecheckPass: true }));
+    expect(logs()).toContain("[setup] Typecheck: pass");
+  }));
 
-  test("does not log typecheck when undefined", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment();
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    const typecheckLogs = logs.filter((l: string) => l.includes("Typecheck"));
-    expect(typecheckLogs).toHaveLength(0);
-    logSpy.mockRestore();
-  });
+  test("does not log typecheck when undefined", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment());
+    expect(logs().filter((l: string) => l.includes("Typecheck"))).toHaveLength(0);
+  }));
 
-  test("logs FAIL when typecheck fails", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({ typecheckPass: false });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    expect(logs).toContain("[setup] Typecheck: FAIL");
-    logSpy.mockRestore();
-  });
+  test("logs FAIL when typecheck fails", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({ typecheckPass: false }));
+    expect(logs()).toContain("[setup] Typecheck: FAIL");
+  }));
 
-  test("logs skipped when typecheck is null (missing type defs)", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({ typecheckPass: null });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    expect(logs).toContain("[setup] Typecheck: skipped");
-    logSpy.mockRestore();
-  });
+  test("logs skipped when typecheck is null (missing type defs)", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({ typecheckPass: null }));
+    expect(logs()).toContain("[setup] Typecheck: skipped");
+  }));
 
-  test("logs health score when present", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({ healthScore: 85 });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    expect(logs).toContain("[setup] Health: 85/100");
-    logSpy.mockRestore();
-  });
+  test("logs health score when present", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({ healthScore: 85 }));
+    expect(logs()).toContain("[setup] Health: 85/100");
+  }));
 
-  test("logs worst files when health < 100", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({
+  test("logs worst files when health < 100", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({
       healthScore: 75,
       worstFiles: [
         { path: "src/foo.ts", score: 40 },
         { path: "src/bar.ts", score: 55 },
       ],
-    });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    const worstLine = logs.find((l: string) => l.includes("Worst files"));
+    }));
+    const worstLine = logs().find((l: string) => l.includes("Worst files"));
     expect(worstLine).toContain("src/foo.ts (40)");
     expect(worstLine).toContain("src/bar.ts (55)");
-    logSpy.mockRestore();
-  });
+  }));
 
-  test("does not log worst files when health is 100", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({
+  test("does not log worst files when health is 100", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({
       healthScore: 100,
       worstFiles: [{ path: "src/foo.ts", score: 90 }],
-    });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    const worstLine = logs.find((l: string) => l.includes("Worst files"));
-    expect(worstLine).toBeUndefined();
-    logSpy.mockRestore();
-  });
+    }));
+    expect(logs().find((l: string) => l.includes("Worst files"))).toBeUndefined();
+  }));
 
-  test("limits worst files to top 3", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({
+  test("limits worst files to top 3", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({
       healthScore: 50,
       worstFiles: [
         { path: "a.ts", score: 10 },
@@ -166,83 +125,53 @@ describe("logAssessment", () => {
         { path: "c.ts", score: 30 },
         { path: "d.ts", score: 40 },
       ],
-    });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    const worstLine = logs.find((l: string) => l.includes("Worst files"));
+    }));
+    const worstLine = logs().find((l: string) => l.includes("Worst files"));
     expect(worstLine).toContain("a.ts (10)");
     expect(worstLine).toContain("c.ts (30)");
     expect(worstLine).not.toContain("d.ts (40)");
-    logSpy.mockRestore();
-  });
+  }));
 
-  test("logs invariant counts when present", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({
+  test("logs invariant counts when present", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({
       invariants: {
-        specifiedOnly: 3,
-        implementedUntested: 1,
-        implementedTested: 10,
-        unspecified: 2,
-        topSpecGaps: [],
-        topUntested: [],
-        topUnspecified: [],
+        specifiedOnly: 3, implementedUntested: 1, implementedTested: 10,
+        unspecified: 2, topSpecGaps: [], topUntested: [], topUnspecified: [],
       },
-    });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    const invLine = logs.find((l: string) => l.includes("Invariants"));
+    }));
+    const invLine = logs().find((l: string) => l.includes("Invariants"));
     expect(invLine).toContain("3 specified-only");
     expect(invLine).toContain("1 untested");
     expect(invLine).toContain("2 unspecified");
-    logSpy.mockRestore();
-  });
+  }));
 
-  test("logs suggestions when present", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({
+  test("logs suggestions when present", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({
       invariants: {
-        specifiedOnly: 5,
-        implementedUntested: 0,
-        implementedTested: 10,
-        unspecified: 0,
-        topSpecGaps: [],
-        topUntested: [],
-        topUnspecified: [],
+        specifiedOnly: 5, implementedUntested: 0, implementedTested: 10,
+        unspecified: 0, topSpecGaps: [], topUntested: [], topUnspecified: [],
       },
-    });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c: any[]) => c[0]);
-    const sugLine = logs.find((l: string) => l.includes("Suggestions"));
+    }));
+    const sugLine = logs().find((l: string) => l.includes("Suggestions"));
     expect(sugLine).toContain("5 specified-only invariants need implementation");
-    logSpy.mockRestore();
-  });
+  }));
 
-  test("logs uncertainties when present", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment({
+  test("logs uncertainties when present", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment({
       uncertainties: [
         { field: "typecheckPass", reason: "missing type definitions (bun-types)" },
         { field: "healthScore", reason: "octoclean not installed" },
       ],
-    });
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
-    const uncLine = logs.find((l: string) => l.includes("Uncertainties"));
+    }));
+    const uncLine = logs().find((l: string) => l.includes("Uncertainties"));
     expect(uncLine).toContain("typecheckPass (missing type definitions (bun-types))");
     expect(uncLine).toContain("healthScore (octoclean not installed)");
-    logSpy.mockRestore();
-  });
+  }));
 
-  test("does not log uncertainties when empty or absent", () => {
-    const logSpy = spyOn(console, "log");
-    const assessment = makeAssessment();
-    logAssessment(assessment);
-    const logs = logSpy.mock.calls.map((c) => c[0]);
-    const uncLine = logs.find((l: string) => l.includes("Uncertainties"));
-    expect(uncLine).toBeUndefined();
-    logSpy.mockRestore();
-  });
+  test("does not log uncertainties when empty or absent", () => withLogSpy((logs) => {
+    logAssessment(makeAssessment());
+    expect(logs().find((l: string) => l.includes("Uncertainties"))).toBeUndefined();
+  }));
 });
 
 describe("readInboxMessages", () => {

@@ -123,6 +123,28 @@ export async function withTempDir(
   }
 }
 
+/**
+ * Create an assessment with specific invariant overrides.
+ * Starts from freshAssessment and merges invariant fields + extra top-level fields.
+ */
+export function makeAssessment(
+  invariantOverrides: Partial<NonNullable<Assessment["invariants"]>> = {},
+  extra: Partial<Assessment> = {},
+): Assessment {
+  return {
+    ...freshAssessment,
+    invariants: { ...freshAssessment.invariants!, ...invariantOverrides },
+    ...extra,
+  };
+}
+
+/**
+ * Create a world state with a specific assessment, using the shared makeState helper.
+ */
+export function makeStateWithAssessment(assessment: Assessment): WorldState {
+  return makeState({ blackboard: { ...emptyBlackboard(), assessment } });
+}
+
 /** Recursively extract all unique skill names from a tree node */
 export function extractSkills(node: TreeNode): Set<string> {
   const skills = new Set<string>();
