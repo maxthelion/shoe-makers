@@ -1970,7 +1970,7 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-in
 # The insight file must reference the Wikipedia article as the lens
 spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-insight-file-must-reference-the-wikipedia-article-that-w:
   source:
-    - [MUST use the Wikipedia article]
+    - ["use the Wikipedia article"]
     - [article.title]
   test:
     - [MUST use the Wikipedia article]
@@ -2004,6 +2004,6 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-sh
 spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.this-observability-allows-the-human-to-verify-in-the-morning:
   source:
     - [Wikipedia article fetched, Wikipedia article fetch failed]
-    - [MUST use the Wikipedia article]
+    - ["use the Wikipedia article"]
   test:
     - [Wikipedia article fetched]
