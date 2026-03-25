@@ -42,6 +42,8 @@ describe("parseShiftLogActions", () => {
       "- Action: Fix Failing Tests",
       "- Action: Fix Unresolved Critiques",
       "- Action: Adversarial Review — Critique Previous Elf's Work",
+      "- Action: Continue Partial Work",
+      "- Action: Review Uncommitted Work",
       "- Action: Inbox Messages — Act on These First",
       "- Action: Execute Work Item",
       "- Action: Remove Dead Code",
@@ -53,9 +55,9 @@ describe("parseShiftLogActions", () => {
 
     const actions = parseShiftLogActions(log);
     expect(actions).toEqual([
-      "fix-tests", "fix-critique", "critique", "inbox",
-      "execute-work-item", "dead-code", "prioritise",
-      "innovate", "evaluate-insight", "explore",
+      "fix-tests", "fix-critique", "critique", "continue-work",
+      "review", "inbox", "execute-work-item", "dead-code",
+      "prioritise", "innovate", "evaluate-insight", "explore",
     ]);
   });
 });
