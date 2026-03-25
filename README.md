@@ -30,7 +30,7 @@ Selector
 2. **Prioritise** — medium context. Read the candidates, read the relevant code and wiki. Pick one and write a detailed work item with full context — not "implement something" but specific instructions with relevant code and patterns.
 3. **Execute** — narrow context. Read the work item. Do exactly what it says. Commit. Optionally hand off a follow-up (e.g. "review what I just built").
 
-At **innovation tier** (all invariants met, health good), the tree routes to **Innovate** instead of Explore. The setup script prepares a creative brief with a random Wikipedia article, and the elf writes an insight connecting the random concept to the system. A separate **Evaluate-insight** action fires when insight files exist — it has a generous disposition, building on ideas constructively rather than filtering them.
+At **innovation tier** (all invariants met, health good), the tree routes to **Innovate** instead of Explore. The setup script prepares a creative brief with a random Wikipedia article, and the elf writes an insight connecting the random concept to the system. A separate **Evaluate-insight** action fires when insight files exist — it has a generous disposition, building on ideas constructively rather than filtering them. Evaluated insights are either promoted to work items, reworked with feedback, or dismissed with a note explaining why.
 
 Each phase narrows the context for the next. The prioritiser's job is to write a really good prompt for the executor.
 
@@ -53,7 +53,7 @@ The wiki (`wiki/pages/`) is the source of truth. Code is derived from the spec, 
 
 All work happens on a daily branch (e.g. `shoemakers/2026-03-22`). Nothing reaches main without human approval. In the morning, review the branch and merge, cherry-pick, or discard.
 
-The shift log (`.shoe-makers/log/`) tells the story of the night's work. Findings (`.shoe-makers/findings/`) persist across shifts for continuity.
+The shift log (`.shoe-makers/log/`) tells the story of the night's work, including a summary dashboard that categorises actions (fix, feature, test, docs, health, review) and tracks process patterns like reactive ratio and review loop counts. Findings (`.shoe-makers/findings/`) persist across shifts for continuity.
 
 ## Getting started
 
@@ -116,11 +116,13 @@ insight-frequency: 0.3
 max-innovation-cycles: 3
 ```
 
-`.shoe-makers/schedule.md` (optional):
+`.shoe-makers/schedule.md` (optional — restricts elves to a working window, UTC 24h format):
 ```
 start: 22
 end: 6
 ```
+
+Setup exits immediately outside these hours, so the elves only work during the configured window.
 
 ## Project structure
 
