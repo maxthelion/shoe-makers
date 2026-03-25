@@ -33,3 +33,7 @@ The human should update these invariants to match the current architecture. Poss
 ## Note
 
 `.shoe-makers/invariants.md` is human-only — elves cannot modify it directly. This finding surfaces the gap for human review.
+
+## Status
+
+Resolved.
