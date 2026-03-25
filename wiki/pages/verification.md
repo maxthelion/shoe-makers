@@ -60,6 +60,20 @@ The ideal two-tick TDD cycle — where one elf writes failing tests and a differ
    - The rules the previous elf was given (from `last-action.md`)
    - Instructions to check: did they stay in scope? Did they game anything? Is the code correct?
 
+### Orchestration skip
+
+Not all commits need adversarial review. Commits that only touch orchestration output directories are automatically skipped:
+
+- `.shoe-makers/state/` — orchestration state files (candidates.md, work-item.md)
+- `.shoe-makers/findings/` — critique findings
+- `.shoe-makers/insights/` — creative insights
+- `.shoe-makers/log/` — shift log entries
+- `.shoe-makers/archive/` — archived files
+
+These are mechanical outputs of the tree cycle, not code changes. Skipping review for them prevents the system from spending most of its shift reviewing low-risk orchestration artifacts.
+
+Commits that touch `src/`, `wiki/`, or any real code still trigger full adversarial review.
+
 ### What the reviewer checks
 
 - **Scope violation**: did the elf touch files outside its allowed list? (Automated: `setup.ts` pre-computes permission violations using `checkPermissionViolations()` and includes them as a warning in the critique prompt. The reviewer should still verify manually — automated detection supplements but doesn't replace judgment.)
@@ -110,6 +124,7 @@ Note: When permission violations are detected, the prompt includes a `PERMISSION
 ```
 Selector
 ├── [tests failing?] → Fix them
+├── [review loop ≥3?] → Break out to explore
 ├── [unresolved critiques?] → Fix the flagged issues
 ├── [unreviewed commits?] → Review adversarially (critique)
 ├── [uncommitted work?] → Review before committing (review)
@@ -118,6 +133,8 @@ Selector
 ├── [candidates.md exists?] → Prioritise: pick one, write work-item.md
 ├── [neither?] → Explore: write candidates.md
 ```
+
+The review-loop circuit breaker prevents infinite critique/fix-critique cycles. If the shift has seen 3+ review loop iterations (detected via the shift log parser), the tree routes to explore instead of continuing the loop. This ensures the shift makes progress even when a critique can't be resolved.
 
 Critiques sit above unreviewed work — you fix problems before reviewing new work. Unreviewed work sits above new work — you review before starting something new.
 
