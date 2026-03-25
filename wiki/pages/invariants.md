@@ -58,6 +58,12 @@ Each group is a set of alternatives (OR) — any match suffices. All groups must
 
 The claim-to-evidence mapping is manually curated in `src/verify/invariants.ts`. As the system evolves, claims and evidence patterns are updated to match the current architecture.
 
+## Signal Liveness
+
+The assessment cache contains multiple data sources: invariant counts, test results, health scores, Wikipedia articles for creative exploration. Any of these can fail silently — returning null instead of a value. A null health score currently means "skip the health check", which masks broken infrastructure.
+
+**Null is not neutral — null is a failure.** If a signal that should produce a value returns null, the assessment must record this explicitly (e.g. `healthScore: null, healthScoreError: "octoclean not installed"`). The behaviour tree should treat missing signals as a condition to investigate, not a condition to ignore. This prevents the system from confidently innovating while one of its sensors is broken.
+
 ## The Virtuous Cycle
 
 1. Human writes wiki pages describing intent

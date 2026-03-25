@@ -226,6 +226,7 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - assessment.json: written by the explore action, read by tree conditions
 - Contains: invariant gaps (specified-only, untested, unspecified — with details), test results, health scores, open plans, findings, recent git activity
 - This is the only state file — the tree reads it, explore writes it
+- Assessment signals must not be silently null — if a data source (health score, Wikipedia article, invariants count) fails to produce a value, the assessment must record the failure explicitly and the tree must treat missing signals as a problem to fix, not a condition to skip
 
 ### 5.2 Configuration
 - `.shoe-makers/config.yaml` with sensible defaults
