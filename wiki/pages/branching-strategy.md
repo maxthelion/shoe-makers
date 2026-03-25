@@ -34,7 +34,7 @@ In the morning, the human reviews the branch and merges to main (or doesn't).
 1am-6am: Behaviour tree ticks every 5 minutes
   → agents commit to the branch
   → tests run against the branch
-  → verification gates reject bad commits (revert)
+  → cross-elf adversarial review catches issues (critique cycle)
 8am: Human reviews the branch
   → merge to main, or
   → cherry-pick specific commits, or
