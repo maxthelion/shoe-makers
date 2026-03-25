@@ -5,15 +5,21 @@ import {
   checkPermissionViolations,
 } from "../verify/permissions";
 import type { ActionType } from "../types";
+import { defaultTree } from "../tree/default-tree";
+import type { TreeNode } from "../types";
 
 const allActions: ActionType[] = [
   "fix-tests",
   "fix-critique",
   "critique",
+  "continue-work",
   "review",
   "inbox",
   "execute-work-item",
+  "dead-code",
   "prioritise",
+  "innovate",
+  "evaluate-insight",
   "explore",
 ];
 
@@ -186,5 +192,97 @@ describe("custom wikiDir", () => {
     // Explicitly passing "wiki" should behave the same as not passing it
     expect(isFileAllowed("critique", "wiki/pages/foo.md", "wiki")).toBe(false);
     expect(isFileAllowed("execute-work-item", "wiki/pages/foo.md", "wiki")).toBe(true);
+  });
+});
+
+describe("allActions drift prevention", () => {
+  /** Recursively extract all unique skill names from a tree node */
+  function extractSkills(node: TreeNode): Set<string> {
+    const skills = new Set<string>();
+    if (node.type === "action" && node.skill) {
+      skills.add(node.skill);
+    }
+    if (node.children) {
+      for (const child of node.children) {
+        for (const s of extractSkills(child)) {
+          skills.add(s);
+        }
+      }
+    }
+    return skills;
+  }
+
+  test("allActions covers every skill in the behaviour tree", () => {
+    const treeSkills = extractSkills(defaultTree);
+    const allActionsSet = new Set(allActions);
+    for (const skill of treeSkills) {
+      expect(allActionsSet.has(skill as ActionType)).toBe(true);
+    }
+  });
+
+  test("every action in allActions exists in the behaviour tree", () => {
+    const treeSkills = extractSkills(defaultTree);
+    for (const action of allActions) {
+      expect(treeSkills.has(action)).toBe(true);
+    }
+  });
+});
+
+describe("dead-code permissions", () => {
+  test("dead-code can write source code", () => {
+    expect(isFileAllowed("dead-code", "src/foo.ts")).toBe(true);
+    expect(isFileAllowed("dead-code", "src/__tests__/foo.test.ts")).toBe(true);
+  });
+
+  test("dead-code cannot write wiki", () => {
+    expect(isFileAllowed("dead-code", "wiki/pages/architecture.md")).toBe(false);
+  });
+
+  test("dead-code cannot write invariants", () => {
+    expect(isFileAllowed("dead-code", ".shoe-makers/invariants.md")).toBe(false);
+  });
+});
+
+describe("innovate permissions", () => {
+  test("innovate can write insights", () => {
+    expect(isFileAllowed("innovate", ".shoe-makers/insights/2026-03-25-001.md")).toBe(true);
+  });
+
+  test("innovate cannot write source code", () => {
+    expect(isFileAllowed("innovate", "src/types.ts")).toBe(false);
+  });
+
+  test("innovate cannot write wiki", () => {
+    expect(isFileAllowed("innovate", "wiki/pages/architecture.md")).toBe(false);
+  });
+
+  test("innovate cannot write invariants", () => {
+    expect(isFileAllowed("innovate", ".shoe-makers/invariants.md")).toBe(false);
+  });
+});
+
+describe("evaluate-insight permissions", () => {
+  test("evaluate-insight can write insights", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/insights/2026-03-25-001.md")).toBe(true);
+  });
+
+  test("evaluate-insight can write state files", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/state/work-item.md")).toBe(true);
+  });
+
+  test("evaluate-insight can write log files", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/log/2026-03-25.md")).toBe(true);
+  });
+
+  test("evaluate-insight cannot write source code", () => {
+    expect(isFileAllowed("evaluate-insight", "src/types.ts")).toBe(false);
+  });
+
+  test("evaluate-insight cannot write wiki", () => {
+    expect(isFileAllowed("evaluate-insight", "wiki/pages/architecture.md")).toBe(false);
+  });
+
+  test("evaluate-insight cannot write invariants", () => {
+    expect(isFileAllowed("evaluate-insight", ".shoe-makers/invariants.md")).toBe(false);
   });
 });
