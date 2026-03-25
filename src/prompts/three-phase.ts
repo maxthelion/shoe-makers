@@ -202,11 +202,13 @@ ${article.summary}
 
 Read the shoe-makers codebase through the lens of this concept. Find a connection — however abstract — between the concept and something in the system. Then write a concrete proposal.
 
+Your insight **MUST** use the Wikipedia article provided above as the lens. Do not use general knowledge — the whole point is forced serendipity from an outside concept.
+
 You **MUST** write an insight file to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\` (where NNN is a sequence number). "No connection found" is NOT acceptable output. Be creative. Be speculative. A bad idea is better than no idea.
 
 The insight file must contain:
 
-1. **Lens**: the Wikipedia article and what it's about
+1. **Lens**: start with "**${article.title}**" — the Wikipedia article title, then explain what it's about and what aspect you're drawing from
 2. **Connection**: how it relates to the shoe-makers system
 3. **Proposal**: a concrete change or improvement inspired by the connection
 4. **Why**: why this would be better than the current approach

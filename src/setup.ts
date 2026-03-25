@@ -89,6 +89,11 @@ async function main() {
   let article: { title: string; summary: string } | undefined;
   if (skill === "innovate") {
     article = (await fetchRandomArticle()) ?? undefined;
+    if (article) {
+      await appendToShiftLog(repoRoot, `- Wikipedia article fetched: "${article.title}"\n`);
+    } else {
+      await appendToShiftLog(repoRoot, `- Wikipedia article fetch failed\n`);
+    }
   } else if (skill === "explore" && shouldIncludeLens(config.insightFrequency)) {
     article = (await fetchRandomArticle()) ?? undefined;
   }
