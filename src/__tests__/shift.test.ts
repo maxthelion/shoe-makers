@@ -158,10 +158,9 @@ describe("shift runner", () => {
     expect(result.steps.every(s => s.tick.action === "explore")).toBe(true);
   });
 
-  test("returns sleep when tree produces no action", async () => {
-    // Create a state where tick returns null action
-    // We mock readState to return a state, but mock runSkill won't be called
-    // because the tree returning null action triggers sleep before running skill
+  test("calls onTick callback with single tick", async () => {
+    // The default tree always returns explore, so the sleep path is unreachable.
+    // This test verifies onTick works with a single-tick shift.
     const state: WorldState = {
       branch: "shoemakers/2026-03-21",
       hasUncommittedChanges: false,
@@ -175,19 +174,6 @@ describe("shift runner", () => {
       blackboard: emptyBlackboard(),
     };
 
-    // Override tree evaluation by providing a custom readState that returns
-    // a state the tree can't act on — but our default tree always falls through
-    // to explore. So we need to use a custom runSkill + readState where tick
-    // returns null. We can test this by using the shift function's dependency
-    // injection to simulate the sleep path indirectly.
-    // Actually, we need to test the shift code path, not the tree.
-    // The cleanest approach: import tick and verify sleep path works via shift.
-    // Since the default tree always returns explore, sleep can only happen
-    // with a custom tree. Instead, we verify the code path by checking that
-    // if the state somehow produces null action from tick, shift handles it.
-    // We'll test this by mocking at a higher level.
-
-    // For now, test that onTick callback works (separate concern)
     const tickSteps: any[] = [];
     const result = await shift(tempDir, {
       maxTicks: 1,
