@@ -111,7 +111,7 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 
 ### 2.6 Creative exploration — dedicated `innovate` and `evaluate-insight` actions
 - At innovation tier (all invariants met, health good), the tree routes to `innovate` instead of `explore`
-- The setup script prepares a **deterministic creative brief**: reads wiki overview pages (architecture, etc.) and always fetches a random Wikipedia article — the elf receives both
+- The setup script prepares a **deterministic creative brief**: reads wiki overview pages (architecture, etc.) and picks a random article from the creative corpus — the elf receives both
 - The innovate elf **must** write an insight file — output is mandatory, not optional. "No connection found" is not acceptable
 - The insight file **must** reference the Wikipedia article that was provided as the lens — the connection is between the random concept and the system, not from general knowledge
 - Insights go to `.shoe-makers/insights/`, separate from findings — they're proposals, not problems
@@ -122,10 +122,18 @@ Top-down. Start with what the user experiences, cascade into how it works, then 
 - The separation between generating insights (divergent) and evaluating them (convergent) is deliberate — different mental states, different invocations, different dispositions
 - The insight evaluator is NOT the prioritise elf — the prioritise elf is pragmatic and would kill most creative ideas
 
-### 2.6.1 Innovate observability
-- The setup script logs which Wikipedia article was fetched (title) to the shift log, or logs that the fetch failed
-- The innovate prompt output (the insight file) must include the Wikipedia article title in the Lens section — if an insight doesn't reference the article, the elf ignored the brief
-- The shift log entry for an innovate tick should include: the Wikipedia article title, whether an insight was written, and the insight filename
+### 2.6.1 Creative corpus
+- Random concepts for the creative lens come from `.shoe-makers/creative-corpus/` — markdown files with title, source URL, and a summary
+- The corpus is populated locally by running `scripts/fetch-wikipedia-corpus.sh` which fetches random Wikipedia articles (Wikipedia is blocked in the cloud environment)
+- Setup picks one unused article at random from the corpus and embeds it in the innovate prompt
+- After the innovate tick completes, the article is marked as used by adding `used: true` to its frontmatter — each article is used only once
+- When all articles are used (or the corpus is empty), the human should run the fetch script again to replenish it
+- Articles should be kept concise to minimise token usage — the summary is the creative seed, not a full encyclopedia entry
+
+### 2.6.2 Innovate observability
+- The setup script logs which article was selected (title) to the shift log
+- The innovate prompt output (the insight file) must include the article title in the Lens section — if an insight doesn't reference the article, the elf ignored the brief
+- The shift log entry for an innovate tick should include: the article title, whether an insight was written, and the insight filename
 - This observability allows the human to verify in the morning review that the creative pipeline is actually using random outside concepts, not falling back to general knowledge
 
 ### 2.7 The wiki drives work
