@@ -712,3 +712,43 @@ describe("formatSkillCatalog", () => {
     expect(result).toContain("**implement** (implement): Build features");
   });
 });
+
+describe("generatePrompt exhaustiveness", () => {
+  test("returns non-empty prompt with heading for all action types", () => {
+    const state = makeState();
+    for (const action of allActions) {
+      const prompt = generatePrompt(action, state);
+      expect(prompt.length).toBeGreaterThan(0);
+      expect(prompt).toContain("#");
+    }
+  });
+});
+
+describe("isInnovationTier boundary", () => {
+  function makeAssessmentWithUntested(untested: number): Assessment {
+    return {
+      ...freshAssessment,
+      invariants: {
+        ...freshAssessment.invariants,
+        implementedUntested: untested,
+        specifiedOnly: 0,
+      },
+    };
+  }
+
+  test("4 untested claims allows innovation tier", () => {
+    expect(isInnovationTier(makeAssessmentWithUntested(4))).toBe(true);
+  });
+
+  test("5 untested claims blocks innovation tier", () => {
+    expect(isInnovationTier(makeAssessmentWithUntested(5))).toBe(false);
+  });
+
+  test("0 untested and 0 spec-only allows innovation tier", () => {
+    expect(isInnovationTier(makeAssessmentWithUntested(0))).toBe(true);
+  });
+
+  test("null assessment does not allow innovation tier", () => {
+    expect(isInnovationTier(null)).toBe(false);
+  });
+});
