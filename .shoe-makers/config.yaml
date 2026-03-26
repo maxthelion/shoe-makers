@@ -1,0 +1,26 @@
+# Shoe-Makers Configuration
+# All values shown are defaults. Uncomment and modify to override.
+
+# Git branch prefix for daily work branches (e.g. shoemakers/2026-03-26)
+# branch-prefix: shoemakers
+
+# Minutes between ticks during a shift
+# tick-interval: 5
+
+# Directory containing wiki pages (relative to repo root)
+# wiki-dir: wiki
+
+# Minutes before cached assessment is considered stale
+# assessment-stale-after: 30
+
+# Maximum ticks per shift before pausing
+# max-ticks-per-shift: 10
+
+# Comma-separated list of enabled skills (omit to enable all)
+# enabled-skills: fix-tests, implement, test-coverage, doc-sync, health
+
+# Probability (0.0-1.0) that explore ticks include a Wikipedia creative lens
+# insight-frequency: 0.3
+
+# Maximum innovate actions per shift before reverting to explore
+# max-innovation-cycles: 3
