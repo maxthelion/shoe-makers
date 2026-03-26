@@ -41,7 +41,7 @@ These fire immediately with a direct prompt. No orchestration needed — the act
 - **Tests failing** — always highest priority. The elf gets the test output and fixes it.
 - **Review-loop circuit breaker** — two nodes handle review loops. If candidates already exist from a previous explore tick, the tree routes to prioritise to consume them (avoiding a redundant explore). Otherwise, it breaks out to explore to reassess. Both trigger when the review loop has fired 3+ times this shift.
 - **Unresolved critiques** — blocking findings from a previous reviewer. Must fix before new work.
-- **Partial work** — a previous elf started work but didn't finish. The elf reads the partial-work description and resumes where the previous elf left off.
+- **Partial work** — a previous elf started work but didn't finish. Triggers when `.shoe-makers/state/partial-work.md` exists. The elf reads the partial-work file, resumes where the previous elf left off, and deletes the file when done (or updates it if the work is still incomplete). Any elf can write `partial-work.md` to hand off incomplete work to the next tick. The continue-work action has executor-level permissions (can write to `src/`, `wiki/`, `.shoe-makers/state/`).
 - **Unreviewed commits** — a previous elf's commits need adversarial review. The reviewer gets the diff and the rules the previous elf was given.
 - **Uncommitted changes** — review uncommitted work before proceeding with new actions.
 - **Inbox messages** — human instructions take priority over self-directed work.
