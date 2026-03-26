@@ -25,6 +25,17 @@ const freshAssessment: Assessment = {
   recentGitActivity: [],
 };
 
+function makeAssessment(overrides: Partial<Omit<Assessment, "invariants">> & { invariants?: Partial<NonNullable<Assessment["invariants"]>> | null } = {}): Assessment {
+  const { invariants: invOverrides, ...rest } = overrides;
+  return {
+    ...freshAssessment,
+    ...rest,
+    invariants: invOverrides === null ? null : invOverrides !== undefined
+      ? { ...freshAssessment.invariants!, ...invOverrides }
+      : freshAssessment.invariants,
+  };
+}
+
 function makeState(): WorldState {
   return {
     branch: "shoemakers/2026-03-21",
@@ -40,6 +51,16 @@ function makeState(): WorldState {
     blackboard: {
       ...emptyBlackboard(),
       assessment: freshAssessment,
+    },
+  };
+}
+
+function makeStateWith(assessmentOverrides: Parameters<typeof makeAssessment>[0] = {}): WorldState {
+  return {
+    ...makeState(),
+    blackboard: {
+      ...emptyBlackboard(),
+      assessment: makeAssessment(assessmentOverrides),
     },
   };
 }
@@ -250,21 +271,8 @@ describe("explore prompt creative lens", () => {
 });
 
 describe("explore prompt process temperature", () => {
-  function makeStateWithProcessPatterns(reactiveRatio: number, reviewLoopCount: number = 0): WorldState {
-    return {
-      ...makeState(),
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: {
-          ...freshAssessment,
-          processPatterns: { reactiveRatio, reviewLoopCount, innovationCycleCount: 0 },
-        },
-      },
-    };
-  }
-
   test("includes high reactive ratio guidance when ratio > 0.6", () => {
-    const state = makeStateWithProcessPatterns(0.75);
+    const state = makeStateWith({ processPatterns: { reactiveRatio: 0.75, reviewLoopCount: 0, innovationCycleCount: 0 } });
     const prompt = generatePrompt("explore", state);
     expect(prompt).toContain("high reactive ratio");
     expect(prompt).toContain("75%");
@@ -272,7 +280,7 @@ describe("explore prompt process temperature", () => {
   });
 
   test("includes stability guidance when ratio < 0.3", () => {
-    const state = makeStateWithProcessPatterns(0.1);
+    const state = makeStateWith({ processPatterns: { reactiveRatio: 0.1, reviewLoopCount: 0, innovationCycleCount: 0 } });
     const prompt = generatePrompt("explore", state);
     expect(prompt).toContain("stable shift");
     expect(prompt).toContain("10%");
@@ -280,7 +288,7 @@ describe("explore prompt process temperature", () => {
   });
 
   test("no extra guidance when ratio is moderate", () => {
-    const state = makeStateWithProcessPatterns(0.45);
+    const state = makeStateWith({ processPatterns: { reactiveRatio: 0.45, reviewLoopCount: 0, innovationCycleCount: 0 } });
     const prompt = generatePrompt("explore", state);
     expect(prompt).not.toContain("high reactive ratio");
     expect(prompt).not.toContain("stable shift");
@@ -295,37 +303,14 @@ describe("explore prompt process temperature", () => {
 });
 
 describe("explore and prioritise tier switching", () => {
-  function makeStateWithGaps(specifiedOnly: number, implementedUntested: number): WorldState {
-    const baseInv = freshAssessment.invariants!;
-    const inv = {
-      specifiedOnly,
-      implementedUntested,
-      implementedTested: baseInv.implementedTested,
-      unspecified: baseInv.unspecified,
-      topSpecGaps: baseInv.topSpecGaps,
-      topUntested: baseInv.topUntested,
-      topUnspecified: baseInv.topUnspecified,
-    };
-    return {
-      ...makeState(),
-      blackboard: {
-        ...emptyBlackboard(),
-        assessment: {
-          ...freshAssessment,
-          invariants: inv,
-        },
-      },
-    };
-  }
-
   const tierCases: [string, ActionType, () => WorldState, string[], string[]][] = [
-    ["explore shows no-gaps tier when no gaps", "explore", () => makeStateWithGaps(0, 0), ["No major gaps"], []],
-    ["explore shows Hygiene/Implementation tier when spec gaps exist", "explore", () => makeStateWithGaps(5, 0), ["Hygiene / Implementation", "unimplemented spec claim"], []],
-    ["prioritise shows gap guidance when spec gaps exist", "prioritise", () => makeStateWithGaps(5, 0), ["unimplemented spec claim"], []],
-    ["prioritise shows innovation guidance when no gaps", "prioritise", () => makeStateWithGaps(0, 0), ["highest impact"], []],
-    ["explore Hygiene tier includes top spec gap descriptions", "explore", () => makeStateWithGaps(3, 0), ["gap", "Top invariant gaps"], []],
-    ["prioritise includes top spec gap descriptions when gaps exist", "prioritise", () => makeStateWithGaps(3, 0), ["Top invariant gaps", "gap"], []],
-    ["prioritise does not include gap details when no gaps", "prioritise", () => makeStateWithGaps(0, 0), [], ["Top invariant gaps"]],
+    ["explore shows no-gaps tier when no gaps", "explore", () => makeStateWith({ invariants: { specifiedOnly: 0, implementedUntested: 0 } }), ["No major gaps"], []],
+    ["explore shows Hygiene/Implementation tier when spec gaps exist", "explore", () => makeStateWith({ invariants: { specifiedOnly: 5, implementedUntested: 0 } }), ["Hygiene / Implementation", "unimplemented spec claim"], []],
+    ["prioritise shows gap guidance when spec gaps exist", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 5, implementedUntested: 0 } }), ["unimplemented spec claim"], []],
+    ["prioritise shows innovation guidance when no gaps", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 0, implementedUntested: 0 } }), ["highest impact"], []],
+    ["explore Hygiene tier includes top spec gap descriptions", "explore", () => makeStateWith({ invariants: { specifiedOnly: 3, implementedUntested: 0 } }), ["gap", "Top invariant gaps"], []],
+    ["prioritise includes top spec gap descriptions when gaps exist", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 3, implementedUntested: 0 } }), ["Top invariant gaps", "gap"], []],
+    ["prioritise does not include gap details when no gaps", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 0, implementedUntested: 0 } }), [], ["Top invariant gaps"]],
   ];
 
   for (const [label, action, stateFactory, contains, notContains] of tierCases) {
@@ -335,12 +320,10 @@ describe("explore and prioritise tier switching", () => {
   }
 
   test("explore uses specifiedOnly count to determine tier", () => {
-    const stateWithGaps = makeStateWithGaps(3, 0);
-    const promptWithGaps = generatePrompt("explore", stateWithGaps);
+    const promptWithGaps = generatePrompt("explore", makeStateWith({ invariants: { specifiedOnly: 3, implementedUntested: 0 } }));
     expect(promptWithGaps).toContain("3 unimplemented spec claim");
 
-    const stateNoGaps = makeStateWithGaps(0, 0);
-    const promptNoGaps = generatePrompt("explore", stateNoGaps);
+    const promptNoGaps = generatePrompt("explore", makeStateWith({ invariants: { specifiedOnly: 0, implementedUntested: 0 } }));
     expect(promptNoGaps).not.toContain("unimplemented spec claim");
   });
 });
@@ -567,51 +550,40 @@ describe("evaluate-insight prompt", () => {
 });
 
 describe("determineTier", () => {
-  function makeAssessmentWithInvariants(specifiedOnly: number, implementedUntested: number): Assessment {
-    return {
-      ...freshAssessment,
-      invariants: {
-        ...freshAssessment.invariants!,
-        specifiedOnly,
-        implementedUntested,
-      },
-    };
-  }
-
   test("null assessment returns no gaps", () => {
     const tier = determineTier(null);
     expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
   });
 
   test("assessment with null invariants returns no gaps", () => {
-    const tier = determineTier({ ...freshAssessment, invariants: null });
+    const tier = determineTier(makeAssessment({ invariants: null }));
     expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
   });
 
   test("specifiedOnly > 0 means hasGaps", () => {
-    const tier = determineTier(makeAssessmentWithInvariants(1, 0));
+    const tier = determineTier(makeAssessment({ invariants: { specifiedOnly: 1, implementedUntested: 0 } }));
     expect(tier.hasGaps).toBe(true);
     expect(tier.specOnlyCount).toBe(1);
   });
 
   test("untestedCount=4 does not trigger hasGaps (below threshold)", () => {
-    const tier = determineTier(makeAssessmentWithInvariants(0, 4));
+    const tier = determineTier(makeAssessment({ invariants: { specifiedOnly: 0, implementedUntested: 4 } }));
     expect(tier.hasGaps).toBe(false);
   });
 
   test("untestedCount=5 triggers hasGaps (at threshold)", () => {
-    const tier = determineTier(makeAssessmentWithInvariants(0, 5));
+    const tier = determineTier(makeAssessment({ invariants: { specifiedOnly: 0, implementedUntested: 5 } }));
     expect(tier.hasGaps).toBe(true);
     expect(tier.untestedCount).toBe(5);
   });
 
   test("both zero means no gaps", () => {
-    const tier = determineTier(makeAssessmentWithInvariants(0, 0));
+    const tier = determineTier(makeAssessment({ invariants: { specifiedOnly: 0, implementedUntested: 0 } }));
     expect(tier.hasGaps).toBe(false);
   });
 
   test("both non-zero means hasGaps", () => {
-    const tier = determineTier(makeAssessmentWithInvariants(3, 10));
+    const tier = determineTier(makeAssessment({ invariants: { specifiedOnly: 3, implementedUntested: 10 } }));
     expect(tier.hasGaps).toBe(true);
     expect(tier.specOnlyCount).toBe(3);
     expect(tier.untestedCount).toBe(10);
@@ -749,27 +721,16 @@ describe("generatePrompt exhaustiveness", () => {
 });
 
 describe("isInnovationTier boundary", () => {
-  function makeAssessmentWithUntested(untested: number): Assessment {
-    return {
-      ...freshAssessment,
-      invariants: {
-        ...freshAssessment.invariants!,
-        implementedUntested: untested,
-        specifiedOnly: 0,
-      },
-    };
-  }
-
   test("4 untested claims allows innovation tier", () => {
-    expect(isInnovationTier(makeAssessmentWithUntested(4))).toBe(true);
+    expect(isInnovationTier(makeAssessment({ invariants: { implementedUntested: 4, specifiedOnly: 0 } }))).toBe(true);
   });
 
   test("5 untested claims blocks innovation tier", () => {
-    expect(isInnovationTier(makeAssessmentWithUntested(5))).toBe(false);
+    expect(isInnovationTier(makeAssessment({ invariants: { implementedUntested: 5, specifiedOnly: 0 } }))).toBe(false);
   });
 
   test("0 untested and 0 spec-only allows innovation tier", () => {
-    expect(isInnovationTier(makeAssessmentWithUntested(0))).toBe(true);
+    expect(isInnovationTier(makeAssessment({ invariants: { implementedUntested: 0, specifiedOnly: 0 } }))).toBe(true);
   });
 
   test("null assessment does not allow innovation tier", () => {
