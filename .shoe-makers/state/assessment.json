@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-26T08:13:38.768Z",
+  "timestamp": "2026-03-26T08:14:03.852Z",
   "invariants": {
     "specifiedOnly": 0,
     "implementedUntested": 0,
@@ -50,6 +50,7 @@
   "testsPass": true,
   "typecheckPass": true,
   "recentGitActivity": [
+    "28e9338 Prioritise: consume candidates (doc-sync work-item persists, review loop active)",
     "65639eb Explore: write candidates (review loop cycle — work-item pending for next shift)",
     "f3376c0 Prioritise: consume candidates (doc-sync work-item already exists)",
     "70650e3 Explore: write candidates for review-loop-with-candidates consumption",
@@ -58,11 +59,10 @@
     "68d73cd Prioritise: pick wiki permissions table doc-sync (spec-code gap from critique)",
     "a325ce6 Explore: survey codebase and write candidates (doc-sync, health, test coverage)",
     "95e379f Adversarial review: critique (clean — permissions fix, minor spec-code gap noted)",
-    "35c0792 Fix critique: add log/ and archive/ to executor canWrite permissions",
-    "456161a Adversarial review: critique (minor permission violation in executor housekeeping)"
+    "35c0792 Fix critique: add log/ and archive/ to executor canWrite permissions"
   ],
   "processPatterns": {
-    "reactiveRatio": 0.4488888888888889,
+    "reactiveRatio": 0.4469026548672566,
     "reviewLoopCount": 3,
     "innovationCycleCount": 3
   }
