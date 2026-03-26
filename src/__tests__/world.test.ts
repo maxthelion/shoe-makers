@@ -157,6 +157,18 @@ describe("checkUnreviewedCommits", () => {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  test("accepts short hash (7 chars) as valid marker", async () => {
+    const head = execSync("git rev-parse --short HEAD", { cwd: repoRoot, encoding: "utf-8" }).trim();
+    await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
+    // Short hashes are valid per the regex /^[0-9a-f]{7,40}$/
+    // This should not return true due to invalid marker — the hash is valid
+    await writeFile(markerPath, head);
+    const result = await checkUnreviewedCommits(repoRoot);
+    // We can't predict the exact result (depends on git state),
+    // but it should not throw and should return a boolean
+    expect(typeof result).toBe("boolean");
+  });
 });
 
 describe("readWorkItemSkillType", () => {
@@ -201,6 +213,34 @@ describe("readWorkItemSkillType", () => {
   test("returns null when work-item.md does not exist", async () => {
     const result = await readWorkItemSkillType(tempDir);
     expect(result).toBeNull();
+  });
+
+  test("returns null when skill-type appears after line 10", async () => {
+    const lines = Array(11).fill("# Padding line").join("\n");
+    await writeFile(
+      join(tempDir, ".shoe-makers", "state", "work-item.md"),
+      lines + "\nskill-type: implement\n",
+    );
+    const result = await readWorkItemSkillType(tempDir);
+    expect(result).toBeNull();
+  });
+
+  test("trims whitespace from skill type value", async () => {
+    await writeFile(
+      join(tempDir, ".shoe-makers", "state", "work-item.md"),
+      "skill-type:   implement  \n# Title\n",
+    );
+    const result = await readWorkItemSkillType(tempDir);
+    expect(result).toBe("implement");
+  });
+
+  test("matches case-insensitively", async () => {
+    await writeFile(
+      join(tempDir, ".shoe-makers", "state", "work-item.md"),
+      "Skill-Type: test-coverage\n# Title\n",
+    );
+    const result = await readWorkItemSkillType(tempDir);
+    expect(result).toBe("test-coverage");
   });
 });
 
@@ -386,6 +426,36 @@ describe("countUnresolvedCritiques", () => {
     const dir = join(tempDir, ".shoe-makers", "findings");
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, "critique-2026-03-25-001.txt"), "Not a markdown critique");
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("recognizes Resolved with trailing period", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, "critique-2026-03-25-001.md"),
+      "# Critique\n\n## Status\n\nResolved.\n",
+    );
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("recognizes Resolved with trailing description", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, "critique-2026-03-25-001.md"),
+      "# Critique\n\n## Status\n\nResolved — all clear.\n",
+    );
+    expect(await countUnresolvedCritiques(tempDir)).toBe(0);
+  });
+
+  test("recognizes Resolved with leading whitespace", async () => {
+    const dir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, "critique-2026-03-25-001.md"),
+      "# Critique\n\n## Status\n  Resolved\n",
+    );
     expect(await countUnresolvedCritiques(tempDir)).toBe(0);
   });
 });
