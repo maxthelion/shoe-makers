@@ -59,7 +59,7 @@ function buildRoleMap(wikiDir: string): Record<ActionType, RolePermissions> {
     },
     "execute-work-item": {
       role: "executor",
-      canWrite: ["src/", wikiPath, ".shoe-makers/state/", ".shoe-makers/claim-evidence.yaml", "CHANGELOG.md", "README.md"],
+      canWrite: ["src/", wikiPath, ".shoe-makers/state/", ".shoe-makers/claim-evidence.yaml", "CHANGELOG.md", "README.md", "package.json", "bun.lock", "bun.lockb"],
       cannotWrite: [...ALWAYS_FORBIDDEN],
     },
     "dead-code": {
