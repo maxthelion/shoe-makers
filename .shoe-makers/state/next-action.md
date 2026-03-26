@@ -1,68 +1,61 @@
-# Explore — Survey and Write Candidates
+# Prioritise — Pick a Work Item
 
-Nothing is queued for work. Your job is to survey the codebase and produce a ranked candidate list.
+A previous elf explored the codebase and wrote a candidate list in `.shoe-makers/state/candidates.md`. Your job is to pick the most impactful candidate and write a detailed work item.
 
-## Current tier: No major gaps detected
+## Current state
 
-Survey the codebase for issues that the invariants may not cover: code smells, stale documentation, missing tests, spec-code inconsistencies.
+All invariants are met and test coverage is solid. **Prefer implementation, improvement, and creative work** over writing more tests or polishing what's already clean. Pick the candidate with the highest impact on the system's usefulness — to humans and to agents.
 
 ## Steps
 
-1. Read wiki pages in `wiki/pages/` — what does the spec say should exist?
-2. Read `.shoe-makers/invariants.md` — are there gaps?
-3. Read the code in `src/` — what's built, what's missing?
-4. Read findings in `.shoe-makers/findings/` — any open issues?
-5. Check test coverage — untested paths?
-6. Check code quality — files too complex or duplicated?
-7. Check whether `README.md` accurately describes current capabilities
-
-
-## Available skills
-
-When writing candidates, reference which skill type applies:
-- **implement** (implement): Implement a feature specified in the wiki but not yet built.
-- **dead-code** (dead-code): Remove dead code — unused exports, unreachable branches, stale modules.
-- **health** (health): Improve code health scores by reducing complexity and duplication.
-- **doc-sync** (doc-sync): Sync wiki pages with code changes to keep spec accurate.
-- **fix-tests** (fix): Fix failing tests to restore a green build.
-- **test-coverage** (test): Add tests for implemented but untested code paths.
-- **bug-fix** (bug-fix): Fix bugs found in findings, issues, or discovered during exploration.
-- **octoclean-fix** (octoclean-fix): Fix code health issues identified by octoclean — reduce complexity, improve structure.
-- **dependency-update** (dependency-update): Update outdated dependencies, run tests, check for breaking changes.
-
-## Output
-
-Write `.shoe-makers/state/candidates.md` using this exact format:
+1. Read `.shoe-makers/state/candidates.md`
+2. For the top candidates, read the relevant wiki pages and source files to understand the context
+3. Pick ONE candidate — the most impactful option
+4. Write `.shoe-makers/state/work-item.md` using this exact format:
 
 ```markdown
-# Candidates
+skill-type: [implement | test-coverage | fix | health | doc-sync | octoclean-fix | dead-code | bug-fix | dependency-update]
 
-## 1. [YOUR TITLE HERE]
-**Type**: implement | dead-code | health | doc-sync | fix | test | bug-fix | octoclean-fix | dependency-update
-**Impact**: high | medium | low
-**Reasoning**: [YOUR REASONING HERE — reference specific file paths, wiki pages, and invariant gaps. Be specific.]
+# [YOUR TITLE HERE]
 
-## 2. [YOUR TITLE HERE]
-**Type**: [choose from types above]
-**Impact**: high | medium | low
-**Reasoning**: [YOUR REASONING HERE]
+## Wiki Spec
 
-## 3. [YOUR TITLE HERE]
-**Type**: [choose from types above]
-**Impact**: high | medium | low
-**Reasoning**: [YOUR REASONING HERE]
+[YOUR CONTENT HERE — quote the relevant wiki text, cite the page and line numbers]
+
+## Current Code
+
+[YOUR CONTENT HERE — reference specific files and line numbers, describe what exists]
+
+## What to Build
+
+[YOUR CONTENT HERE — exactly what to build or change, step by step]
+
+## Patterns to Follow
+
+[YOUR CONTENT HERE — which existing patterns in the codebase to follow]
+
+## Tests to Write
+
+[YOUR CONTENT HERE — specific tests to write, what behaviour they verify]
+
+## What NOT to Change
+
+[YOUR CONTENT HERE — explicit boundaries]
+
+## Decision Rationale
+
+[YOUR CONTENT HERE — why this candidate was chosen over the others]
 ```
 
-You may add candidates 4 and 5 if you find additional high-value items. You MUST produce at least 3 candidates. Commit `candidates.md` when done.
+5. Delete `.shoe-makers/state/candidates.md` (it's been consumed)
+6. Commit both changes
 
-If you discover a creative insight — a non-obvious connection or a fundamentally better approach — write it to `.shoe-makers/insights/YYYY-MM-DD-NNN.md`. Insights are different from findings: they're proposals, not problems.
-
-If you find code that works but has no matching invariant in `.shoe-makers/invariants.md`, write a finding suggesting a new invariant for the human to review.
+Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."
 
 **Off-limits — do NOT modify these files:**
 - `.shoe-makers/invariants.md` — only humans maintain the spec claims
 - `.shoe-makers/state/` — managed by the scheduler, not agents (except candidates.md and work-item.md which you write as part of the three-phase cycle)
 
-## After exploring
+## After completing
 
 Run `bun run setup` again to get your next action.
