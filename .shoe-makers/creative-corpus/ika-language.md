@@ -2,6 +2,7 @@
 title: "Ika language"
 source: https://en.wikipedia.org/wiki/Ika%20language
 fetched: 2026-03-25T10:46:31Z
+used: true
 ---
 
 There are two unrelated languages named Ika:
