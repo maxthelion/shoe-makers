@@ -16,5 +16,7 @@ export function parseFrontmatter(content: string): { frontmatter: string; body: 
 export function getFrontmatterField(frontmatter: string, field: string): string | undefined {
   const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = frontmatter.match(new RegExp(`^${escaped}:\\s*(.+)$`, "m"));
-  return match?.[1]?.trim();
+  const value = match?.[1]?.trim();
+  if (value === undefined) return undefined;
+  return value.replace(/^["']|["']$/g, "");
 }

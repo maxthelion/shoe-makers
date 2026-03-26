@@ -29,8 +29,7 @@ export async function readLocalCorpus(repoRoot: string): Promise<CorpusArticle[]
       const content = await readFile(filepath, "utf-8");
       const parsed = parseRawFrontmatter(content);
       if (parsed && getFrontmatterField(parsed.frontmatter, "used") === "true") continue;
-      const rawTitle = parsed && getFrontmatterField(parsed.frontmatter, "title");
-      const title = rawTitle ? rawTitle.replace(/^["']|["']$/g, "") : file.replace(/\.md$/, "");
+      const title = (parsed && getFrontmatterField(parsed.frontmatter, "title")) || file.replace(/\.md$/, "");
       const body = content.replace(/^---[\s\S]*?---\n*/, "").trim();
       if (body.length > 0) {
         articles.push({ title, summary: body.substring(0, 1000), filepath });

@@ -79,4 +79,16 @@ describe("getFrontmatterField", () => {
   test("handles fields with colons in values", () => {
     expect(getFrontmatterField("description: This: has colons", "description")).toBe("This: has colons");
   });
+
+  test("strips double quotes from values", () => {
+    expect(getFrontmatterField('title: "Hello World"', "title")).toBe("Hello World");
+  });
+
+  test("strips single quotes from values", () => {
+    expect(getFrontmatterField("title: 'Hello World'", "title")).toBe("Hello World");
+  });
+
+  test("preserves unquoted values unchanged", () => {
+    expect(getFrontmatterField("title: Hello World", "title")).toBe("Hello World");
+  });
 });
