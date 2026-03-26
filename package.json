@@ -19,7 +19,7 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5 || ^6"
   },
   "dependencies": {
     "octoclean": "github:maxthelion/octoclean"
