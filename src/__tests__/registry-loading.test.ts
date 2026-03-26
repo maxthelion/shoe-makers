@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { loadSkills } from "../skills/registry";
+import { loadSkills, parseSkillFile, findSkillForType } from "../skills/registry";
+import type { SkillDefinition } from "../skills/registry";
 import { mkdtemp, mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -116,5 +117,66 @@ Build it.`,
     expect(skills.size).toBe(0);
 
     await rm(tmpDir, { recursive: true });
+  });
+});
+
+describe("parseOffLimits", () => {
+  test("extracts off-limits items from skill body", () => {
+    const content = `---
+name: implement
+description: Implement a feature.
+maps-to: implement
+risk: medium
+---
+
+## Instructions
+
+Build things.
+
+## Off-limits
+
+- Do not change the behaviour tree routing logic without updating the wiki
+- Do not modify unrelated modules
+- Do not add external dependencies without justification`;
+
+    const skill = parseSkillFile(content);
+    expect(skill.offLimits).toEqual([
+      "Do not change the behaviour tree routing logic without updating the wiki",
+      "Do not modify unrelated modules",
+      "Do not add external dependencies without justification",
+    ]);
+  });
+
+  test("returns empty array when no off-limits section", () => {
+    const content = `---
+name: fix-tests
+description: Fix tests
+maps-to: fix
+risk: low
+---
+
+## Instructions
+
+Fix things.`;
+
+    const skill = parseSkillFile(content);
+    expect(skill.offLimits).toEqual([]);
+  });
+});
+
+describe("findSkillForType", () => {
+  const skills = new Map<string, SkillDefinition>([
+    ["fix-tests", { name: "fix-tests", description: "Fix tests", prompt: "", risk: "low", filename: "", mapsTo: "fix", body: "", offLimits: [], validationPatterns: [] }],
+    ["implement", { name: "implement", description: "Implement", prompt: "", risk: "medium", filename: "", mapsTo: "implement", body: "", offLimits: [], validationPatterns: [] }],
+  ]);
+
+  test("finds skill by priority type", () => {
+    const skill = findSkillForType(skills, "fix");
+    expect(skill?.name).toBe("fix-tests");
+  });
+
+  test("returns undefined for unknown type", () => {
+    const skill = findSkillForType(skills, "unknown");
+    expect(skill).toBeUndefined();
   });
 });

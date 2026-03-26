@@ -1,0 +1,39 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === invariants.md ===
+invariants.four-statuses:
+  source:
+    - [specifiedOnly]
+    - [implementedUntested]
+    - [implementedTested]
+  test:
+    - [specifiedOnly, implementedTested]
+
+invariants.extract-falsifiable-claims:
+  source:
+    - [export function extractClaims]
+  test:
+    - [extractClaims]
+
+invariants.claim-evidence-pipeline:
+  source:
+    - [claim-evidence.yaml, parseClaimEvidenceYaml]
+    - [checkEvidence]
+  test:
+    - [CLAIM_EVIDENCE, checkEvidence, checkInvariants]
+
+invariants.report-drives-behaviour-tree:
+  source:
+    - [checkInvariants]
+    - [specifiedOnly]
+  test:
+    - [checkInvariants]
+
+invariants.granularity-per-claim:
+  source:
+    - [export function extractClaims]
+    - [checkEvidence]
+  test:
+    - [extractClaims]

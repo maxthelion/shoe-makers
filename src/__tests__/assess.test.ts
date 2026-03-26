@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, rm, mkdir, writeFile, readFile } from "fs/promises";
+import { mkdtemp, rm, mkdir, writeFile, readFile, readdir, stat } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
@@ -215,6 +215,124 @@ function makeAssessment(overrides: {
   };
 }
 
-// Note: can't test assess on the real repo here because assess runs `bun test`,
-// which would cause infinite recursion. Integration testing of assess on the
-// real repo should be done via `bun run dev` instead.
+describe("archiveResolvedFindings", () => {
+  let archiveTempDir: string;
+
+  beforeEach(async () => {
+    archiveTempDir = await mkdtemp(join(tmpdir(), "shoe-makers-archive-"));
+  });
+
+  afterEach(async () => {
+    await rm(archiveTempDir, { recursive: true, force: true });
+  });
+
+  test("returns empty array when findings dir does not exist", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    expect(await archiveResolvedFindings(archiveTempDir)).toEqual([]);
+  });
+
+  test("ignores non-.md files", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    const dir = join(archiveTempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "note.txt"), "## Status\n\nResolved.");
+    expect(await archiveResolvedFindings(archiveTempDir)).toEqual([]);
+  });
+
+  test("archives files with resolved status", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    const dir = join(archiveTempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, "critique-2026-01-01-001.md"),
+      "# Critique\n\nIssue.\n\n## Status\n\nResolved.\n",
+    );
+    const archived = await archiveResolvedFindings(archiveTempDir);
+    expect(archived).toEqual(["critique-2026-01-01-001.md"]);
+
+    // Verify file moved to archive
+    const archiveDir = join(dir, "archive");
+    const archiveFiles = await readdir(archiveDir);
+    expect(archiveFiles).toContain("critique-2026-01-01-001.md");
+
+    // Verify file removed from findings root
+    const remainingFiles = (await readdir(dir)).filter((f) => f !== "archive");
+    expect(remainingFiles).toEqual([]);
+  });
+
+  test("leaves unresolved files in place", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    const dir = join(archiveTempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "critique-001.md"), "# Critique\n\nOpen issue.");
+    const archived = await archiveResolvedFindings(archiveTempDir);
+    expect(archived).toEqual([]);
+
+    const files = (await readdir(dir)).filter((f) => f !== "archive");
+    expect(files).toContain("critique-001.md");
+  });
+
+  test("creates archive subdirectory if needed", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    const dir = join(archiveTempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "finding.md"), "# Finding\n\n## Status\n\nResolved.\n");
+    await archiveResolvedFindings(archiveTempDir);
+
+    const archiveDir = join(dir, "archive");
+    const archiveStat = await stat(archiveDir);
+    expect(archiveStat.isDirectory()).toBe(true);
+  });
+
+  test("handles mix of resolved and unresolved files", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    const dir = join(archiveTempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "critique-001.md"), "# R\n\n## Status\n\nResolved.\n");
+    await writeFile(join(dir, "critique-002.md"), "# Open\n\nStill open.");
+    await writeFile(join(dir, "finding-xyz.md"), "# F\n\n## Status\n\nResolved — fixed.\n");
+
+    const archived = await archiveResolvedFindings(archiveTempDir);
+    expect(archived.sort()).toEqual(["critique-001.md", "finding-xyz.md"]);
+
+    const remaining = (await readdir(dir)).filter((f) => f !== "archive");
+    expect(remaining).toEqual(["critique-002.md"]);
+  });
+
+  test("archives expired note files older than 24h", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    const dir = join(archiveTempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    const notePath = join(dir, "note-old.md");
+    await writeFile(notePath, "# Note\n\nSome context for next elf.");
+
+    // Backdate the file to 25 hours ago
+    const { utimes } = await import("fs/promises");
+    const oldTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(notePath, oldTime, oldTime);
+
+    const archived = await archiveResolvedFindings(archiveTempDir);
+    expect(archived).toEqual(["note-old.md"]);
+  });
+
+  test("keeps non-expired note files", async () => {
+    const { archiveResolvedFindings } = await import("../skills/assess");
+    const dir = join(archiveTempDir, ".shoe-makers", "findings");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "note-fresh.md"), "# Note\n\nRecent context.");
+
+    const archived = await archiveResolvedFindings(archiveTempDir);
+    expect(archived).toEqual([]);
+
+    const remaining = (await readdir(dir)).filter((f) => f !== "archive");
+    expect(remaining).toContain("note-fresh.md");
+  });
+});
+
+describe("buildSuggestions — null invariants", () => {
+  test("handles null invariants gracefully", () => {
+    const assessment = makeAssessment({});
+    (assessment as any).invariants = null;
+    expect(buildSuggestions(assessment)).toEqual([]);
+  });
+});

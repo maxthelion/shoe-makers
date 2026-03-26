@@ -74,18 +74,19 @@ describe("critique prompt permission violations", () => {
     expect(prompt).not.toContain("PERMISSION VIOLATIONS");
   });
 
-  test("includes validation patterns when passed through generatePrompt", () => {
-    const patterns = ["bun test passes", "code follows existing conventions"];
-    const prompt = generatePrompt("critique", makeState(), undefined, undefined, undefined, undefined, patterns);
-    expect(prompt).toContain("Validation patterns to check");
-    expect(prompt).toContain("`bun test passes`");
-    expect(prompt).toContain("`code follows existing conventions`");
-  });
-
-  test("omits validation patterns for non-critique actions", () => {
-    const patterns = ["bun test passes"];
-    const prompt = generatePrompt("fix-tests", makeState(), undefined, undefined, undefined, undefined, patterns);
-    expect(prompt).not.toContain("Validation patterns");
+  test("includes structured critique context when passed through generatePrompt", () => {
+    const context = {
+      commitRange: "abc123..def456",
+      commitLog: "def456 Some commit",
+      diff: "diff --git a/src/foo.ts",
+      lastAction: "# Fix Tests",
+      critiqueFilename: "critique-2026-03-26-001.md",
+      permissionViolations: ["src/bad.ts"],
+    };
+    const prompt = generatePrompt("critique", makeState(), undefined, undefined, undefined, undefined, context);
+    expect(prompt).toContain("abc123..def456");
+    expect(prompt).toContain("PERMISSION VIOLATIONS");
+    expect(prompt).toContain("src/bad.ts");
   });
 });
 
@@ -152,8 +153,8 @@ describe("innovate prompt", () => {
     expect(prompt).toContain("invariants.md");
     expect(prompt).toContain("**MUST** use the Wikipedia article");
     expect(prompt).toContain("Do not use general knowledge");
-    expect(prompt).toContain("Start with the article title");
-    expect(prompt).toContain("Lens");
+    expect(prompt).toContain("## Lens");
+    expect(prompt).toContain("[YOUR CONTENT HERE");
     expect(prompt).toContain(article.title);
   });
 

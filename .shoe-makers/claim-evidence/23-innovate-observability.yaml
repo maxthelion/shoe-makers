@@ -1,0 +1,48 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === innovate observability (invariants.md 2.6.1) ===
+
+# The insight file must reference the Wikipedia article as the lens
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-insight-file-must-reference-the-wikipedia-article-that-w:
+  source:
+    - ["use the Wikipedia article"]
+    - [article.title]
+    - [forced serendipity]
+  test:
+    - [MUST use the Wikipedia article]
+
+# Setup logs which Wikipedia article was fetched
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-setup-script-logs-which-wikipedia-article-was-fetched-ti:
+  source:
+    - [Wikipedia article fetched, Wikipedia article fetch failed]
+    - [appendToShiftLog]
+  test:
+    - [Wikipedia article fetched]
+
+# Insight file must include article title in Lens section
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-innovate-prompt-output-the-insight-file-must-include-the:
+  source:
+    - [article.title]
+    - [Lens]
+  test:
+    - [Lens]
+    - [article.title]
+
+# Shift log entry for innovate tick should include article, insight written, filename
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-shift-log-entry-for-an-innovate-tick-should-include-the-:
+  source:
+    - [Wikipedia article fetched]
+    - [appendToShiftLog]
+  test:
+    - [Wikipedia article fetched]
+
+# Observability allows human to verify creative pipeline
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.this-observability-allows-the-human-to-verify-in-the-morning:
+  source:
+    - [Wikipedia article fetched, Wikipedia article fetch failed]
+    - ["use the Wikipedia article"]
+  test:
+    - [Wikipedia article fetched]
+    - [Wikipedia article fetch failed]

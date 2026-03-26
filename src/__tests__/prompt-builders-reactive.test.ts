@@ -44,17 +44,35 @@ describe("buildFixCritiquePrompt", () => {
 });
 
 describe("buildCritiquePrompt", () => {
-  test("includes review process steps, scope restrictions, and verdict format", () => {
+  test("without violations has no warning", () => {
     const result = buildCritiquePrompt();
+    expect(result).not.toContain("PERMISSION VIOLATIONS");
     expect(result).toContain("Adversarial Review");
+  });
+
+  test("with empty violations has no warning", () => {
+    const result = buildCritiquePrompt([]);
+    expect(result).not.toContain("PERMISSION VIOLATIONS");
+  });
+
+  test("with violations includes warning and file list", () => {
+    const result = buildCritiquePrompt(["src/foo.ts", "wiki/bar.md"]);
+    expect(result).toContain("PERMISSION VIOLATIONS");
+    expect(result).toContain("src/foo.ts");
+    expect(result).toContain("wiki/bar.md");
+  });
+
+  test("includes review steps", () => {
+    const result = buildCritiquePrompt();
     expect(result).toContain("last-action.md");
     expect(result).toContain("last-reviewed-commit");
     expect(result).toContain("git log");
     expect(result).toContain("git diff");
+  });
+
+  test("reviewers cannot modify src or wiki", () => {
+    const result = buildCritiquePrompt();
     expect(result).toContain("reviewers can only write findings");
-    expect(result).toContain("Not every review must find problems");
-    expect(result).toContain("Compliant");
-    expect(result).toContain("Non-compliant");
   });
 
   test("includes all 5 wiki verification criteria", () => {
@@ -66,35 +84,15 @@ describe("buildCritiquePrompt", () => {
     expect(result).toContain("Does the change match the wiki spec");
   });
 
-  test("without violations has no warning", () => {
-    expect(buildCritiquePrompt()).not.toContain("PERMISSION VIOLATIONS");
-    expect(buildCritiquePrompt([])).not.toContain("PERMISSION VIOLATIONS");
+  test("includes clean pass guidance", () => {
+    const result = buildCritiquePrompt();
+    expect(result).toContain("Not every review must find problems");
   });
 
-  test("with violations includes warning and file list", () => {
-    const result = buildCritiquePrompt(["src/foo.ts", "wiki/bar.md"]);
-    expect(result).toContain("PERMISSION VIOLATIONS");
-    expect(result).toContain("src/foo.ts");
-    expect(result).toContain("wiki/bar.md");
-  });
-
-  test("includes validation patterns when provided", () => {
-    const result = buildCritiquePrompt([], ["bun test passes", "tests cover the new functionality"]);
-    expect(result).toContain("Validation patterns to check");
-    expect(result).toContain("`bun test passes`");
-    expect(result).toContain("`tests cover the new functionality`");
-  });
-
-  test("omits validation section when patterns empty or undefined", () => {
-    expect(buildCritiquePrompt([], [])).not.toContain("Validation patterns");
-    expect(buildCritiquePrompt()).not.toContain("Validation patterns");
-  });
-
-  test("includes both violation warning and validation patterns", () => {
-    const result = buildCritiquePrompt(["src/foo.ts"], ["bun test passes"]);
-    expect(result).toContain("PERMISSION VIOLATIONS");
-    expect(result).toContain("Validation patterns to check");
-    expect(result).toContain("`bun test passes`");
+  test("requires verdict format with Compliant/Non-compliant", () => {
+    const result = buildCritiquePrompt();
+    expect(result).toContain("Compliant");
+    expect(result).toContain("Non-compliant");
   });
 });
 

@@ -10,18 +10,20 @@ Shoe-makers uses a **behaviour tree** inspired by game AI. Each scheduled invoca
 
 ```
 Selector
-├── [tests failing?]         → Fix tests
-├── [review-loop ≥3?]        → Break out to explore
-├── [unresolved critiques?]  → Fix issues flagged by reviewer
-├── [unreviewed commits?]    → Adversarial review of previous elf's work
-├── [uncommitted changes?]   → Review uncommitted work
-├── [inbox messages?]        → Handle human instructions
-├── [dead-code work-item?]   → Remove dead code
-├── [work-item.md exists?]   → Execute the detailed work item
-├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
-├── [insights exist?]        → Evaluate insight (generous disposition)
-├── [innovation tier?]       → Innovate: creative brief with Wikipedia lens
-└── [always true]            → Explore: assess the codebase, write candidates.md
+├── [tests failing?]                  → Fix tests
+├── [review-loop ≥3 + candidates?]   → Prioritise (consume candidates)
+├── [review-loop ≥3?]                → Break out to explore
+├── [unresolved critiques?]          → Fix issues flagged by reviewer
+├── [partial work?]                  → Continue partial work
+├── [unreviewed commits?]            → Adversarial review of previous elf's work
+├── [uncommitted changes?]           → Review uncommitted work
+├── [inbox messages?]                → Handle human instructions
+├── [dead-code work-item?]           → Remove dead code
+├── [work-item.md exists?]           → Execute the detailed work item
+├── [candidates.md exists?]          → Prioritise: pick one, write work-item.md
+├── [insights exist?]                → Evaluate insight (generous disposition)
+├── [innovation tier?]               → Innovate: creative brief with Wikipedia lens
+└── [always true]                    → Explore: assess the codebase, write candidates.md
 ```
 
 **Reactive conditions** (top) handle urgent work with direct prompts. **Three-phase orchestration** (bottom) handles proactive work across separate invocations:

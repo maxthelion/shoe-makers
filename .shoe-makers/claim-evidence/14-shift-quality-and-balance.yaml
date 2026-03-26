@@ -1,0 +1,37 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === Shift quality and balance ===
+spec.wake-up-to-a-better-project.overnight-the-system-produces-a-branch-with-genuine-improvem:
+  source:
+    - [summarizeShift]
+    - [ImprovementCategory, categories]
+  test:
+    - [summarizeShift]
+    - [categories]
+
+spec.wake-up-to-a-better-project.the-improvements-are-not-just-one-type-features-tests-docs-c:
+  source:
+    - [isBalanced]
+    - [ImprovementCategory]
+  test:
+    - [isBalanced]
+    - [balanced]
+
+spec.wake-up-to-a-better-project.agents-can-produce-unexpected-delightful-results-not-just-gr:
+  source:
+    - [summarizeShift]
+    - [explore]
+    - [generatePrompt]
+  test:
+    - [summarizeShift]
+    - [explore]
+
+spec.wake-up-to-a-better-project.quality-over-speed-agents-take-their-time-run-thorough-check:
+  source:
+    - [checkInvariants]
+    - [checkHealthRegression]
+    - [hasUnreviewedCommits]
+  test:
+    - [checkInvariants, checkHealthRegression]

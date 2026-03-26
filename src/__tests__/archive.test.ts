@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, mkdir, writeFile, readdir, readFile, rm } from "fs/promises";
+import { mkdtemp, mkdir, writeFile, readdir, readFile, rm, utimes } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { archiveResolvedFindings } from "../skills/assess";
@@ -92,5 +92,48 @@ describe("archiveResolvedFindings", () => {
     expect(archived).toContain("critique-002.md");
     const rootFiles = (await readdir(findingsDir)).filter(f => f.endsWith(".md"));
     expect(rootFiles).toEqual(["critique-003.md"]);
+  });
+
+  it("archives note-type findings older than 24 hours", async () => {
+    const notePath = join(findingsDir, "note-2026-03-25-001.md");
+    await writeFile(notePath, "# Note\n\nSome ephemeral observation.\n");
+
+    // Set mtime to 25 hours ago
+    const oldTime = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(notePath, oldTime, oldTime);
+
+    const archived = await archiveResolvedFindings(tmpRoot);
+
+    expect(archived).toContain("note-2026-03-25-001.md");
+    const rootFiles = (await readdir(findingsDir)).filter(f => f.endsWith(".md"));
+    expect(rootFiles).toEqual([]);
+  });
+
+  it("keeps note-type findings younger than 24 hours", async () => {
+    await writeFile(
+      join(findingsDir, "note-2026-03-26-001.md"),
+      "# Note\n\nFresh observation.\n"
+    );
+
+    const archived = await archiveResolvedFindings(tmpRoot);
+
+    expect(archived).toEqual([]);
+    const rootFiles = (await readdir(findingsDir)).filter(f => f.endsWith(".md"));
+    expect(rootFiles).toContain("note-2026-03-26-001.md");
+  });
+
+  it("does not auto-archive non-note unresolved findings regardless of age", async () => {
+    const critiquePath = join(findingsDir, "critique-2026-03-24-001.md");
+    await writeFile(critiquePath, "# Critique\n\nUnresolved issue.\n");
+
+    // Set mtime to 48 hours ago
+    const oldTime = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    await utimes(critiquePath, oldTime, oldTime);
+
+    const archived = await archiveResolvedFindings(tmpRoot);
+
+    expect(archived).toEqual([]);
+    const rootFiles = (await readdir(findingsDir)).filter(f => f.endsWith(".md"));
+    expect(rootFiles).toContain("critique-2026-03-24-001.md");
   });
 });

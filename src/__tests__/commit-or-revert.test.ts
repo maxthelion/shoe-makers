@@ -1,28 +1,40 @@
 import { describe, test, expect } from "bun:test";
-import { verify } from "../verify/commit-or-revert";
+import { verifyOrRevert } from "../verify/commit-or-revert";
 
-describe("commit-or-revert verification gate", () => {
-  test("returns commit when tests pass and health is stable", () => {
-    const result = verify(true, null);
+describe("verifyOrRevert", () => {
+  test("returns commit when tests and typecheck pass", () => {
+    const result = verifyOrRevert(true, true);
     expect(result.decision).toBe("commit");
-    expect(result.reason).toContain("pass");
+    expect(result.testsPass).toBe(true);
+    expect(result.typecheckPass).toBe(true);
   });
 
   test("returns revert when tests fail", () => {
-    const result = verify(false, null);
+    const result = verifyOrRevert(false, true);
     expect(result.decision).toBe("revert");
-    expect(result.reason).toContain("Tests");
+    expect(result.reason).toContain("tests failing");
   });
 
-  test("returns revert when health regresses", () => {
-    const result = verify(true, "Health dropped from 99 to 90");
+  test("returns revert when typecheck fails", () => {
+    const result = verifyOrRevert(true, false);
     expect(result.decision).toBe("revert");
-    expect(result.reason).toContain("Health");
+    expect(result.reason).toContain("typecheck failing");
   });
 
-  test("tests failing takes priority over health", () => {
-    const result = verify(false, "Health dropped");
+  test("returns revert when both fail", () => {
+    const result = verifyOrRevert(false, false);
     expect(result.decision).toBe("revert");
-    expect(result.reason).toContain("Tests");
+    expect(result.reason).toContain("tests failing");
+    expect(result.reason).toContain("typecheck failing");
+  });
+
+  test("commit result includes positive reason", () => {
+    const result = verifyOrRevert(true, true);
+    expect(result.reason).toContain("pass");
+  });
+
+  test("revert result includes failure details", () => {
+    const result = verifyOrRevert(false, false);
+    expect(result.reason).toContain("Reverting");
   });
 });

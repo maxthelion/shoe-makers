@@ -1,0 +1,28 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === pure-function-agents.md ===
+pure-function-agents.agent-interface:
+  source:
+    - [AgentResult]
+  test:
+    - [AgentResult]
+
+pure-function-agents.scheduler-handles-side-effects:
+  source:
+    - [runSkill]
+  test:
+    - [runSkill]
+
+pure-function-agents.scheduler-module:
+  source:
+    - [scheduler/tick, scheduler/shift]
+  test:
+    - [scheduler/tick, shift]
+
+pure-function-agents.partial-work-status:
+  source:
+    - ["\"partial\""]
+  test:
+    - [partial]

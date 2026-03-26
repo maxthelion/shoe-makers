@@ -1,9 +1,9 @@
-/**
- * Re-exports for three-phase orchestration prompts.
- * Each prompt now lives in its own file to reduce merge conflicts.
- */
+// Re-export barrel — individual implementations live in their own files.
+// This file exists so that existing imports from "./three-phase" continue to work.
+
 export { buildExplorePrompt } from "./explore";
 export { buildPrioritisePrompt } from "./prioritise";
-export { buildExecutePrompt, buildDeadCodePrompt } from "./execute";
+export { buildExecutePrompt } from "./execute";
+export { buildDeadCodePrompt } from "./dead-code";
 export { buildInnovatePrompt } from "./innovate";
 export { buildEvaluateInsightPrompt } from "./evaluate-insight";

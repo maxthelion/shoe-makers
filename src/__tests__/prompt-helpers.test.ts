@@ -138,6 +138,19 @@ describe("formatCodebaseSnapshot", () => {
     const result = formatCodebaseSnapshot(assessment);
     expect(result).toContain("Health: unknown");
   });
+
+  test("shows 'none' for no worst files", () => {
+    const assessment = {
+      testsPass: true,
+      openPlans: [],
+      findings: [],
+      worstFiles: [],
+      healthScore: 40,
+      invariants: null,
+    } as any;
+    const result = formatCodebaseSnapshot(assessment);
+    expect(result).toContain("Worst files: none");
+  });
 });
 
 describe("parseActionTypeFromPrompt", () => {
@@ -197,6 +210,19 @@ describe("findSkillForAction", () => {
     const result = findSkillForAction("critique", skills);
     expect(result).toBeUndefined();
   });
+
+  test("finds skill for execute-work-item via implement mapping", () => {
+    const skill = findSkillForAction("execute-work-item", skills);
+    expect(skill).toBeDefined();
+    expect(skill!.name).toBe("implement");
+  });
+
+  test("returns undefined when mapped skill type not in map", () => {
+    const partialSkills = new Map<string, SkillDefinition>([
+      ["impl", { name: "implement", filename: "implement.md", mapsTo: "implement", description: "Implement", body: "", prompt: "", risk: "low" as const, offLimits: [] }],
+    ]);
+    expect(findSkillForAction("fix-tests", partialSkills)).toBeUndefined();
+  });
 });
 
 describe("formatSkillCatalog", () => {
@@ -223,7 +249,7 @@ describe("formatSkillSection", () => {
       mapsTo: "implement",
       description: "Implement a feature",
       body: "## When to apply\n\nWhen there are gaps.",
-      prompt: "",
+      prompt: "## When to apply\n\nWhen there are gaps.",
       risk: "low",
       offLimits: [],
       validationPatterns: [],

@@ -1,75 +1,8 @@
 import { describe, test, expect } from "bun:test";
 import { generatePrompt, ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "../prompts";
-import type { ActionType, WorldState, Assessment } from "../types";
-import type { SkillDefinition } from "../skills/registry";
+import type { ActionType } from "../types";
 import { loadSkills } from "../skills/registry";
-import { emptyBlackboard } from "./test-utils";
-
-const freshAssessment: Assessment = {
-  timestamp: new Date().toISOString(),
-  invariants: {
-    specifiedOnly: 2,
-    implementedUntested: 1,
-    implementedTested: 50,
-    unspecified: 1,
-    topSpecGaps: [{ id: "foo", description: "gap", group: "core" }],
-    topUntested: [{ id: "bar", description: "untested", group: "core" }],
-    topUnspecified: [{ id: "baz", description: "unspec", group: "core" }],
-  },
-  healthScore: 40,
-  worstFiles: [],
-  openPlans: ["test-plan"],
-  findings: [],
-  testsPass: true,
-  recentGitActivity: [],
-};
-
-function makeState(): WorldState {
-  return {
-    branch: "shoemakers/2026-03-21",
-    hasUncommittedChanges: false,
-    inboxCount: 2,
-    hasUnreviewedCommits: false,
-    unresolvedCritiqueCount: 0,
-    hasWorkItem: false,
-    hasCandidates: false,
-    workItemSkillType: null,
-    hasPartialWork: false,
-    insightCount: 0,
-    blackboard: {
-      ...emptyBlackboard(),
-      assessment: freshAssessment,
-    },
-  };
-}
-
-const allActions: ActionType[] = [
-  "fix-tests",
-  "fix-critique",
-  "critique",
-  "continue-work",
-  "review",
-  "inbox",
-  "execute-work-item",
-  "dead-code",
-  "prioritise",
-  "innovate",
-  "evaluate-insight",
-  "explore",
-];
-
-function expectPromptContains(
-  action: ActionType,
-  state: WorldState,
-  contains: string[],
-  notContains: string[] = [],
-  skills?: Map<string, SkillDefinition>,
-): string {
-  const prompt = generatePrompt(action, state, skills);
-  for (const s of contains) expect(prompt).toContain(s);
-  for (const s of notContains) expect(prompt).not.toContain(s);
-  return prompt;
-}
+import { makeState, allActions, expectPromptContains, makeSkillMap, makeSkill } from "./prompts-test-helpers";
 
 describe("generatePrompt", () => {
   test("all actions mention invariants.md is off-limits", () => {
@@ -139,26 +72,6 @@ describe("generatePrompt", () => {
   });
 });
 
-function makeSkillMap(...skills: SkillDefinition[]): Map<string, SkillDefinition> {
-  const map = new Map<string, SkillDefinition>();
-  for (const skill of skills) {
-    map.set(skill.name, skill);
-  }
-  return map;
-}
-
-function makeSkill(overrides: Partial<SkillDefinition> & { name: string; mapsTo: string }): SkillDefinition {
-  return {
-    description: "Test skill",
-    prompt: "## Instructions\n\nDo the thing.",
-    risk: "medium",
-    body: "## Instructions\n\nDo the thing.\n\n## Verification criteria\n\n- It works",
-    offLimits: ["Do not break things"],
-    validationPatterns: [],
-    ...overrides,
-  };
-}
-
 describe("generatePrompt includes skill content for work actions", () => {
   const implementSkill = makeSkill({
     name: "implement",
@@ -224,6 +137,57 @@ describe("ACTION_TO_SKILL_TYPE matches real skill files", () => {
       if (skillType === undefined) continue;
       const prompt = generatePrompt(action as ActionType, state, skills);
       expect(prompt).toContain("## Skill:");
+    }
+  });
+});
+
+describe("parseActionTypeFromPrompt", () => {
+  const cases: [string, ActionType][] = [
+    ["# Fix Failing Tests\n\nSome prompt text", "fix-tests"],
+    ["# Fix Unresolved Critiques\n\nMore text", "fix-critique"],
+    ["# Adversarial Review — Critique Previous Elf's Work\n\nText", "critique"],
+    ["# Continue Partial Work\n\nText", "continue-work"],
+    ["# Review Uncommitted Work\n\nText", "review"],
+    ["# Inbox Messages — Act on These First\n\nText", "inbox"],
+    ["# Execute Work Item\n\nText", "execute-work-item"],
+    ["# Remove Dead Code\n\nText", "dead-code"],
+    ["# Prioritise — Pick a Work Item\n\nText", "prioritise"],
+    ["# Innovate — Creative Insight from Random Conceptual Collision\n\nText", "innovate"],
+    ["# Evaluate Insight — Build on Creative Ideas\n\nText", "evaluate-insight"],
+    ["# Explore — Survey and Write Candidates\n\nText", "explore"],
+  ];
+
+  for (const [prompt, expected] of cases) {
+    test(`parses "${expected}" from prompt title`, () => {
+      expect(parseActionTypeFromPrompt(prompt)).toBe(expected);
+    });
+  }
+
+  test("returns null for unrecognised title", () => {
+    expect(parseActionTypeFromPrompt("# Unknown Action\n\nText")).toBeNull();
+  });
+
+  test("returns null for empty string", () => {
+    expect(parseActionTypeFromPrompt("")).toBeNull();
+  });
+
+  test("round-trip: generatePrompt then parseActionTypeFromPrompt for all actions", () => {
+    const state = makeState();
+    for (const action of allActions) {
+      const prompt = generatePrompt(action, state);
+      const parsed = parseActionTypeFromPrompt(prompt);
+      expect(parsed).toBe(action);
+    }
+  });
+});
+
+describe("generatePrompt exhaustiveness", () => {
+  test("returns non-empty prompt with heading for all action types", () => {
+    const state = makeState();
+    for (const action of allActions) {
+      const prompt = generatePrompt(action, state);
+      expect(prompt.length).toBeGreaterThan(0);
+      expect(prompt).toContain("#");
     }
   });
 });

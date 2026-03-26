@@ -7,6 +7,8 @@ export function emptyBlackboard(): Blackboard {
   return {
     assessment: null,
     currentTask: null,
+    priorities: null,
+    verification: null,
   };
 }
 
@@ -28,6 +30,27 @@ export const freshAssessment: Assessment = {
   testsPass: true,
   recentGitActivity: [],
 };
+
+export function makeStateWith(
+  assessmentOverrides: Partial<Assessment> & { invariants?: Partial<NonNullable<Assessment["invariants"]>> | null } = {},
+  stateOverrides: Partial<WorldState> = {}
+): WorldState {
+  const { invariants: invOverrides, ...rest } = assessmentOverrides;
+  const assessment: Assessment = {
+    ...freshAssessment,
+    ...rest,
+    invariants: invOverrides === null ? null : invOverrides !== undefined
+      ? { ...freshAssessment.invariants!, ...invOverrides }
+      : freshAssessment.invariants,
+  };
+  return makeState({
+    blackboard: {
+      ...emptyBlackboard(),
+      assessment,
+    },
+    ...stateOverrides,
+  });
+}
 
 export function makeState(overrides: Partial<WorldState> = {}): WorldState {
   return {

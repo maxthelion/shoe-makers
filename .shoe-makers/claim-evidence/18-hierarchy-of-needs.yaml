@@ -1,0 +1,79 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === hierarchy-of-needs (prioritisation wiki page) ===
+
+# Prioritiser weighs impact and balance
+spec.the-prioritiser-writes-the-real-prompt.this-is-the-llm-judgement-step-it-weighs-impact-and-balance-:
+  source:
+    - [tierGuidance]
+    - [highest impact]
+  test:
+    - [highest impact]
+
+# Three tiers: hygiene → implementation → innovation
+spec.hierarchy-of-needs-in-prioritisation.the-system-follows-three-tiers-hygiene-implementation-innova:
+  source:
+    - [Hygiene]
+    - [Innovation]
+  test:
+    - [Innovation]
+    - [Hygiene]
+
+# Tier 1: hygiene — spec-code inconsistencies, code smells, broken invariants
+spec.hierarchy-of-needs-in-prioritisation.tier-1-hygiene-speccode-inconsistencies-code-smells-broken-i:
+  source:
+    - ["Hygiene / Implementation"]
+  test:
+    - ["Hygiene / Implementation"]
+
+# Tier 2: implementation — build things specified but not built
+spec.hierarchy-of-needs-in-prioritisation.tier-2-implementation-build-things-discussed-but-not-actione:
+  source:
+    - [unimplemented spec claim]
+  test:
+    - [unimplemented spec claim]
+
+# Tier 3: innovation — improve beyond instructions
+spec.hierarchy-of-needs-in-prioritisation.tier-3-innovation-actively-improve-beyond-instructions-ux-fo:
+  source:
+    - [Innovation]
+    - [improvement-finding]
+  test:
+    - [Innovation]
+    - [improvement-finding]
+
+# Explore and prioritise prompts receive invariant counts
+spec.hierarchy-of-needs-in-prioritisation.the-explore-and-prioritise-prompts-receive-invariant-counts-:
+  source:
+    - [specifiedOnly]
+    - [hasGaps]
+  test:
+    - [unimplemented spec claim]
+    - [determine tier]
+
+# "No impactful work remaining" is never acceptable
+spec.hierarchy-of-needs-in-prioritisation.no-impactful-work-remaining-is-never-acceptable-output-at-ti:
+  source:
+    - ["No impactful work remaining"]
+    - [NOT an acceptable output]
+  test:
+    - ["No impactful work remaining"]
+    - [NOT an acceptable output]
+
+# At tier 3, ask: could this be easier for humans/agents?
+spec.hierarchy-of-needs-in-prioritisation.at-tier-3-elves-should-ask-could-this-system-be-easier-for-h:
+  source:
+    - [easier to use]
+  test:
+    - [easier to use]
+
+# Impact is the primary criterion
+spec.hierarchy-of-needs-in-prioritisation.impact-is-the-primary-criterion-not-riskavoidance:
+  source:
+    - [highest impact]
+    - [tierGuidance]
+  test:
+    - [highest impact]
+    - [innovation guidance when no gaps]

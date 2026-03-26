@@ -1,0 +1,60 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === functionality.md ===
+functionality.inbox-reads-messages:
+  source:
+    - [shoe-makers/inbox, .shoe-makers/inbox]
+  test:
+    - [inbox, readInboxMessages]
+
+functionality.findings-persist-across-shifts:
+  source:
+    - ["readFindings(", shoe-makers/findings]
+  test:
+    - [readFindings, findings]
+
+functionality.shift-log-narrative:
+  source:
+    - [appendToShiftLog]
+    - [formatTickLog]
+  test:
+    - [appendToShiftLog, formatTickLog]
+
+functionality.config-yaml:
+  source:
+    - [config.yaml]
+    - [tickInterval]
+    - [assessmentStaleAfter]
+    - [branchPrefix]
+  test:
+    - [config]
+
+functionality.plan-status-lifecycle:
+  source:
+    - [findOpenPlans]
+    - ["status:\\s*(blocked|done)", "status: blocked", "status: done", "=== \"blocked\"", "=== \"done\""]
+  test:
+    - [plan]
+
+functionality.skills-as-markdown:
+  source:
+    - [loadSkills]
+    - [parseSkillFile]
+  test:
+    - [loadSkills, parseSkillFile]
+
+functionality.multi-tick-shift:
+  source:
+    - [export async function shift]
+  test:
+    - ["shift("]
+
+functionality.task-lifecycle-cli:
+  source:
+    - ["task:status", "\"status\""]
+    - ["task:done", "\"done\""]
+    - ["task:fail", "\"fail\""]
+  test:
+    - [task]

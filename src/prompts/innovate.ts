@@ -27,9 +27,13 @@ Your insight **MUST** use the Wikipedia article provided above as the lens. Do n
 
 Since no Wikipedia article was fetched, you choose the lens — but it **MUST** be from a domain unrelated to software engineering. The whole point is forced serendipity from an outside concept.`;
 
-  const lensFormat = hasArticle
-    ? `1. **Lens**: Start with the article title (e.g. "**${article.title}** — ...") then describe what it's about. This must reference the specific Wikipedia article, not general knowledge.`
-    : `1. **Lens**: Start with your chosen concept and domain (e.g. "Lens: *Concept from Domain* — ..."). Explain what it is and why you chose it`;
+  const lensTemplate = hasArticle
+    ? `## Lens
+
+**${article.title}** — [YOUR CONTENT HERE — describe what this article is about and how you'll use it as a creative lens]`
+    : `## Lens
+
+[YOUR CONTENT HERE — pick a concept from an unexpected domain (biology, music theory, urban planning, game design, economics, etc.) and explain what it is and why you chose it]`;
 
   return `# Innovate — Creative Insight from Random Conceptual Collision
 
@@ -47,12 +51,23 @@ ${taskInstructions}
 
 You **MUST** write an insight file to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\` (where NNN is a sequence number). "No connection found" is NOT acceptable output. Be creative. Be speculative. A bad idea is better than no idea.
 
-The insight file must contain:
+Write the insight file using this exact format:
 
-${lensFormat}
-2. **Connection**: how it relates to the shoe-makers system
-3. **Proposal**: a concrete change or improvement inspired by the connection
-4. **Why**: why this would be better than the current approach
+\`\`\`markdown
+${lensTemplate}
+
+## Connection
+
+[YOUR CONTENT HERE — how does the concept relate to the shoe-makers system? What parallel, analogy, or structural similarity do you see?]
+
+## Proposal
+
+[YOUR CONTENT HERE — a concrete change or improvement inspired by the connection. Be specific about files, modules, or mechanisms.]
+
+## Why
+
+[YOUR CONTENT HERE — why would this be better than the current approach? What does the system gain?]
+\`\`\`
 
 Commit the insight file when done.${OFF_LIMITS}`;
 }

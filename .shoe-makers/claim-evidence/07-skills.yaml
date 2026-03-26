@@ -1,0 +1,23 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === skills.md ===
+skills.markdown-skill-files:
+  source:
+    - [loadSkills]
+    - [parseSkillFile]
+  test:
+    - [loadSkills, parseSkillFile]
+
+skills.registry-matches-types:
+  source:
+    - [findSkillForType]
+  test:
+    - [findSkillForType]
+
+skills.frontmatter-interface:
+  source:
+    - [maps-to, mapsTo]
+  test:
+    - [maps-to, mapsTo]

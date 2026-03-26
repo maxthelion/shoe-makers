@@ -1,0 +1,28 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === Section 2.5: Hierarchy of needs — tier 3 ===
+
+# Tier 3 innovation — creative exploration lives here
+spec.hierarchy-of-needs-in-prioritisation.tier-3-innovation-actively-improve-beyond-instructions-ux-fo:
+  source:
+    - [isInnovationTier]
+    - [buildInnovatePrompt]
+  test:
+    - [innovate prompt]
+
+# No impactful work remaining is never acceptable at tier 3
+spec.hierarchy-of-needs-in-prioritisation.no-impactful-work-remaining-is-never-acceptable-output-at-ti:
+  source:
+    - [NOT acceptable]
+  test:
+    - [NOT acceptable]
+
+# At tier 3 elves should ask: could this be easier for humans/agents
+spec.hierarchy-of-needs-in-prioritisation.at-tier-3-elves-should-ask-could-this-system-be-easier-for-h:
+  source:
+    - [buildInnovatePrompt]
+    - [readWikiOverview]
+  test:
+    - [innovate prompt]

@@ -73,17 +73,46 @@ export function pickUnusedArticle(articles: CorpusArticle[]): CorpusArticle | nu
 /**
  * Mark an article as used by adding `used: true` to its frontmatter.
  * Each article is used only once.
+ * Accepts either a CorpusArticle object or a filepath string.
  */
-export async function markArticleUsed(article: CorpusArticle): Promise<void> {
-  const content = await readFile(article.filePath, "utf-8");
-  // Add used: true before the closing ---
-  const updated = content.replace(/^---\n([\s\S]*?)\n---/, (match, fm) => {
+export async function markArticleUsed(articleOrFilepath: CorpusArticle | string): Promise<void> {
+  const filepath = typeof articleOrFilepath === "string" ? articleOrFilepath : articleOrFilepath.filePath;
+  const content = await readFile(filepath, "utf-8");
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (fmMatch) {
+    const fm = fmMatch[1];
     if (fm.includes("used:")) {
-      return match.replace(/used:\s*\S+/, "used: true");
+      const updated = content.replace(/^---\n[\s\S]*?\n---/, fmMatch[0].replace(/used:\s*\S+/, "used: true"));
+      await writeFile(filepath, updated, "utf-8");
+    } else {
+      const newFm = fm + "\nused: true";
+      const updated = content.replace(/^---\n[\s\S]*?\n---/, `---\n${newFm}\n---`);
+      await writeFile(filepath, updated, "utf-8");
     }
-    return `---\n${fm}\nused: true\n---`;
-  });
-  await writeFile(article.filePath, updated, "utf-8");
+  } else {
+    // No frontmatter — add one
+    await writeFile(filepath, `---\nused: true\n---\n${content}`);
+  }
+}
+
+/**
+ * Read all unused articles from the local creative corpus.
+ * Backward-compatible API that returns articles with `filepath` field.
+ */
+export async function readLocalCorpus(repoRoot: string): Promise<{ title: string; summary: string; filepath: string }[]> {
+  const articles = await loadCorpus(repoRoot);
+  return articles
+    .filter(a => !a.used)
+    .map(a => ({ title: a.title, summary: a.summary.substring(0, 1000), filepath: a.filePath }));
+}
+
+/**
+ * Pick a random unused article from the local corpus.
+ */
+export async function pickFromCorpus(repoRoot: string): Promise<{ title: string; summary: string; filepath: string } | null> {
+  const articles = await readLocalCorpus(repoRoot);
+  if (articles.length === 0) return null;
+  return articles[Math.floor(Math.random() * articles.length)];
 }
 
 /**
@@ -106,41 +135,55 @@ export async function fetchArticleFromCorpus(repoRoot: string): Promise<{
 
 /**
  * Fetch a random Wikipedia article summary for analogical prompting.
- * Falls back to a local concept corpus when Wikipedia is unreachable.
+ * Priority: Wikipedia API -> local corpus -> hardcoded fallback.
  */
-export async function fetchRandomArticle(timeout: number = 10_000): Promise<{
+export async function fetchRandomArticle(timeout: number = 10_000, repoRoot?: string): Promise<{
   title: string;
   summary: string;
+  corpusFilepath?: string;
 } | null> {
+  // 1. Try Wikipedia API
   try {
-    // Get a random article title
     const randomRes = await fetch(
       "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json",
       { signal: AbortSignal.timeout(timeout) }
     );
-    if (!randomRes.ok) return getRandomFallbackConcept();
-    const randomData = await randomRes.json();
-    const title = randomData?.query?.random?.[0]?.title;
-    if (!title) return getRandomFallbackConcept();
-
-    // Get the article extract
-    const extractRes = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=true&explaintext=true&format=json`,
-      { signal: AbortSignal.timeout(timeout) }
-    );
-    if (!extractRes.ok) return getRandomFallbackConcept();
-    const extractData = await extractRes.json();
-    const pages = extractData?.query?.pages;
-    if (!pages) return getRandomFallbackConcept();
-
-    const page = Object.values(pages)[0] as { extract?: string };
-    const summary = page?.extract?.trim();
-    if (!summary || summary.length < 50) return getRandomFallbackConcept(); // skip stubs
-
-    return { title, summary: summary.substring(0, 1000) };
+    if (randomRes.ok) {
+      const randomData = await randomRes.json();
+      const title = randomData?.query?.random?.[0]?.title;
+      if (title) {
+        const extractRes = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=true&explaintext=true&format=json`,
+          { signal: AbortSignal.timeout(timeout) }
+        );
+        if (extractRes.ok) {
+          const extractData = await extractRes.json();
+          const pages = extractData?.query?.pages;
+          if (pages) {
+            const page = Object.values(pages)[0] as { extract?: string };
+            const summary = page?.extract?.trim();
+            if (summary && summary.length >= 50) {
+              return { title, summary: summary.substring(0, 1000) };
+            }
+          }
+        }
+      }
+    }
   } catch {
-    return getRandomFallbackConcept(); // network error — use local corpus
+    // Wikipedia unreachable — fall through
   }
+
+  // 2. Try local corpus
+  if (repoRoot) {
+    const articles = await loadCorpus(repoRoot);
+    const article = pickUnusedArticle(articles);
+    if (article) {
+      return { title: article.title, summary: article.summary, corpusFilepath: article.filePath };
+    }
+  }
+
+  // 3. Hardcoded fallback
+  return getRandomFallbackConcept();
 }
 
 /**

@@ -2,6 +2,13 @@ import type { WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { OFF_LIMITS, formatTopGaps, formatSkillCatalog, determineTier } from "./helpers";
 
+const DEFAULT_SKILL_TYPES = "implement | test-coverage | fix | health | doc-sync | octoclean-fix | dead-code | bug-fix | dependency-update";
+
+function formatSkillTypes(skills?: Map<string, SkillDefinition>): string {
+  if (!skills || skills.size === 0) return DEFAULT_SKILL_TYPES;
+  return [...skills.values()].map(s => s.mapsTo).join(" | ");
+}
+
 /**
  * Format process temperature guidance based on the shift's reactive ratio.
  * Returns an empty string if no process data is available or the ratio is moderate.
@@ -103,21 +110,28 @@ ${lensSection}${formatSkillCatalog(skills)}
 
 ## Output
 
-Write \`.shoe-makers/state/candidates.md\` with a ranked list of 3-5 work items:
+Write \`.shoe-makers/state/candidates.md\` using this exact format:
 
 \`\`\`markdown
 # Candidates
 
-## 1. [Title]
-**Type**: implement | test | fix | health | doc-sync | improve
+## 1. [YOUR TITLE HERE]
+**Type**: ${formatSkillTypes(skills)}
 **Impact**: high | medium | low
-**Reasoning**: Why this matters, what wiki page specifies it, what code is affected.
+**Reasoning**: [YOUR REASONING HERE — reference specific file paths, wiki pages, and invariant gaps. Be specific.]
 
-## 2. [Title]
-...
+## 2. [YOUR TITLE HERE]
+**Type**: [choose from types above]
+**Impact**: high | medium | low
+**Reasoning**: [YOUR REASONING HERE]
+
+## 3. [YOUR TITLE HERE]
+**Type**: [choose from types above]
+**Impact**: high | medium | low
+**Reasoning**: [YOUR REASONING HERE]
 \`\`\`
 
-Be specific — reference file paths, wiki pages, and invariant IDs. You MUST produce at least 3 candidates. Commit \`candidates.md\` when done.
+You may add candidates 4 and 5 if you find additional high-value items. You MUST produce at least 3 candidates. Commit \`candidates.md\` when done.
 
 If you discover a creative insight — a non-obvious connection or a fundamentally better approach — write it to \`.shoe-makers/insights/YYYY-MM-DD-NNN.md\`. Insights are different from findings: they're proposals, not problems.
 

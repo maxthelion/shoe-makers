@@ -5,8 +5,8 @@ import { parseFrontmatter } from "../utils/frontmatter";
 
 /** Extended skill definition with fields from the markdown file */
 export interface SkillDefinition extends Skill {
-  /** Source filename of the skill definition */
-  filename?: string;
+  /** Original filename of the skill definition */
+  filename: string;
   /** Which priority item type this skill handles */
   mapsTo: string;
   /** Full markdown body (instructions, verification, etc.) */
@@ -33,7 +33,7 @@ export interface SkillDefinition extends Skill {
  * ---
  * (markdown body with instructions, verification criteria, etc.)
  */
-export function parseSkillFile(content: string): SkillDefinition {
+export function parseSkillFile(content: string, filename: string = ""): SkillDefinition {
   const result = parseFrontmatter(content);
   if (!result) {
     throw new Error("Skill file must have YAML frontmatter");
@@ -66,6 +66,7 @@ export function parseSkillFile(content: string): SkillDefinition {
     description,
     prompt: body.trim(),
     risk,
+    filename,
     mapsTo,
     body: body.trim(),
     offLimits: parseOffLimits(body),
@@ -147,7 +148,7 @@ export function interpolateSkillContext(
  * Load all skill definitions from the skills directory.
  *
  * Reads `.shoe-makers/skills/*.md` and parses each file.
- * Returns a map of skill name → SkillDefinition.
+ * Returns a map of skill name -> SkillDefinition.
  */
 export async function loadSkills(
   repoRoot: string,
@@ -167,7 +168,7 @@ export async function loadSkills(
 
   for (const file of mdFiles) {
     const content = await Bun.file(join(skillsDir, file)).text();
-    const skill = parseSkillFile(content);
+    const skill = parseSkillFile(content, file);
     // Filter by enabledSkills if configured (null = all enabled)
     if (enabledSkills && !enabledSkills.includes(skill.name)) continue;
     skills.set(skill.name, skill);

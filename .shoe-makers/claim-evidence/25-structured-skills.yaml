@@ -1,0 +1,100 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === structured-skills.md ===
+
+# Every elf task has a mechanical part and an intelligent part
+spec.skills.every-elf-task-has-a-mechanical-part-format-structure-file-p:
+  source:
+    - [YOUR CONTENT HERE]
+    - [YOUR JUDGEMENT HERE]
+  test:
+    - [YOUR CONTENT HERE]
+
+# Skills handle the mechanical part completely — the elf only provides judgement
+spec.skills.skills-handle-the-mechanical-part-completely-the-elf-only-pr:
+  source:
+    - [YOUR CONTENT HERE]
+    - [YOUR TITLE HERE]
+  test:
+    - [YOUR CONTENT HERE]
+    - [YOUR TITLE HERE]
+
+# Setup gathers context and interpolates into skill template
+spec.skills.setup-gathers-context-diff-lastaction-invariant-counts-etc-a:
+  source:
+    - [formatAction]
+    - [buildWorldState]
+    - [gatherCritiqueContext]
+  test:
+    - [formatAction]
+
+# The skill template defines the exact output format, required sections, file naming, and validation patterns
+spec.skills.the-skill-template-defines-the-exact-output-format-required-:
+  source:
+    - [exact format]
+    - [YOUR CONTENT HERE]
+  test:
+    - [pre-filled]
+
+# The elf receives a prompt where all structure is pre-filled
+spec.skills.the-elf-receives-a-prompt-where-all-structure-is-prefilled-i:
+  source:
+    - [YOUR CONTENT HERE]
+    - [YOUR REASONING HERE]
+  test:
+    - [YOUR CONTENT HERE]
+    - [pre-filled]
+
+# Housekeeping tasks are fully deterministic — no LLM judgement needed
+spec.skills.housekeeping-tasks-archiving-shift-log-updates-should-be-ful:
+  source:
+    - [autoCommitHousekeeping]
+    - [archiveResolvedFindings]
+  test:
+    - [autoCommitHousekeeping]
+    - [archiveResolvedFindings]
+
+# Each skill template includes a validation section with patterns
+spec.skills.each-skill-template-includes-a-validation-section-with-patte:
+  source:
+    - ["Resolved."]
+    - [Status section must be exactly]
+  test:
+    - [Resolved]
+
+# The adversarial reviewer checks validation patterns
+spec.skills.the-adversarial-reviewer-checks-validation-patterns-format-c:
+  source:
+    - [Compliant]
+    - [Non-compliant]
+    - [YOUR JUDGEMENT HERE]
+  test:
+    - [Compliant]
+
+# Reactive zone skills must have deterministic output formats
+spec.skills.reactive-zone-skills-writecritique-resolvecritique-must-have:
+  source:
+    - [YOUR JUDGEMENT HERE]
+    - [exact format]
+  test:
+    - [YOUR JUDGEMENT HERE]
+
+# Three-phase skills must have deterministic structure with intelligent content
+spec.skills.threephase-skills-writecandidates-writeworkitem-writeinsight:
+  source:
+    - [YOUR CONTENT HERE]
+    - [YOUR TITLE HERE]
+    - [YOUR REASONING HERE]
+  test:
+    - [YOUR CONTENT HERE]
+    - [pre-filled]
+
+# This eliminates wasted ticks on format compliance
+spec.skills.this-eliminates-wasted-ticks-on-format-compliance-elves-shou:
+  source:
+    - [exact format]
+    - [YOUR CONTENT HERE]
+  test:
+    - [pre-filled]

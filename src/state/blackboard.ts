@@ -49,7 +49,7 @@ export async function readBlackboard(repoRoot: string): Promise<Blackboard> {
     readJsonFile<CurrentTask>(repoRoot, FILES.currentTask),
   ]);
 
-  return { assessment, currentTask };
+  return { assessment, currentTask, priorities: null, verification: null };
 }
 
 /**

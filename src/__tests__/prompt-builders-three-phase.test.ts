@@ -141,7 +141,8 @@ describe("buildInnovatePrompt", () => {
     expect(result).toContain("Ant Colony Optimization");
     expect(result).toContain("Ants find shortest paths.");
     expect(result).toContain("**MUST** use the Wikipedia article");
-    expect(result).toContain("Start with the article title");
+    expect(result).toContain("## Lens");
+    expect(result).toContain("[YOUR CONTENT HERE");
     // article.title should appear in the lens section format
     expect(result).toContain(article.title);
   });

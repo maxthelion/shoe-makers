@@ -1,0 +1,31 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === Self-improvement ===
+spec.self-improvement.friction-scripts-confusion-wiki-updates-missing-capability-n:
+  source:
+    - [loadSkills]
+    - [execute-work-item]
+    - [shoe-makers/skills]
+  test:
+    - [loadSkills]
+    - [execute-work-item]
+
+spec.self-improvement.the-protocol-evolves-from-prose-bootstrap-to-automated-invoc:
+  source:
+    - [export async function init]
+    - [next-action.md]
+    - ["bun run"]
+  test:
+    - [init]
+    - [next-action]
+
+spec.self-improvement.the-system-builds-the-system-that-replaces-the-bootstrap:
+  source:
+    - [export async function init]
+    - [setup]
+    - [shift]
+  test:
+    - [init]
+    - ["shift("]

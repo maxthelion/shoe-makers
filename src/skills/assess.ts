@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { readdir, readFile, rename, mkdir } from "fs/promises";
+import { readdir, readFile, rename, mkdir, stat } from "fs/promises";
 import { join } from "path";
 import type { Assessment, Finding } from "../types";
 import { RESOLVED_PATTERN } from "../state/world";
@@ -99,7 +99,17 @@ export async function archiveResolvedFindings(repoRoot: string): Promise<string[
       if (!file.endsWith(".md")) continue;
       const filePath = join(findingsDir, file);
       const content = await readFile(filePath, "utf-8");
-      if (RESOLVED_PATTERN.test(content)) {
+      const isResolved = RESOLVED_PATTERN.test(content);
+
+      // Auto-archive note-type findings older than 24 hours
+      let isExpiredNote = false;
+      if (!isResolved && file.startsWith("note-")) {
+        const fileStat = await stat(filePath);
+        const ageMs = Date.now() - fileStat.mtimeMs;
+        isExpiredNote = ageMs > 24 * 60 * 60 * 1000;
+      }
+
+      if (isResolved || isExpiredNote) {
         await mkdir(archiveDir, { recursive: true });
         await rename(filePath, join(archiveDir, file));
         archived.push(file);

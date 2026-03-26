@@ -1,0 +1,45 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === architecture.md ===
+architecture.tick-every-5-minutes:
+  source:
+    - [tickInterval]
+  test:
+    - [tickInterval]
+
+architecture.tree-routes-to-actions:
+  source:
+    - [ActionType]
+    - ["evaluate("]
+  test:
+    - [ActionType, "evaluate("]
+
+architecture.blackboard-state-files:
+  source:
+    - [shoe-makers/state]
+    - [assessment.json]
+  test:
+    - [assessment.json]
+
+architecture.agents-pure-functions:
+  source:
+    - [AgentResult]
+    - [filesChanged]
+  test:
+    - [AgentResult]
+    - [filesChanged]
+
+architecture.config-in-shoe-makers:
+  source:
+    - [loadConfig]
+    - [config.yaml]
+  test:
+    - [loadConfig]
+
+architecture.branch-is-state:
+  source:
+    - [getCurrentBranch]
+  test:
+    - [getCurrentBranch, branchName]

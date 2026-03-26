@@ -7,6 +7,7 @@ import { isInnovationTier } from "../prompts/helpers";
  *
  * Selector
  * ├── [tests failing?] → Fix tests
+ * ├── [review loop ≥3 + candidates?] → Prioritise (consume existing candidates)
  * ├── [review loop ≥3?] → Break out to explore
  * ├── [unresolved critiques?] → Fix critiques
  * ├── [partial work?] → Continue partial work
@@ -126,6 +127,7 @@ export const defaultTree: TreeNode = {
   children: [
     // Reactive zone — urgent, handled with direct prompts
     makeConditionAction("tests-failing", testsFailing, "fix-tests"),
+    makeConditionAction("review-loop-with-candidates", (s) => inReviewLoop(s) && s.hasCandidates, "prioritise"),
     makeConditionAction("review-loop-breaker", inReviewLoop, "explore"),
     makeConditionAction("unresolved-critiques", hasUnresolvedCritiques, "fix-critique"),
     makeConditionAction("partial-work", hasPartialWork, "continue-work"),

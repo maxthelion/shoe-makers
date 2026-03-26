@@ -4,8 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { checkInvariants } from "../verify/invariants";
 import { extractClaims, extractInvariantClaims } from "../verify/extract-claims";
-import { parseClaimEvidenceYaml, type EvidenceRule } from "../verify/parse-evidence";
-import { readFile as readFileAsync } from "fs/promises";
+import { parseClaimEvidenceYaml, loadClaimEvidence, type EvidenceRule } from "../verify/parse-evidence";
 import { writeWikiPage as _writeWikiPage, writeSourceFile as _writeSourceFile, writeTestFile as _writeTestFile, writeClaimEvidence as _writeClaimEvidence } from "./test-utils";
 
 let tempDir: string;
@@ -81,11 +80,7 @@ describe("extractClaims", () => {
 
   // Load evidence once for all extractClaims tests
   beforeEach(async () => {
-    const content = await readFileAsync(
-      join(process.cwd(), ".shoe-makers", "claim-evidence.yaml"),
-      "utf-8"
-    );
-    evidence = parseClaimEvidenceYaml(content);
+    evidence = await loadClaimEvidence(process.cwd());
   });
 
   test("extracts claims for a page with known evidence rules", () => {

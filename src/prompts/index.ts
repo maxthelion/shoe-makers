@@ -2,7 +2,13 @@ import type { ActionType, WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { findSkillForAction, formatSkillSection, ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
 import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildContinueWorkPrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
-import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDeadCodePrompt, buildInnovatePrompt, buildEvaluateInsightPrompt } from "./three-phase";
+import type { CritiqueContext } from "./reactive";
+import { buildExplorePrompt } from "./explore";
+import { buildPrioritisePrompt } from "./prioritise";
+import { buildExecutePrompt } from "./execute";
+import { buildDeadCodePrompt } from "./dead-code";
+import { buildInnovatePrompt } from "./innovate";
+import { buildEvaluateInsightPrompt } from "./evaluate-insight";
 
 export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt };
 
@@ -19,7 +25,7 @@ export function generatePrompt(
   article?: { title: string; summary: string },
   permissionViolations?: string[],
   wikiSummary?: string,
-  validationPatterns?: string[],
+  critiqueContext?: CritiqueContext,
 ): string {
   const skill = findSkillForAction(action, skills);
   const skillSection = skill ? formatSkillSection(skill) : "";
@@ -30,7 +36,7 @@ export function generatePrompt(
     case "fix-critique":
       return buildFixCritiquePrompt();
     case "critique":
-      return buildCritiquePrompt(permissionViolations, validationPatterns);
+      return buildCritiquePrompt(critiqueContext ?? permissionViolations);
     case "continue-work":
       return buildContinueWorkPrompt();
     case "review":
