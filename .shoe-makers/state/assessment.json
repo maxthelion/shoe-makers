@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-26T08:12:35.924Z",
+  "timestamp": "2026-03-26T08:12:59.293Z",
   "invariants": {
     "specifiedOnly": 0,
     "implementedUntested": 0,
@@ -50,6 +50,7 @@
   "testsPass": true,
   "typecheckPass": true,
   "recentGitActivity": [
+    "f3376c0 Prioritise: consume candidates (doc-sync work-item already exists)",
     "70650e3 Explore: write candidates for review-loop-with-candidates consumption",
     "f583489 Prioritise: consume candidates (work-item.md already exists for doc-sync task)",
     "d59726b Explore: write candidates (doc-sync, health, test coverage — review loop break)",
@@ -58,11 +59,10 @@
     "95e379f Adversarial review: critique (clean — permissions fix, minor spec-code gap noted)",
     "35c0792 Fix critique: add log/ and archive/ to executor canWrite permissions",
     "456161a Adversarial review: critique (minor permission violation in executor housekeeping)",
-    "988085b Execute: consume completed work items (wiki fix already done, clean stale candidates)",
-    "ee1e796 Auto-commit setup housekeeping (archive, shift log)"
+    "988085b Execute: consume completed work items (wiki fix already done, clean stale candidates)"
   ],
   "processPatterns": {
-    "reactiveRatio": 0.452914798206278,
+    "reactiveRatio": 0.45089285714285715,
     "reviewLoopCount": 3,
     "innovationCycleCount": 3
   }
