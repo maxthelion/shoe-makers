@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-26T10:10:17.628Z",
+  "timestamp": "2026-03-26T10:10:41.363Z",
   "invariants": {
     "specifiedOnly": 0,
     "implementedUntested": 0,
@@ -54,6 +54,7 @@
   "testsPass": true,
   "typecheckPass": true,
   "recentGitActivity": [
+    "17d9979 Prioritise: retain DRY consolidation work-item, consume candidates",
     "e9929c9 Explore: write candidates (DRY consolidation, doc-sync permissions, worldState tests)",
     "5904b56 Prioritise: retain DRY consolidation work-item, consume candidates",
     "5f85449 Setup: update state files for review tick (assessment, log, action rotation)",
@@ -62,11 +63,10 @@
     "c6a1da0 Explore: candidates unchanged (review-loop-breaker cycle continues, tick 8+)",
     "f4180dc Prioritise: retain DRY consolidation work-item (review-loop-breaker prevents execution)",
     "732514a Explore: re-write candidates (DRY consolidation top priority, review-loop-breaker active)",
-    "1333b2f Prioritise: keep existing DRY consolidation work-item, consume candidates",
-    "a334a33 Explore: write candidates (DRY consolidation, buildWorldState tests, doc-sync)"
+    "1333b2f Prioritise: keep existing DRY consolidation work-item, consume candidates"
   ],
   "processPatterns": {
-    "reactiveRatio": 0.4256198347107438,
+    "reactiveRatio": 0.42386831275720166,
     "reviewLoopCount": 3,
     "innovationCycleCount": 3
   }
