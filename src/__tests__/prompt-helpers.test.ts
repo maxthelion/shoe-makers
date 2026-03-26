@@ -72,6 +72,23 @@ describe("determineTier", () => {
     const tier = determineTier(assessment);
     expect(tier.hasGaps).toBe(false);
   });
+
+  test("assessment with null invariants returns no gaps", () => {
+    const assessment = { testsPass: true, invariants: null } as any;
+    const tier = determineTier(assessment);
+    expect(tier).toEqual({ hasGaps: false, specOnlyCount: 0, untestedCount: 0 });
+  });
+
+  test("both non-zero means hasGaps", () => {
+    const assessment = {
+      testsPass: true,
+      invariants: { specifiedOnly: 3, implementedUntested: 10, unspecified: 0, topSpecGaps: [] },
+    } as any;
+    const tier = determineTier(assessment);
+    expect(tier.hasGaps).toBe(true);
+    expect(tier.specOnlyCount).toBe(3);
+    expect(tier.untestedCount).toBe(10);
+  });
 });
 
 describe("isInnovationTier", () => {
@@ -101,6 +118,22 @@ describe("isInnovationTier", () => {
       invariants: { specifiedOnly: 0, implementedUntested: 0, unspecified: 0, topSpecGaps: [] },
     } as any;
     expect(isInnovationTier(assessment)).toBe(true);
+  });
+
+  test("4 untested claims allows innovation tier", () => {
+    const assessment = {
+      testsPass: true,
+      invariants: { specifiedOnly: 0, implementedUntested: 4, unspecified: 0, topSpecGaps: [] },
+    } as any;
+    expect(isInnovationTier(assessment)).toBe(true);
+  });
+
+  test("5 untested claims blocks innovation tier", () => {
+    const assessment = {
+      testsPass: true,
+      invariants: { specifiedOnly: 0, implementedUntested: 5, unspecified: 0, topSpecGaps: [] },
+    } as any;
+    expect(isInnovationTier(assessment)).toBe(false);
   });
 });
 
@@ -186,6 +219,19 @@ describe("formatCodebaseSnapshot", () => {
     const result = formatCodebaseSnapshot(assessment);
     expect(result).toContain("Health: unknown");
   });
+
+  test("shows 'none' for no worst files", () => {
+    const assessment = {
+      testsPass: true,
+      openPlans: [],
+      findings: [],
+      worstFiles: [],
+      healthScore: 40,
+      invariants: null,
+    } as any;
+    const result = formatCodebaseSnapshot(assessment);
+    expect(result).toContain("Worst files: none");
+  });
 });
 
 describe("parseActionTypeFromPrompt", () => {
@@ -244,6 +290,19 @@ describe("findSkillForAction", () => {
   test("returns undefined for action with no skill mapping", () => {
     const result = findSkillForAction("critique", skills);
     expect(result).toBeUndefined();
+  });
+
+  test("finds skill for execute-work-item via implement mapping", () => {
+    const skill = findSkillForAction("execute-work-item", skills);
+    expect(skill).toBeDefined();
+    expect(skill!.name).toBe("implement");
+  });
+
+  test("returns undefined when mapped skill type not in map", () => {
+    const partialSkills = new Map<string, SkillDefinition>([
+      ["impl", { name: "implement", filename: "implement.md", mapsTo: "implement", description: "Implement", body: "", prompt: "", risk: "low" as const, offLimits: [] }],
+    ]);
+    expect(findSkillForAction("fix-tests", partialSkills)).toBeUndefined();
   });
 });
 
