@@ -123,21 +123,22 @@ Note: When permission violations are detected, the prompt includes a `PERMISSION
 
 ```
 Selector
-├── [tests failing?]         → Fix them
-├── [review loop ≥3?]        → Break out to explore
-├── [unresolved critiques?]  → Fix the flagged issues
-├── [unreviewed commits?]    → Review adversarially (critique)
-├── [uncommitted work?]      → Review before committing (review)
-├── [inbox messages?]        → Read and act
-├── [dead-code work-item?]   → Remove dead code
-├── [work-item.md exists?]   → Execute the work item
-├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
-├── [insights exist?]        → Evaluate insight (generous disposition)
-├── [innovation tier?]       → Innovate: write insight from creative brief
-└── [always]                 → Explore: write candidates.md
+├── [tests failing?]                  → Fix them
+├── [review loop ≥3 + candidates?]    → Prioritise (consume existing candidates)
+├── [review loop ≥3?]                 → Break out to explore
+├── [unresolved critiques?]           → Fix the flagged issues
+├── [unreviewed commits?]             → Review adversarially (critique)
+├── [uncommitted work?]               → Review before committing (review)
+├── [inbox messages?]                 → Read and act
+├── [dead-code work-item?]            → Remove dead code
+├── [work-item.md exists?]            → Execute the work item
+├── [candidates.md exists?]           → Prioritise: pick one, write work-item.md
+├── [insights exist?]                 → Evaluate insight (generous disposition)
+├── [innovation tier?]                → Innovate: write insight from creative brief
+└── [always]                          → Explore: write candidates.md
 ```
 
-The review-loop circuit breaker prevents infinite critique/fix-critique cycles. If the shift has seen 3+ review loop iterations (detected via the shift log parser), the tree routes to explore instead of continuing the loop. This ensures the shift makes progress even when a critique can't be resolved.
+The review-loop circuit breaker prevents infinite critique/fix-critique cycles. If the shift has seen 3+ review loop iterations (detected via the shift log parser), the tree routes to explore instead of continuing the loop. If candidates already exist from a previous explore tick, the tree routes to prioritise instead — consuming existing candidates avoids a redundant explore tick. This ensures the shift makes progress even when a critique can't be resolved.
 
 Critiques sit above unreviewed work — you fix problems before reviewing new work. Unreviewed work sits above new work — you review before starting something new.
 

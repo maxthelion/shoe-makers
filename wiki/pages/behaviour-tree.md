@@ -18,19 +18,20 @@ The tree has two zones: **reactive** conditions at the top (urgent, handled dire
 
 ```
 Selector
-├── [tests failing?]         → Fix tests (direct prompt)
-├── [review-loop ≥3?]        → Break out to explore (circuit breaker)
-├── [unresolved critiques?]  → Fix critiques (direct prompt)
-├── [partial work?]          → Continue partial work (direct prompt)
-├── [unreviewed commits?]    → Review adversarially (direct prompt)
-├── [uncommitted changes?]   → Review uncommitted work (direct prompt)
-├── [inbox messages?]        → Handle inbox (direct prompt)
-├── [dead-code work-item?]   → Remove dead code
-├── [work-item.md exists?]   → Execute it
-├── [candidates.md exists?]  → Prioritise: pick one, write work-item.md
-├── [insights exist?]        → Evaluate insight (generous disposition)
-├── [innovation tier?]       → Innovate: write insight from creative brief
-└── [always]                 → Explore: write candidates.md
+├── [tests failing?]                  → Fix tests (direct prompt)
+├── [review-loop ≥3 + candidates?]    → Prioritise (consume existing candidates)
+├── [review-loop ≥3?]                 → Break out to explore (circuit breaker)
+├── [unresolved critiques?]           → Fix critiques (direct prompt)
+├── [partial work?]                   → Continue partial work (direct prompt)
+├── [unreviewed commits?]             → Review adversarially (direct prompt)
+├── [uncommitted changes?]            → Review uncommitted work (direct prompt)
+├── [inbox messages?]                 → Handle inbox (direct prompt)
+├── [dead-code work-item?]            → Remove dead code
+├── [work-item.md exists?]            → Execute it
+├── [candidates.md exists?]           → Prioritise: pick one, write work-item.md
+├── [insights exist?]                 → Evaluate insight (generous disposition)
+├── [innovation tier?]                → Innovate: write insight from creative brief
+└── [always]                          → Explore: write candidates.md
 ```
 
 ### Reactive zone (top)
@@ -38,7 +39,7 @@ Selector
 These fire immediately with a direct prompt. No orchestration needed — the action is obvious.
 
 - **Tests failing** — always highest priority. The elf gets the test output and fixes it.
-- **Review-loop circuit breaker** — if the review loop has fired 3+ times this shift, break out to explore to reassess rather than continuing the loop.
+- **Review-loop circuit breaker** — two nodes handle review loops. If candidates already exist from a previous explore tick, the tree routes to prioritise to consume them (avoiding a redundant explore). Otherwise, it breaks out to explore to reassess. Both trigger when the review loop has fired 3+ times this shift.
 - **Unresolved critiques** — blocking findings from a previous reviewer. Must fix before new work.
 - **Partial work** — a previous elf started work but didn't finish. The elf reads the partial-work description and resumes where the previous elf left off.
 - **Unreviewed commits** — a previous elf's commits need adversarial review. The reviewer gets the diff and the rules the previous elf was given.
