@@ -1,16 +1,16 @@
 # Candidates
 
-## 1. Consolidate duplicated process-pattern computation (existing work-item)
+## 1. Consolidate duplicated process-pattern computation (ready to execute)
 **Type**: health
 **Impact**: high
-**Reasoning**: Work-item already exists at `.shoe-makers/state/work-item.md`. `src/log/shift-summary.ts:256-285` (`analyzeProcessPatterns`) and `src/log/shift-log-parser.ts:52-81` (`computeProcessPatterns`) contain identical review-loop detection and reactive-ratio logic. Consolidating into the `computeProcessPatterns` function (which is more complete — includes `innovationCycleCount`) eliminates a DRY violation in code that directly controls the review-loop-breaker tree node. Both functions already have comprehensive tests, so refactoring is low-risk. This is the highest-impact improvement available.
+**Reasoning**: Work-item exists at `.shoe-makers/state/work-item.md` with full instructions. `src/log/shift-summary.ts:256-285` and `src/log/shift-log-parser.ts:52-81` contain identical review-loop detection logic. Refactor `analyzeProcessPatterns` to delegate to `computeProcessPatterns`. Both have comprehensive tests. Low risk, high maintainability gain.
 
-## 2. Add tests for buildWorldState() — the tree's input assembler
+## 2. Add tests for buildWorldState()
 **Type**: test
 **Impact**: medium
-**Reasoning**: `src/setup/world-state.ts` exports `buildWorldState()` which assembles the complete `WorldState` object that drives every tree evaluation. It maps 8 parallel file-system checks to boolean flags the behaviour tree reads. It has **zero test coverage** — no test file exists. This is the most critical untested function since incorrect world state means the tree routes to wrong actions. A test fixture with a temp directory and known state files would verify correct mapping. Pattern: follow `src/__tests__/state-archive.test.ts` which uses `mkdtemp` + file fixtures.
+**Reasoning**: `src/setup/world-state.ts` exports `buildWorldState()` with zero test coverage. This function assembles the `WorldState` that drives every tree evaluation — incorrect mapping means wrong actions. Test with temp directory + known state files following `src/__tests__/state-archive.test.ts` pattern.
 
-## 3. Sync wiki verification permissions table with code (doc-sync)
+## 3. Sync wiki verification permissions table with code
 **Type**: doc-sync
 **Impact**: medium
-**Reasoning**: `wiki/pages/verification.md` lines 26-27 list executor permissions missing `.shoe-makers/log/`, `.shoe-makers/archive/`, `.shoe-makers/config.yaml` (for `continue-work`) and additionally `package.json`, `bun.lock`, `bun.lockb` (for `execute-work-item`). Code at `src/verify/permissions.ts:47,62` has the correct lists. This gap was flagged in a previous critique. Previous work-item existed for this but was blocked by review-loop-breaker across multiple cycles.
+**Reasoning**: `wiki/pages/verification.md` lines 26-27 missing `.shoe-makers/log/`, `.shoe-makers/archive/`, `.shoe-makers/config.yaml`, `package.json`, `bun.lock`, `bun.lockb` from executor canWrite lists. Code at `src/verify/permissions.ts:47,62` is correct. Known spec-code gap from previous critique.
