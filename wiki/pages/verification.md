@@ -93,6 +93,10 @@ Critiques are written to `.shoe-makers/findings/critique-YYYY-MM-DD-NNN.md` with
 
 The tree condition "unresolved critiques?" sits near the top — above plans and features. Blocking critiques must be resolved before new work happens. The fixer elf reads the critique, makes the fix, commits. The next reviewer checks the fix.
 
+### Note-type findings
+
+Notes are ephemeral findings for informal elf-to-elf context — observations too informal for a critique but too valuable to lose. They use filename pattern `note-YYYY-MM-DD-NNN.md` in `.shoe-makers/findings/` and contain just a heading and a short paragraph. Notes are automatically archived after 24 hours by the setup script and their text is included in the next elf's prompt context via the "Notes from previous elves" section.
+
 ## The Review Prompt
 
 The reviewer gets a focused prompt:
