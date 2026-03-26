@@ -30,6 +30,32 @@ export const freshAssessment: Assessment = {
   recentGitActivity: [],
 };
 
+export function makeAssessment(
+  overrides: Partial<Omit<Assessment, "invariants">> & { invariants?: Partial<NonNullable<Assessment["invariants"]>> | null } = {}
+): Assessment {
+  const { invariants: invOverrides, ...rest } = overrides;
+  return {
+    ...freshAssessment,
+    ...rest,
+    invariants: invOverrides === null ? null : invOverrides !== undefined
+      ? { ...freshAssessment.invariants!, ...invOverrides }
+      : freshAssessment.invariants,
+  };
+}
+
+export function makeStateWith(
+  assessmentOverrides: Parameters<typeof makeAssessment>[0] = {},
+  stateOverrides: Partial<WorldState> = {}
+): WorldState {
+  return makeState({
+    blackboard: {
+      ...emptyBlackboard(),
+      assessment: makeAssessment(assessmentOverrides),
+    },
+    ...stateOverrides,
+  });
+}
+
 export function makeState(overrides: Partial<WorldState> = {}): WorldState {
   return {
     branch: "shoemakers/2026-03-21",

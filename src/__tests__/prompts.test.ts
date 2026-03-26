@@ -3,65 +3,13 @@ import { generatePrompt, ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from 
 import type { ActionType, WorldState, Assessment } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { loadSkills } from "../skills/registry";
-import { emptyBlackboard } from "./test-utils";
-
-const freshAssessment: Assessment = {
-  timestamp: new Date().toISOString(),
-  invariants: {
-    specifiedOnly: 2,
-    implementedUntested: 1,
-    implementedTested: 50,
-    unspecified: 1,
-    topSpecGaps: [{ id: "foo", description: "gap", group: "core" }],
-    topUntested: [{ id: "bar", description: "untested", group: "core" }],
-    topUnspecified: [{ id: "baz", description: "unspec", group: "core" }],
-  },
-  healthScore: 40,
-  worstFiles: [],
-  openPlans: ["test-plan"],
-  findings: [],
-  testsPass: true,
-  recentGitActivity: [],
-};
-
-function makeAssessment(overrides: Partial<Omit<Assessment, "invariants">> & { invariants?: Partial<NonNullable<Assessment["invariants"]>> | null } = {}): Assessment {
-  const { invariants: invOverrides, ...rest } = overrides;
-  return {
-    ...freshAssessment,
-    ...rest,
-    invariants: invOverrides === null ? null : invOverrides !== undefined
-      ? { ...freshAssessment.invariants!, ...invOverrides }
-      : freshAssessment.invariants,
-  };
-}
+import { makeAssessment, makeStateWith } from "./test-utils";
 
 function makeState(): WorldState {
-  return {
-    branch: "shoemakers/2026-03-21",
-    hasUncommittedChanges: false,
-    inboxCount: 2,
-    hasUnreviewedCommits: false,
-    unresolvedCritiqueCount: 0,
-    hasWorkItem: false,
-    hasCandidates: false,
-    workItemSkillType: null,
-    hasPartialWork: false,
-    insightCount: 0,
-    blackboard: {
-      ...emptyBlackboard(),
-      assessment: freshAssessment,
-    },
-  };
-}
-
-function makeStateWith(assessmentOverrides: Parameters<typeof makeAssessment>[0] = {}): WorldState {
-  return {
-    ...makeState(),
-    blackboard: {
-      ...emptyBlackboard(),
-      assessment: makeAssessment(assessmentOverrides),
-    },
-  };
+  return makeStateWith(
+    { invariants: { specifiedOnly: 2, implementedUntested: 1, unspecified: 1, topSpecGaps: [{ id: "foo", description: "gap", group: "core" }], topUntested: [{ id: "bar", description: "untested", group: "core" }], topUnspecified: [{ id: "baz", description: "unspec", group: "core" }] }, healthScore: 40, openPlans: ["test-plan"] },
+    { inboxCount: 2 }
+  );
 }
 
 const allActions: ActionType[] = [
@@ -307,8 +255,8 @@ describe("explore and prioritise tier switching", () => {
     ["explore shows Hygiene/Implementation tier when spec gaps exist", "explore", () => makeStateWith({ invariants: { specifiedOnly: 5, implementedUntested: 0 } }), ["Hygiene / Implementation", "unimplemented spec claim"], []],
     ["prioritise shows gap guidance when spec gaps exist", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 5, implementedUntested: 0 } }), ["unimplemented spec claim"], []],
     ["prioritise shows innovation guidance when no gaps", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 0, implementedUntested: 0 } }), ["highest impact"], []],
-    ["explore Hygiene tier includes top spec gap descriptions", "explore", () => makeStateWith({ invariants: { specifiedOnly: 3, implementedUntested: 0 } }), ["gap", "Top invariant gaps"], []],
-    ["prioritise includes top spec gap descriptions when gaps exist", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 3, implementedUntested: 0 } }), ["Top invariant gaps", "gap"], []],
+    ["explore Hygiene tier includes top spec gap descriptions", "explore", () => makeStateWith({ invariants: { specifiedOnly: 3, implementedUntested: 0, topSpecGaps: [{ id: "foo", description: "gap", group: "core" }] } }), ["gap", "Top invariant gaps"], []],
+    ["prioritise includes top spec gap descriptions when gaps exist", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 3, implementedUntested: 0, topSpecGaps: [{ id: "foo", description: "gap", group: "core" }] } }), ["Top invariant gaps", "gap"], []],
     ["prioritise does not include gap details when no gaps", "prioritise", () => makeStateWith({ invariants: { specifiedOnly: 0, implementedUntested: 0 } }), [], ["Top invariant gaps"]],
   ];
 

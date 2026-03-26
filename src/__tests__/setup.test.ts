@@ -3,7 +3,8 @@ import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { logAssessment, readInboxMessages, formatAction, readNotes } from "../setup";
-import type { WorldState, Blackboard, Config, Assessment } from "../types";
+import type { WorldState, Config, Assessment } from "../types";
+import { makeAssessment as makeSharedAssessment, makeState, emptyBlackboard } from "./test-utils";
 
 let tempDir: string;
 
@@ -16,17 +17,7 @@ afterEach(async () => {
 });
 
 function makeAssessment(overrides: Partial<Assessment> = {}): Assessment {
-  return {
-    timestamp: new Date().toISOString(),
-    invariants: null,
-    healthScore: null,
-    worstFiles: [],
-    openPlans: [],
-    findings: [],
-    testsPass: true,
-    recentGitActivity: [],
-    ...overrides,
-  };
+  return makeSharedAssessment({ invariants: null, healthScore: null, ...overrides });
 }
 
 function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {
@@ -40,27 +31,12 @@ function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {
     insightFrequency: 0.3,
     maxInnovationCycles: 3,
   };
-  const blackboard: Blackboard = {
-    assessment: null,
-    currentTask: null,
-    priorities: null,
-    verification: null,
-  };
-  return {
+  return makeState({
     branch: "shoemakers/2026-03-22",
-    hasUncommittedChanges: false,
-    blackboard,
-    inboxCount: 0,
-    hasUnreviewedCommits: false,
-    unresolvedCritiqueCount: 0,
-    hasWorkItem: false,
-    hasCandidates: false,
-    workItemSkillType: null,
-    hasPartialWork: false,
-    insightCount: 0,
+    blackboard: { ...emptyBlackboard(), assessment: null },
     config,
     ...overrides,
-  };
+  });
 }
 
 describe("logAssessment", () => {
