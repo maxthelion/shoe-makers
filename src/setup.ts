@@ -53,10 +53,13 @@ async function main() {
     return;
   }
 
-  // 1. Branch setup
-  const branchName = ensureBranch(repoRoot);
+  // 1. Load config early so branchPrefix is available for branch setup
+  const config = await loadConfig(repoRoot);
 
-  // 2. Archive resolved findings, auto-commit, then run assessment
+  // 2. Branch setup
+  const branchName = ensureBranch(repoRoot, config.branchPrefix);
+
+  // 3. Archive resolved findings, auto-commit, then run assessment
   const archived = await archiveResolvedFindings(repoRoot);
   if (archived.length > 0) {
     console.log(`[setup] Archived ${archived.length} resolved finding(s)`);
@@ -76,15 +79,14 @@ async function main() {
   }
   logAssessment(assessment);
 
-  // 3. Read inbox messages
+  // 4. Read inbox messages
   const inboxMessages = await readInboxMessages(repoRoot);
 
-  // 4. Load config and build world state for tree evaluation
-  const config = await loadConfig(repoRoot);
+  // 5. Build world state for tree evaluation
   console.log(`[setup] Config: tick every ${config.tickInterval}m, max ${config.maxTicksPerShift} ticks/shift`);
   const state = await buildWorldState(repoRoot, branchName, assessment, inboxMessages.length, config);
 
-  // 5. Load skills (filtered by enabledSkills config) and evaluate the tree
+  // 6. Load skills (filtered by enabledSkills config) and evaluate the tree
   const loadedSkills = await loadSkills(repoRoot, config.enabledSkills);
   const { skill, trace } = evaluateWithTrace(defaultTree, state);
 

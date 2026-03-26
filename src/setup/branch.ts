@@ -1,9 +1,9 @@
 import { execSync } from "child_process";
 import { getShiftDate } from "../schedule";
 
-export function ensureBranch(repoRoot: string): string {
+export function ensureBranch(repoRoot: string, branchPrefix: string = "shoemakers"): string {
   const shiftDate = getShiftDate(repoRoot); // uses shared schedule module
-  const branchName = `shoemakers/${shiftDate}`;
+  const branchName = `${branchPrefix}/${shiftDate}`;
 
   try {
     execSync("git fetch origin", { cwd: repoRoot, stdio: "pipe" });
