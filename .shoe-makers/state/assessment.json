@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-03-26T08:12:35.924Z",
+  "invariants": {
+    "specifiedOnly": 0,
+    "implementedUntested": 0,
+    "implementedTested": 238,
+    "unspecified": 0,
+    "topSpecGaps": [],
+    "topUntested": [],
+    "topUnspecified": []
+  },
+  "healthScore": 99,
+  "worstFiles": [
+    {
+      "path": "src/__tests__/assess.test.ts",
+      "score": 94
+    },
+    {
+      "path": "src/__tests__/prompt-helpers.test.ts",
+      "score": 94
+    },
+    {
+      "path": "src/__tests__/invariants.test.ts",
+      "score": 95
+    },
+    {
+      "path": "src/__tests__/detect-violations.test.ts",
+      "score": 96
+    },
+    {
+      "path": "src/__tests__/evaluate.test.ts",
+      "score": 96
+    }
+  ],
+  "openPlans": [],
+  "findings": [
+    {
+      "id": "stale-invariants-skills-list",
+      "content": "# Stale sections in invariants.md\n\n## Observation\n\nMultiple sections of `.shoe-makers/invariants.md` are out of date:\n\n### Section 3.2 — Skills list is stale\n- **Listed as current**: fix-tests, implement, test-coverage, doc-sync, health\n- **Listed as planned**: octoclean-fix, bug-fix, dependency-update, dead-code\n- **Reality**: All 9 skills are now implemented in `.shoe-makers/skills/`. The \"Planned\" list should be merged into \"Current\" or removed.\n\n### Section 2.2 — Missing reactive conditions\nLists 4 reactive conditions: tests failing, critiques, unreviewed commits, inbox messages.\nThe actual tree (`src/tree/default-tree.ts`) has 5 reactive conditions — **uncommitted changes** (review) is missing. The section also doesn't mention the **dead-code work-item** node that sits between inbox and the three-phase zone.\n\n### Duplicate section numbering\n- Section 1.6 appears twice: \"TDD enforcement\" and \"Maintain a living spec\"\n- Section 3.4 appears twice: \"Cross-elf gatekeeping\" and \"Observability\"\nOne of each pair should be renumbered (e.g., 1.7 and 3.5).\n\n## Why it matters\n\nThe invariants are the source of truth for spec claims. Stale invariants mislead explore/prioritise about what's built vs. what needs building. Missing reactive conditions in 2.2 means the invariants don't accurately describe the tree structure.\n\n## Recommendation\n\nHuman should:\n1. Update section 3.2 to list all 9 skills as current\n2. Add `uncommitted changes → review` and `dead-code work-item → dead-code` to section 2.2\n3. Renumber duplicate sections (1.6 → 1.7, 3.4 → 3.5)\n\n## Status\n\nOpen — requires human action (elves cannot modify invariants.md).\n"
+    },
+    {
+      "id": "unspecified-process-patterns",
+      "content": "# Unspecified process-patterns self-monitoring loop\n\n## Observation\n\nThe system contains a self-monitoring loop that parses the shift log each tick, extracts machine-readable patterns, and uses them to alter tree routing and explore prompts. None of this is described in the invariants or wiki pages.\n\n### 1. Shift log parsing → processPatterns\n\n`src/log/shift-log-parser.ts` exports `computeProcessPatterns()` which parses the shift log to extract:\n- `reviewLoopCount` — consecutive critique→fix cycles without reaching explore\n- `reactiveRatio` — proportion of actions that are reactive (fix-tests, fix-critique, review) vs. proactive (explore, prioritise, execute)\n- `innovationCycleCount` — number of innovate actions in the current shift\n\nThese are stored in `assessment.processPatterns` and written to `.shoe-makers/state/blackboard.json`.\n\n### 2. Review-loop-breaker tree nodes\n\n`src/tree/default-tree.ts` lines 31-34 define two tree nodes with no spec coverage:\n- `review-loop-with-candidates`: if `reviewLoopCount >= 3` and candidates exist, skip explore and go straight to `prioritise`\n- `review-loop-breaker`: if `reviewLoopCount >= 3` (no candidates), force `explore` to break the cycle\n\nThe threshold of 3 is a meaningful design decision that is invisible to spec readers.\n\n### 3. Process temperature guidance in explore prompts\n\n`src/prompts/explore.ts` lines 16-37 inject \"process temperature\" guidance into the explore prompt based on `reactiveRatio`:\n- High ratio (> 0.6): suggests looking at proactive improvements\n- Low ratio (< 0.3): suggests checking for reactive needs\n\nThis alters what the explore elf focuses on, based on shift history.\n\n### 4. Innovation cycle cap\n\n`src/tree/default-tree.ts` lines 73-77 use `innovationCycleCount` to cap innovation cycles per shift (default 3, configurable via `max-innovation-cycles` in config.yaml — also unspecified in invariants section 5.2). After the cap is reached, the tree stops routing to `innovate` even if all other conditions for innovation tier are met.\n\n## Why it matters\n\nThis self-monitoring loop is a core architectural feature — it prevents the system from getting stuck in review loops, balances reactive vs. proactive work, and caps innovation cycles. Without spec coverage:\n- Future elves or humans modifying the tree may not understand why these nodes exist\n- The review-loop threshold of 3 is a tuning parameter with no documented rationale\n- The process temperature concept is invisible to anyone reading the spec\n\n## Recommendation\n\nHuman should add invariants covering:\n1. Section 2.2: Add `review-loop-breaker` and `review-loop-with-candidates` as reactive conditions with their threshold behaviour\n2. Section 2.5 or new section: Document `processPatterns` (reviewLoopCount, reactiveRatio, innovationCycleCount) as derived state from shift log parsing\n3. Section 2.6: Document the innovation cycle cap and its configurability\n4. Section 3.4: Document that the shift log is machine-parsed each tick (not just human-readable narrative)\n5. Section 5.2: Add `insight-frequency` and `max-innovation-cycles` as configurable keys\n\n## Status\n\nOpen — requires human action (elves cannot modify invariants.md).\n"
+    },
+    {
+      "id": "unspecified-partial-work",
+      "content": "# Unspecified partial-work / continue-work action\n\n## Observation\n\nThe behaviour tree includes a `partial-work` reactive condition and `continue-work` action that are not described in the invariants or wiki.\n\n### Tree node\n\n`src/tree/default-tree.ts` defines a `partial-work` condition that checks for `.shoe-makers/state/partial-work.md`. When this file exists, the tree routes to the `continue-work` action before checking for unreviewed commits or the three-phase cycle.\n\n### Permissions\n\n`src/verify/permissions.ts` grants `continue-work` the same broad file permissions as `execute-work-item`:\n- `src/**` (source code)\n- `wiki/**` (spec pages)\n- `.shoe-makers/state/` (state files)\n- `CHANGELOG.md`, `README.md`\n\nThis is the broadest permission set in the system — broader than critique, review, or explore.\n\n### Prompt\n\n`src/prompts/continue-work.ts` generates the continue-work prompt, instructing the elf to read the partial-work file and resume where the previous elf left off.\n\n### Spec mentions\n\nInvariants section 3.1 mentions partial work in passing: \"Partial work is fine: agent writes what it has, exits, next tick picks up from there.\" This describes the concept but not the mechanism (the `partial-work.md` file, the `continue-work` action, or its permissions).\n\nSection 2.2 (reactive conditions) does not list `partial-work` among the reactive tree nodes.\n\n## Why it matters\n\n- The `partial-work` mechanism allows any elf to leave a `partial-work.md` file that triggers a continuation action with execute-level permissions\n- Since this continuation happens as a reactive condition (before the three-phase cycle), it could pre-empt normal work prioritisation\n- The broad permission set for `continue-work` means the continuation elf has write access to all source code and wiki pages\n- Without spec coverage, the purpose and boundaries of this feature are unclear to humans maintaining the system\n\n## Recommendation\n\nHuman should:\n1. Add `partial-work` to the reactive conditions list in section 2.2\n2. Document the `partial-work.md` file format and lifecycle in section 3.1 or a new subsection\n3. Consider whether `continue-work` should have the same permissions as `execute-work-item`, or a more restricted set\n4. Document when elves are expected to write `partial-work.md` vs. simply exiting\n\n## Status\n\nOpen — requires human action (elves cannot modify invariants.md).\n"
+    }
+  ],
+  "testsPass": true,
+  "typecheckPass": true,
+  "recentGitActivity": [
+    "70650e3 Explore: write candidates for review-loop-with-candidates consumption",
+    "f583489 Prioritise: consume candidates (work-item.md already exists for doc-sync task)",
+    "d59726b Explore: write candidates (doc-sync, health, test coverage — review loop break)",
+    "68d73cd Prioritise: pick wiki permissions table doc-sync (spec-code gap from critique)",
+    "a325ce6 Explore: survey codebase and write candidates (doc-sync, health, test coverage)",
+    "95e379f Adversarial review: critique (clean — permissions fix, minor spec-code gap noted)",
+    "35c0792 Fix critique: add log/ and archive/ to executor canWrite permissions",
+    "456161a Adversarial review: critique (minor permission violation in executor housekeeping)",
+    "988085b Execute: consume completed work items (wiki fix already done, clean stale candidates)",
+    "ee1e796 Auto-commit setup housekeeping (archive, shift log)"
+  ],
+  "processPatterns": {
+    "reactiveRatio": 0.452914798206278,
+    "reviewLoopCount": 3,
+    "innovationCycleCount": 3
+  }
+}
