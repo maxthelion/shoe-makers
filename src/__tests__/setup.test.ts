@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { mkdtemp, rm, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { logAssessment, readInboxMessages, formatAction } from "../setup";
+import { logAssessment, readInboxMessages, formatAction, readNotes } from "../setup";
 import type { WorldState, Blackboard, Config, Assessment } from "../types";
 
 let tempDir: string;
@@ -329,6 +329,83 @@ describe("formatAction", () => {
     const state = makeWorldState();
     const result = formatAction("explore", state, []);
     expect(result).toContain("bun run setup");
+  });
+});
+
+describe("readNotes", () => {
+  test("returns empty string when no notes exist", async () => {
+    const result = await readNotes(tempDir);
+    expect(result).toBe("");
+  });
+
+  test("reads note files and formats them as bullet list", async () => {
+    const findingsDir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(findingsDir, { recursive: true });
+    await writeFile(
+      join(findingsDir, "note-2026-03-26-001.md"),
+      "# Note\n\nThe health score for prompts.test.ts has been stuck at 87.\n"
+    );
+
+    const result = await readNotes(tempDir);
+    expect(result).toContain("Notes from previous elves");
+    expect(result).toContain("- The health score for prompts.test.ts has been stuck at 87.");
+  });
+
+  test("reads multiple notes", async () => {
+    const findingsDir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(findingsDir, { recursive: true });
+    await writeFile(
+      join(findingsDir, "note-2026-03-26-001.md"),
+      "# Note\n\nFirst observation.\n"
+    );
+    await writeFile(
+      join(findingsDir, "note-2026-03-26-002.md"),
+      "# Note\n\nSecond observation.\n"
+    );
+
+    const result = await readNotes(tempDir);
+    expect(result).toContain("- First observation.");
+    expect(result).toContain("- Second observation.");
+  });
+
+  test("ignores non-note findings", async () => {
+    const findingsDir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(findingsDir, { recursive: true });
+    await writeFile(
+      join(findingsDir, "critique-2026-03-26-001.md"),
+      "# Critique\n\nSome critique content.\n"
+    );
+
+    const result = await readNotes(tempDir);
+    expect(result).toBe("");
+  });
+
+  test("skips notes with empty body", async () => {
+    const findingsDir = join(tempDir, ".shoe-makers", "findings");
+    await mkdir(findingsDir, { recursive: true });
+    await writeFile(
+      join(findingsDir, "note-2026-03-26-001.md"),
+      "# Note\n\n"
+    );
+
+    const result = await readNotes(tempDir);
+    expect(result).toBe("");
+  });
+});
+
+describe("formatAction includes elf notes", () => {
+  test("includes notes in action prompt when provided", () => {
+    const state = makeWorldState();
+    const notes = "\n\n## Notes from previous elves\n\n- Test observation.\n";
+    const result = formatAction("explore", state, [], undefined, undefined, undefined, undefined, undefined, notes);
+    expect(result).toContain("Notes from previous elves");
+    expect(result).toContain("Test observation.");
+  });
+
+  test("omits notes section when no notes", () => {
+    const state = makeWorldState();
+    const result = formatAction("explore", state, []);
+    expect(result).not.toContain("Notes from previous elves");
   });
 });
 

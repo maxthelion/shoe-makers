@@ -1,9 +1,37 @@
-import { readFile } from "fs/promises";
+import { readFile, readdir } from "fs/promises";
 import { join } from "path";
 import { generatePrompt } from "../prompts";
 import type { WorldState, ActionType } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import type { CritiqueContext } from "../prompts/critique";
+
+/**
+ * Read active note-type findings from .shoe-makers/findings/.
+ * Notes are ephemeral observations left by previous elves for context.
+ * Returns formatted text to inject into prompts, or empty string if none.
+ */
+export async function readNotes(repoRoot: string): Promise<string> {
+  const findingsDir = join(repoRoot, ".shoe-makers", "findings");
+  const notes: string[] = [];
+
+  try {
+    const files = await readdir(findingsDir);
+    for (const file of files) {
+      if (!file.startsWith("note-") || !file.endsWith(".md")) continue;
+      const content = await readFile(join(findingsDir, file), "utf-8");
+      // Extract the body text (skip the "# Note" heading)
+      const body = content.replace(/^#\s+Note\s*\n+/i, "").trim();
+      if (body) {
+        notes.push(`- ${body}`);
+      }
+    }
+  } catch {
+    // findings directory may not exist
+  }
+
+  if (notes.length === 0) return "";
+  return `\n\n## Notes from previous elves\n\n${notes.join("\n")}\n`;
+}
 
 export function formatAction(
   skill: string | null,
@@ -14,6 +42,7 @@ export function formatAction(
   permissionViolations?: string[],
   wikiSummary?: string,
   critiqueContext?: CritiqueContext,
+  elfNotes?: string,
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -34,7 +63,7 @@ Run \`bun run setup\` again to get your next action.
   if (skill) {
     const actionType = skill as ActionType;
     const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary, critiqueContext);
-    return `${prompt}
+    return `${prompt}${elfNotes || ""}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}
 

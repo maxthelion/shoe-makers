@@ -21,11 +21,11 @@ import { gatherCritiqueContext } from "./setup/critique-context";
 // Import from focused modules
 import { ensureBranch } from "./setup/branch";
 import { buildWorldState } from "./setup/world-state";
-import { formatAction, readWikiOverview } from "./setup/format-action";
+import { formatAction, readWikiOverview, readNotes } from "./setup/format-action";
 import { autoCommitHousekeeping, isAllHousekeeping, HOUSEKEEPING_PATHS, logAssessment, readInboxMessages } from "./setup/housekeeping";
 
 // Re-export for backward compatibility (used by tests and other modules)
-export { formatAction, readWikiOverview } from "./setup/format-action";
+export { formatAction, readWikiOverview, readNotes } from "./setup/format-action";
 export { autoCommitHousekeeping, isAllHousekeeping, HOUSEKEEPING_PATHS, logAssessment, readInboxMessages } from "./setup/housekeeping";
 
 /**
@@ -154,7 +154,8 @@ async function main() {
     }
   }
 
-  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary, critiqueContext);
+  const elfNotes = await readNotes(repoRoot);
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary, critiqueContext, elfNotes);
 
   await writeFile(join(stateDir, "next-action.md"), action);
   await saveLastAction(repoRoot, action);
