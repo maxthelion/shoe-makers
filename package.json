@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "wiki": "OCTOWIKI_DIR=$PWD/wiki PORT=4570 bun run /Users/maxwilliams/dev/octowiki/src/index.ts",
+    "wiki": "OCTOWIKI_DIR=$PWD/wiki PORT=4570 bun run node_modules/octowiki/src/index.ts",
     "test": "bun test",
     "dev": "bun run src/index.ts",
     "tick": "bun run src/index.ts",
@@ -22,6 +22,7 @@
     "typescript": "^5 || ^6"
   },
   "dependencies": {
-    "octoclean": "github:maxthelion/octoclean"
+    "octoclean": "github:maxthelion/octoclean",
+    "octowiki": "github:maxthelion/octowiki"
   }
 }
