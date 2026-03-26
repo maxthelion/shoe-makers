@@ -2,13 +2,13 @@
 
 The previous elf modified files outside their permitted scope:
 
-- `.shoe-makers/claim-evidence/25-structured-skills.yaml`
+- `wiki/pages/verification.md`
 
 This was detected automatically by the setup script. The fix-critique elf should investigate whether these changes are legitimate and either revert them or explain why they were necessary.
 
 ## Investigation
 
-Same issue as the previous permission violation (critique-2026-03-26-012.md). The executor added claim-evidence YAML patterns for structured-skills invariant claims. The wiki permission table references `.shoe-makers/claim-evidence.yaml` (singular) but the actual structure uses `.shoe-makers/claim-evidence/` (directory). This is a known doc-sync issue. The changes are legitimate.
+The elf combined prioritise and doc-sync execute in a single tick, modifying `wiki/pages/verification.md` to document the newly implemented note-type findings feature. The change is correct and necessary — it documents implemented functionality. The process violation (skipping the execute phase) doesn't warrant a revert since the content is accurate.
 
 ## Status
 
