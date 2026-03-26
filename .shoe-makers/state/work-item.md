@@ -1,52 +1,71 @@
-skill-type: doc-sync
+skill-type: health
 
-# Sync wiki verification permissions table with code (log/ and archive/ paths)
+# Consolidate duplicated process-pattern computation into shared function
 
 ## Wiki Spec
 
-`wiki/pages/verification.md` lines 19-32 define the permissions table. Lines 26-27 show executor permissions:
-
-```
-| continue-work | **executor** | `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/claim-evidence.yaml`, `CHANGELOG.md`, `README.md` | invariants |
-| execute-work-item | **executor** | `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/claim-evidence.yaml`, `CHANGELOG.md`, `README.md` | invariants |
-```
-
-These lines are missing `.shoe-makers/log/`, `.shoe-makers/archive/`, `.shoe-makers/config.yaml`, `package.json`, `bun.lock`, and `bun.lockb` — all of which are in the code's canWrite lists.
+`wiki/pages/observability.md` lines 19-30 describe the shift log and process patterns. The spec defines `computeProcessPatterns()` as extracting `reviewLoopCount`, `reactiveRatio`, and `innovationCycleCount` from shift logs. There's no spec requirement for two separate implementations.
 
 ## Current Code
 
-`src/verify/permissions.ts` lines 45-63 define the executor permissions:
+Two functions compute the same metrics with identical logic:
 
-- `continue-work` canWrite: `["src/", wikiPath, ".shoe-makers/state/", ".shoe-makers/log/", ".shoe-makers/archive/", ".shoe-makers/claim-evidence.yaml", ".shoe-makers/config.yaml", "CHANGELOG.md", "README.md"]`
-- `execute-work-item` canWrite: `["src/", wikiPath, ".shoe-makers/state/", ".shoe-makers/log/", ".shoe-makers/archive/", ".shoe-makers/claim-evidence.yaml", ".shoe-makers/config.yaml", "CHANGELOG.md", "README.md", "package.json", "bun.lock", "bun.lockb"]`
+1. `src/log/shift-summary.ts:256-285` — `analyzeProcessPatterns(steps: ShiftStep[])`: extracts action strings from `step.tick.action`, classifies reactive/proactive using `REACTIVE_ACTIONS`/`PROACTIVE_ACTIONS`, detects review loops (>=3 consecutive critique/fix-critique), returns `ProcessPatterns` (missing `innovationCycleCount`).
+
+2. `src/log/shift-log-parser.ts:52-81` — `computeProcessPatterns(actions: string[])`: identical logic but operates on `string[]` instead of `ShiftStep[]`. Also counts `innovationCycleCount`.
+
+Both import `REACTIVE_ACTIONS` and `PROACTIVE_ACTIONS` from `src/log/action-classification.ts:1-5`.
+
+The return types differ slightly:
+- `shift-summary.ts` returns `ProcessPatterns` (has `reactiveTicks`, `proactiveTicks`, `reactiveRatio`, `reviewLoopCount` — no `innovationCycleCount`)
+- `shift-log-parser.ts` returns `{ reactiveRatio, reviewLoopCount, innovationCycleCount }`
 
 ## What to Build
 
-Update the permissions table in `wiki/pages/verification.md` (lines 26-27) to match the code:
+1. **Refactor `analyzeProcessPatterns` in `shift-summary.ts`** to extract action strings from steps first, then delegate to `computeProcessPatterns` from `shift-log-parser.ts`:
+   ```typescript
+   function analyzeProcessPatterns(steps: ShiftStep[]): ProcessPatterns {
+     const actions = steps
+       .map(s => s.tick.action)
+       .filter((a): a is string => !!a);
+     const patterns = computeProcessPatterns(actions);
+     return {
+       reactiveTicks: patterns.reactiveTicks ?? /* compute from actions */,
+       proactiveTicks: patterns.proactiveTicks ?? /* compute from actions */,
+       reactiveRatio: patterns.reactiveRatio,
+       reviewLoopCount: patterns.reviewLoopCount,
+     };
+   }
+   ```
 
-1. Change line 26 (`continue-work`) "Can write" column to: `` `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/log/`, `.shoe-makers/archive/`, `.shoe-makers/claim-evidence.yaml`, `.shoe-makers/config.yaml`, `CHANGELOG.md`, `README.md` ``
-2. Change line 27 (`execute-work-item`) "Can write" column to: `` `src/`, `wiki/`, `.shoe-makers/state/`, `.shoe-makers/log/`, `.shoe-makers/archive/`, `.shoe-makers/claim-evidence.yaml`, `.shoe-makers/config.yaml`, `CHANGELOG.md`, `README.md`, `package.json`, `bun.lock`, `bun.lockb` ``
+2. **Extend `computeProcessPatterns` return type** in `shift-log-parser.ts` to also return `reactiveTicks` and `proactiveTicks` (it already computes them internally at lines 53-59, just doesn't return them).
 
-Do NOT change any other rows in the table. Do NOT change the code in permissions.ts — the code is correct, the wiki needs to catch up.
+3. **Update the `ProcessPatterns` type** in `shift-summary.ts:43-52` to include `innovationCycleCount` for consistency, or keep it separate if the `summarizeShift` caller doesn't need it.
+
+4. **Remove the duplicated loop-counting and ratio logic** from `shift-summary.ts:256-285` so there's only one place to maintain the review-loop threshold.
 
 ## Patterns to Follow
 
-- The wiki table uses backtick-wrapped paths with commas between them
-- Each path ends with `/` for directories, no trailing slash for files
-- The `last-modified-by: elf` frontmatter field should remain as-is
+- `src/log/action-classification.ts` already extracts shared constants — follow the same pattern of centralising shared logic
+- `computeProcessPatterns` in `shift-log-parser.ts` is the more complete version (has `innovationCycleCount`), so it should be the canonical implementation
+- Keep `analyzeProcessPatterns` as a thin adapter that maps `ShiftStep[]` → `string[]` → delegates
+- The existing tests in `src/__tests__/shift-log-parser.test.ts` (20+ tests) and `src/__tests__/shift-summary.test.ts` (lines 223-294) must all continue to pass
 
 ## Tests to Write
 
-No tests needed — this is a documentation-only change. Run `bun test` to confirm nothing breaks (the wiki is read by the invariants pipeline).
+No new tests needed — existing tests in both test files cover the behaviour. After refactoring, all existing tests should pass unchanged because the observable behaviour is identical. Run `bun test` to confirm.
+
+If the `ProcessPatterns` type gains `innovationCycleCount`, add one test in `shift-summary.test.ts` confirming it's populated.
 
 ## What NOT to Change
 
-- Do NOT modify `src/verify/permissions.ts` — the code is already correct
 - Do NOT modify `.shoe-makers/invariants.md`
-- Do NOT change any other wiki pages
-- Do NOT change the "Cannot write" column or any other rows in the permissions table
-- Do NOT change the prose below the table (lines 34-37) — the text about "broad permissions" still applies
+- Do NOT modify any wiki pages
+- Do NOT change the `computeProcessPatterns` logic itself — only centralise where it lives
+- Do NOT change the review-loop threshold (>=3) — that's a separate design decision
+- Do NOT change the `REACTIVE_ACTIONS` or `PROACTIVE_ACTIONS` sets
+- Do NOT break the `getShiftProcessPatterns` function or its callers
 
 ## Decision Rationale
 
-Candidate #1 was chosen because it closes a known spec-code gap identified in a recent critique (critique-2026-03-26-043). The wiki is the source of truth per the project's own spec (`wiki/pages/wiki-as-spec.md`), so a divergence between the wiki permissions table and the actual permissions code undermines the invariants pipeline. This is a small, low-risk change with clear before/after states. The other candidates (health improvements, test coverage) are lower priority since the system guidance says to prefer improvement work over tests when invariants are met.
+Candidate #1 (process-pattern tests) was invalidated — both functions already have comprehensive test coverage. Candidate #2 (`as any` casts) is cosmetic health with no functional impact. Candidate #3 addresses a real DRY violation: the review-loop detection logic (which is actively causing issues per `.shoe-makers/findings/review-loop-blocks-execution.md`) exists in two places. Consolidating means one place to understand, test, and eventually tune the threshold. This is a genuine improvement that makes the system more maintainable.
