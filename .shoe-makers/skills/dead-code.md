@@ -32,6 +32,12 @@ Code analysis reveals unused exports, unreachable code paths, or modules with no
 - Delete dead code from source files in `src/`
 - Remove stale test files if they test removed features
 
+## Validation
+
+- `bun test passes after removal`
+- `no import errors introduced`
+- `each removal is justified`
+
 ## Off-limits
 
 - Do not remove code that is referenced elsewhere

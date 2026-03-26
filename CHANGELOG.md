@@ -7,9 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- Configurable thresholds — `health-regression-threshold`, `review-loop-threshold`, `wikipedia-timeout`, `octoclean-timeout` in config.yaml with backward-compatible defaults
+
+## [0.1.0] - 2026-03-25
+
+### Added
 - Assess skill now reads findings from `.shoe-makers/findings/` — persistent observations from previous elves are included in the assessment and factored into prioritisation
 - Task lifecycle CLI (`bun run task:status`, `task:done`, `task:fail`) — manage current task status from the command line
-- Plan page for agent work execution (`wiki/pages/agent-work-execution.md`) — documents the work execution gap and task lifecycle design
+- Task lifecycle design — documents the work execution gap and three-phase task protocol
 - Shift runner (`bun run shift`) — runs multiple ticks in sequence, handles housekeeping automatically, pauses on work with instructions for the caller
 - Skill registry — loads markdown skill prompts from `.shoe-makers/skills/` and matches them to priority types
 - 9 skill markdown files: fix-tests, implement, test-coverage, doc-sync, health, bug-fix, dead-code, dependency-update, octoclean-fix
@@ -37,23 +42,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Health regression detection — warns when octoclean health score drops between ticks
 - State file archiving — consumed candidates and work items archived for traceability
 
-- Wikipedia creative lens — random article as analogical thinking prompt for explore and innovate actions
-- Innovation pipeline — dedicated `innovate` and `evaluate-insight` tree actions with separate dispositions (divergent/creative vs constructive/convergent)
-- Health regression detection — warns when code health score drops between setup ticks
-- Process pattern analysis — shift log parsing computes reactive ratio, review loop detection, and innovation cycle count
-- Process temperature signals — explore and prioritise prompts adapt guidance based on shift's reactive ratio
-- Permission violation detection — setup automatically detects when elves modify files outside their permitted scope
-- State file archiving — consumed candidates and work items archived to `.shoe-makers/archive/state/` for traceability
-- `insight-frequency` config — controls probability of creative lens appearing in explore ticks (default 0.3)
-- `max-innovation-cycles` config — caps innovation cycles per shift to prevent diminishing-returns loops (default 3)
-- `max-ticks-per-shift` config — limits total ticks per shift (default 10)
-- `enabled-skills` config — filter which skills are loaded (default: all)
-- Known issues documentation (`.shoe-makers/known-issues.md`) — troubleshooting guide for common elf problems
-- Working hours schedule — `.shoe-makers/schedule.md` configures when the shoemakers are active
-- Dead code removal skill — dedicated tree node and skill for removing unused code
-- `bun run setup` command — evaluates tree and writes focused next-action prompt for the elf
-
 ### Changed
+- Refactored `setup.ts` — extracted `main()` into focused helpers (`handleWorkingHoursCheck`, `runAssessmentPhase`, `evaluateTreePhase`, `writeActionAndLog`), reducing main from 120 to 20 lines
+- Removed unused `Blackboard.priorities` and `Blackboard.verification` fields from `types.ts`
+- Fixed `tick-types.md` wiki tree diagram — added missing `[partial work?]` node
+- Archived completed `agent-work-execution.md` plan page (all success criteria met)
+- Added `.codehealth/` to `.gitignore` — prevents octoclean artifacts from triggering uncommitted changes detection
+- Removed duplicate CHANGELOG entries
 - Open plans now support `status: blocked` and `status: done` in frontmatter — blocked/done plans are excluded from work candidates
 - Invariants checker now uses per-claim granularity instead of per-page mapping. System now correctly identifies 6 spec gaps and 2 untested claims instead of reporting 0 gaps and sleeping.
 

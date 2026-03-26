@@ -36,6 +36,12 @@ Dependencies are outdated — check with `bun outdated` or by reviewing `package
 - Modify source files in `src/` if a breaking API change requires it
 - Write findings if an update is blocked or risky
 
+## Validation
+
+- `bun test passes after each update`
+- `each update is a separate commit`
+- `only package.json and lockfile changed`
+
 ## Off-limits
 
 - Do not update multiple unrelated dependencies in a single commit

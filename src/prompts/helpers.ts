@@ -135,3 +135,24 @@ export function isInnovationTier(assessment: WorldState["blackboard"]["assessmen
   if (!assessment) return false;
   return !determineTier(assessment).hasGaps;
 }
+
+/**
+ * Find validation patterns for the previous elf's skill type.
+ * Used by critique prompts to check skill-specific validation rules.
+ */
+export function findValidationPatterns(
+  previousAction: string | null,
+  loadedSkills: Map<string, SkillDefinition>,
+): string[] | undefined {
+  if (!previousAction || loadedSkills.size === 0) return undefined;
+  const prevType = parseActionTypeFromPrompt(previousAction);
+  if (!prevType) return undefined;
+  const prevSkillType = ACTION_TO_SKILL_TYPE[prevType];
+  if (!prevSkillType) return undefined;
+  for (const s of loadedSkills.values()) {
+    if (s.mapsTo === prevSkillType && s.validationPatterns.length > 0) {
+      return s.validationPatterns;
+    }
+  }
+  return undefined;
+}

@@ -49,7 +49,7 @@ export function parseShiftLogActions(logContent: string): string[] {
 /**
  * Compute process patterns from a list of action names.
  */
-export function computeProcessPatterns(actions: string[]): { reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number } {
+export function computeProcessPatterns(actions: string[], reviewLoopThreshold: number = 3): { reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number } {
   let reactiveTicks = 0;
   let proactiveTicks = 0;
 
@@ -61,7 +61,7 @@ export function computeProcessPatterns(actions: string[]): { reactiveRatio: numb
   const total = reactiveTicks + proactiveTicks;
   const reactiveRatio = total > 0 ? reactiveTicks / total : 0;
 
-  // Detect review loops: sequences of critique/fix-critique alternating 3+ times
+  // Detect review loops: sequences of critique/fix-critique alternating N+ times
   const reviewActions = new Set(["critique", "fix-critique"]);
   let reviewLoopCount = 0;
   let consecutiveReviewActions = 0;
@@ -69,11 +69,11 @@ export function computeProcessPatterns(actions: string[]): { reactiveRatio: numb
     if (reviewActions.has(action)) {
       consecutiveReviewActions++;
     } else {
-      if (consecutiveReviewActions >= 3) reviewLoopCount++;
+      if (consecutiveReviewActions >= reviewLoopThreshold) reviewLoopCount++;
       consecutiveReviewActions = 0;
     }
   }
-  if (consecutiveReviewActions >= 3) reviewLoopCount++;
+  if (consecutiveReviewActions >= reviewLoopThreshold) reviewLoopCount++;
 
   const innovationCycleCount = actions.filter(a => a === "innovate").length;
 

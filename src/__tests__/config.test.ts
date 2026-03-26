@@ -26,6 +26,10 @@ describe("loadConfig", () => {
       enabledSkills: null,
       insightFrequency: 0.3,
       maxInnovationCycles: 3,
+      healthRegressionThreshold: 2,
+      reviewLoopThreshold: 3,
+      wikipediaTimeout: 10_000,
+      octocleanTimeout: 120_000,
     });
   });
 
@@ -52,6 +56,10 @@ describe("loadConfig", () => {
       enabledSkills: null,
       insightFrequency: 0.3,
       maxInnovationCycles: 3,
+      healthRegressionThreshold: 2,
+      reviewLoopThreshold: 3,
+      wikipediaTimeout: 10_000,
+      octocleanTimeout: 120_000,
     });
   });
 
@@ -230,6 +238,40 @@ describe("loadConfig", () => {
 
     const config = await loadConfig(tempDir);
     expect(config.enabledSkills).toEqual(["fix-tests"]);
+  });
+
+  test("reads new threshold config keys", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      [
+        "health-regression-threshold: 5",
+        "review-loop-threshold: 4",
+        "wikipedia-timeout: 15000",
+        "octoclean-timeout: 60000",
+      ].join("\n")
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.healthRegressionThreshold).toBe(5);
+    expect(config.reviewLoopThreshold).toBe(4);
+    expect(config.wikipediaTimeout).toBe(15_000);
+    expect(config.octocleanTimeout).toBe(60_000);
+  });
+
+  test("falls back to defaults for invalid threshold values", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/config.yaml"),
+      [
+        "health-regression-threshold: abc",
+        "review-loop-threshold: not-a-number",
+      ].join("\n")
+    );
+
+    const config = await loadConfig(tempDir);
+    expect(config.healthRegressionThreshold).toBe(2);
+    expect(config.reviewLoopThreshold).toBe(3);
   });
 
   test("warns on unknown config key", async () => {

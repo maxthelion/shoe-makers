@@ -15,6 +15,7 @@ Selector
 ├── [tests failing?]         → Fix them
 ├── [review-loop ≥3?]        → Break out to explore (circuit breaker)
 ├── [unresolved critiques?]  → Fix the flagged issues
+├── [partial work?]          → Continue partial work
 ├── [unreviewed commits?]    → Review adversarially
 ├── [uncommitted changes?]   → Review before committing
 ├── [inbox messages?]        → Read and act

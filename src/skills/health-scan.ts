@@ -23,7 +23,7 @@ export function isOctocleanInstalled(repoRoot: string): boolean {
  * plus the worst files by health score.
  * Returns null if octoclean is not installed or the scan fails.
  */
-export async function getHealthResult(repoRoot: string): Promise<HealthResult | null> {
+export async function getHealthResult(repoRoot: string, timeout: number = 120_000): Promise<HealthResult | null> {
   if (!isOctocleanInstalled(repoRoot)) return null;
 
   const outputPath = join(tmpdir(), `codehealth-${Date.now()}.json`);
@@ -31,7 +31,7 @@ export async function getHealthResult(repoRoot: string): Promise<HealthResult | 
   try {
     execSync(
       `bun run ${OCTOCLEAN_CLI} scan --no-llm --no-dynamic --output ${outputPath}`,
-      { cwd: repoRoot, stdio: "pipe", timeout: 120_000 }
+      { cwd: repoRoot, stdio: "pipe", timeout }
     );
 
     const raw = await readFile(outputPath, "utf-8");

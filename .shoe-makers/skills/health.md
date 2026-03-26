@@ -34,6 +34,12 @@ Code health score is below 70/100, indicating significant quality issues.
 - Extract new helper modules
 - Remove dead code with zero references
 
+## Validation
+
+- `bun test passes`
+- `no behaviour changes`
+- `code is measurably simpler`
+
 ## Off-limits
 
 - Do not change external interfaces or APIs

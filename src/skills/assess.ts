@@ -176,7 +176,7 @@ export async function assess(repoRoot: string): Promise<Assessment> {
     findOpenPlans(repoRoot, wikiDir),
     checkInvariants(repoRoot, wikiDir),
     readFindings(repoRoot),
-    getHealthResult(repoRoot),
+    getHealthResult(repoRoot, config.octocleanTimeout),
     getShiftProcessPatterns(repoRoot),
   ]);
 

@@ -1,10 +1,10 @@
 import type { ActionType, WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
-import { findSkillForAction, formatSkillSection } from "./helpers";
+import { findSkillForAction, formatSkillSection, ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
 import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildContinueWorkPrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
 import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDeadCodePrompt, buildInnovatePrompt, buildEvaluateInsightPrompt } from "./three-phase";
 
-export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
+export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt };
 
 /**
  * Generate a focused prompt for the elf based on the tree's decision.
@@ -19,6 +19,7 @@ export function generatePrompt(
   article?: { title: string; summary: string },
   permissionViolations?: string[],
   wikiSummary?: string,
+  validationPatterns?: string[],
 ): string {
   const skill = findSkillForAction(action, skills);
   const skillSection = skill ? formatSkillSection(skill) : "";
@@ -29,7 +30,7 @@ export function generatePrompt(
     case "fix-critique":
       return buildFixCritiquePrompt();
     case "critique":
-      return buildCritiquePrompt(permissionViolations);
+      return buildCritiquePrompt(permissionViolations, validationPatterns);
     case "continue-work":
       return buildContinueWorkPrompt();
     case "review":

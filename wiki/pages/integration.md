@@ -96,6 +96,10 @@ end: 6
 | `max-ticks-per-shift` | `10` | Maximum ticks per shift |
 | `max-innovation-cycles` | `3` | Maximum innovation ticks per shift |
 | `enabled-skills` | all | Comma-separated list of enabled skills |
+| `health-regression-threshold` | `2` | Health score drop tolerance (points) before flagging regression |
+| `review-loop-threshold` | `3` | Consecutive critique/fix-critique actions before circuit breaker fires |
+| `wikipedia-timeout` | `10000` | Timeout for Wikipedia API requests (milliseconds) |
+| `octoclean-timeout` | `120000` | Timeout for octoclean health scan (milliseconds) |
 
 ## Communicating with Elves
 

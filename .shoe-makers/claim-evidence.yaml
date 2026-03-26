@@ -2010,3 +2010,157 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.this-o
   test:
     - [Wikipedia article fetched]
     - [Wikipedia article fetch failed]
+
+# === Section 2.6.1: Creative corpus ===
+
+# Random concepts come from .shoe-makers/creative-corpus/
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.random-concepts-for-the-creative-lens-come-from-shoemakerscr:
+  source:
+    - [creative-corpus]
+    - [loadCorpus]
+  test:
+    - [creative-corpus]
+    - [loadCorpus]
+
+# Corpus populated by scripts/fetch-wikipedia-corpus.sh
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-corpus-is-populated-locally-by-running-scriptsfetchwikip:
+  source:
+    - [fetchArticleFromCorpus]
+    - [creative-corpus]
+  test:
+    - [fetchArticleFromCorpus]
+
+# Setup picks one unused article at random from the corpus
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.setup-picks-one-unused-article-at-random-from-the-corpus-and:
+  source:
+    - [pickUnusedArticle]
+    - [fetchArticleFromCorpus]
+  test:
+    - [pickUnusedArticle]
+    - [fetchArticleFromCorpus]
+
+# After innovate tick, article marked as used
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.after-the-innovate-tick-completes-the-article-is-marked-as-u:
+  source:
+    - [markArticleUsed]
+    - ["used: true", "used:"]
+  test:
+    - [markArticleUsed]
+    - ["used: true"]
+
+# When all articles are used, human should replenish
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.when-all-articles-are-used-or-the-corpus-is-empty-the-human-:
+  source:
+    - [pickUnusedArticle]
+    - [getRandomFallbackConcept]
+  test:
+    - [pickUnusedArticle]
+    - ["all used", "returns null"]
+
+# Articles should be kept concise
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.articles-should-be-kept-concise-to-minimise-token-usage-the-:
+  source:
+    - [summary]
+    - [creative-corpus]
+  test:
+    - [summary]
+    - [creative-corpus]
+
+# Setup logs which article was selected (title) to the shift log
+spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-setup-script-logs-which-article-was-selected-title-to-th:
+  source:
+    - [Wikipedia article fetched]
+    - [appendToShiftLog]
+  test:
+    - [Wikipedia article fetched]
+
+# === Section 3.2.1: Structured skills — semi-deterministic templates ===
+
+# Every elf task has a mechanical part and an intelligent part
+spec.skills.every-elf-task-has-a-mechanical-part-format-structure-file-p:
+  source:
+    - [validationPatterns]
+    - [interpolateSkillContext]
+  test:
+    - [validationPatterns]
+    - [interpolateSkillContext]
+
+# Skills handle the mechanical part completely — elf only provides judgement
+spec.skills.skills-handle-the-mechanical-part-completely-the-elf-only-pr:
+  source:
+    - [interpolateSkillContext]
+    - [validationPatterns]
+  test:
+    - [interpolateSkillContext]
+
+# Setup gathers context and interpolates into skill template
+spec.skills.setup-gathers-context-diff-lastaction-invariant-counts-etc-a:
+  source:
+    - [interpolateSkillContext]
+  test:
+    - [interpolateSkillContext]
+    - [replaces context slots]
+
+# Skill template defines exact output format and validation patterns
+spec.skills.the-skill-template-defines-the-exact-output-format-required-:
+  source:
+    - [validationPatterns]
+    - [parseValidationPatterns]
+  test:
+    - [validationPatterns]
+
+# Elf receives prompt where all structure is pre-filled
+spec.skills.the-elf-receives-a-prompt-where-all-structure-is-prefilled-i:
+  source:
+    - [interpolateSkillContext]
+  test:
+    - [interpolateSkillContext]
+
+# Housekeeping tasks should be fully deterministic
+spec.skills.housekeeping-tasks-archiving-shift-log-updates-should-be-ful:
+  source:
+    - [archiveConsumedStateFiles]
+    - [appendToShiftLog]
+  test:
+    - [archiveConsumedStateFiles]
+
+# Each skill template includes validation section with patterns
+spec.skills.each-skill-template-includes-a-validation-section-with-patte:
+  source:
+    - [validationPatterns]
+    - [parseValidationPatterns]
+  test:
+    - [validationPatterns]
+    - [parseValidationPatterns]
+
+# Adversarial reviewer checks validation patterns
+spec.skills.the-adversarial-reviewer-checks-validation-patterns-format-c:
+  source:
+    - [validationPatterns]
+  test:
+    - [validationPatterns]
+
+# Reactive zone skills must have deterministic output formats
+spec.skills.reactive-zone-skills-writecritique-resolvecritique-must-have:
+  source:
+    - [validationPatterns]
+    - [critique]
+  test:
+    - [validationPatterns]
+
+# Three-phase skills must have deterministic structure with intelligent content
+spec.skills.threephase-skills-writecandidates-writeworkitem-writeinsight:
+  source:
+    - [validationPatterns]
+    - [interpolateSkillContext]
+  test:
+    - [validationPatterns]
+    - [interpolateSkillContext]
+
+# This eliminates wasted ticks on format compliance
+spec.skills.this-eliminates-wasted-ticks-on-format-compliance-elves-shou:
+  source:
+    - [validationPatterns]
+    - [interpolateSkillContext]
+  test:
+    - [validationPatterns]

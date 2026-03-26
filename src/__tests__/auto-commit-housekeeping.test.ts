@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { isAllHousekeeping } from "../setup";
+import { isAllHousekeeping } from "../scheduler/housekeeping";
 
 describe("isAllHousekeeping", () => {
   test("returns true for shift log changes only", () => {

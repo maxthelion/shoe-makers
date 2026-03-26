@@ -30,6 +30,12 @@ The invariants pipeline reports `implemented-untested` items — code that exist
 - Create new test files in `src/__tests__/`
 - Modify existing test files to add coverage
 
+## Validation
+
+- `bun test passes`
+- `tests verify behaviour described in the wiki spec`
+- `tests are meaningful`
+
 ## Off-limits
 
 - Do not modify source code (this skill is test-only)

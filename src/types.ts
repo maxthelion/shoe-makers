@@ -71,7 +71,7 @@ export interface Assessment {
   typecheckPass?: boolean | null;
   recentGitActivity: string[];
   /** Process patterns from current shift (reactive ratio, review loops) */
-  processPatterns?: { reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number };
+  processPatterns?: { reactiveRatio: number; reviewLoopCount?: number; reviewLoopDetected?: boolean; innovationCycleCount: number };
   /** Fields that couldn't be checked and why (e.g. missing tool, network error) */
   uncertainties?: { field: string; reason: string }[];
 }
@@ -178,4 +178,12 @@ export interface Config {
   insightFrequency: number;
   /** Maximum innovation cycles per shift before routing to explore (default: 3) */
   maxInnovationCycles: number;
+  /** Health regression tolerance in points (default: 2) */
+  healthRegressionThreshold: number;
+  /** Review loop breaker threshold — consecutive review actions before breaking out (default: 3) */
+  reviewLoopThreshold: number;
+  /** Timeout for Wikipedia API fetch in milliseconds (default: 10000) */
+  wikipediaTimeout: number;
+  /** Timeout for octoclean health scan in milliseconds (default: 120000) */
+  octocleanTimeout: number;
 }

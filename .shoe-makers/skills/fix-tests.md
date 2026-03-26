@@ -30,6 +30,11 @@ Tests are failing (`bun test` exits non-zero).
 - Modify test files only if the test itself is incorrect
 - Add missing imports or type definitions
 
+## Validation
+
+- `bun test exits 0`
+- `no tests were deleted or skipped`
+
 ## Off-limits
 
 - Do not delete or skip failing tests

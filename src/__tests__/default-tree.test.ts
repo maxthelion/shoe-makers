@@ -129,6 +129,82 @@ describe("review-loop circuit breaker", () => {
     expect(result.skill).toBe("fix-critique");
   });
 
+  test("does not fire when review loop count >= 3 but no critiques or unreviewed commits", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 0,
+      hasUnreviewedCommits: false,
+      hasCandidates: true,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 5, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("prioritise");
+  });
+
+  test("fires when review loop count >= 3 and unreviewed commits exist but no proactive work queued", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 0,
+      hasUnreviewedCommits: true,
+      hasCandidates: false,
+      hasWorkItem: false,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 3, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("explore");
+  });
+
+  test("does not fire when candidates exist even with unreviewed commits and high loop count", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 0,
+      hasUnreviewedCommits: true,
+      hasCandidates: true,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 5, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("prioritise");
+  });
+
+  test("respects custom review loop threshold from config", () => {
+    // With threshold=5, a loop count of 3 should NOT trigger the breaker
+    const state = makeState({
+      unresolvedCritiqueCount: 2,
+      config: {
+        branchPrefix: "shoemakers", tickInterval: 5, wikiDir: "wiki",
+        assessmentStaleAfter: 30, maxTicksPerShift: 10, enabledSkills: null,
+        insightFrequency: 0.3, maxInnovationCycles: 3,
+        healthRegressionThreshold: 2, reviewLoopThreshold: 5,
+        wikipediaTimeout: 10_000, octocleanTimeout: 120_000,
+      },
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 3, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    // Should route to fix-critique since loop count (3) < threshold (5)
+    expect(result.skill).toBe("fix-critique");
+  });
+
   test("tests-failing still takes priority over circuit breaker", () => {
     const state = makeState({
       unresolvedCritiqueCount: 2,

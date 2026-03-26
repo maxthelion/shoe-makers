@@ -32,6 +32,12 @@ A finding or issue describes a bug, or the explore action discovered incorrect b
 - Create new test files in `src/__tests__/`
 - Update findings in `.shoe-makers/findings/`
 
+## Validation
+
+- `bun test passes`
+- `fix is minimal — no unrelated changes`
+- `finding is updated to reflect the fix`
+
 ## Off-limits
 
 - Do not modify unrelated modules

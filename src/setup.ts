@@ -2,17 +2,13 @@ import { assess, buildSuggestions, archiveResolvedFindings } from "./skills/asse
 import { evaluateWithTrace, formatTrace } from "./tree/evaluate";
 import { defaultTree } from "./tree/default-tree";
 import { writeFile, mkdir, readFile, readdir } from "fs/promises";
-import { writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
-import { generatePrompt } from "./prompts";
 import { readLastAction, saveLastAction } from "./state/last-action";
-import { parseActionTypeFromPrompt } from "./prompts/helpers";
+import { parseActionTypeFromPrompt, findValidationPatterns } from "./prompts/helpers";
 import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights, checkHasPartialWork } from "./state/world";
 import { execSync } from "child_process";
-import type { WorldState, Blackboard, ActionType, Config } from "./types";
-import { detectPermissionViolations } from "./verify/detect-violations";
-import { writePermissionViolationFinding } from "./verify/violation-findings";
+import type { WorldState, Blackboard, Config } from "./types";
 import { isWithinWorkingHours, getShiftDate } from "./schedule";
 import { loadSkills, type SkillDefinition } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
@@ -20,42 +16,52 @@ import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
 import { fetchArticleForAction } from "./creative/wikipedia";
 import { archiveConsumedStateFiles } from "./archive/state-archive";
-import { ALL_HOUSEKEEPING_PATHS } from "./utils/housekeeping";
+import { autoCommitHousekeeping } from "./scheduler/housekeeping";
+import { runVerificationGate } from "./scheduler/verification-gate";
+import { setupPermissionContext } from "./scheduler/permission-setup";
+import { formatAction, readWikiOverview } from "./scheduler/format-action";
 
-/**
- * Setup script: runs before the elf starts.
- *
- * 1. Ensure we're on today's shoemakers branch
- * 2. Run assessment (deterministic — gathers world state)
- * 3. Evaluate the behaviour tree
- * 4. Write a focused prompt to .shoe-makers/state/next-action.md
- *
- * The elf then just reads next-action.md and does what it says.
- */
+// Re-export for backward compatibility (tests import from setup.ts)
+export { formatAction, readWikiOverview } from "./scheduler/format-action";
+
 async function main() {
   const repoRoot = process.cwd();
 
-  // 0. Check working hours (uses shared schedule module)
-  if (!isWithinWorkingHours(repoRoot)) {
-    console.log("[setup] Outside working hours. Exiting.");
-    const stateDir = join(repoRoot, ".shoe-makers", "state");
-    await mkdir(stateDir, { recursive: true });
-    await writeFile(
-      join(stateDir, "next-action.md"),
-      "# Outside Working Hours\n\nThe shoemakers are sleeping. Do nothing. Exit immediately.\n"
-    );
-    return;
+  if (!(await handleWorkingHoursCheck(repoRoot))) return;
+
+  const branchName = ensureBranch(repoRoot);
+  const config = await loadConfig(repoRoot);
+  console.log(`[setup] Config: tick every ${config.tickInterval}m, max ${config.maxTicksPerShift} ticks/shift`);
+
+  const { assessment, prevActionRaw } = await runAssessmentPhase(repoRoot, config);
+
+  const { skill, trace, state, inboxMessages, loadedSkills } =
+    await evaluateTreePhase(repoRoot, branchName, assessment, config);
+
+  if (trace.length > 0) {
+    console.log(`[setup] Tree trace:\n${formatTrace(trace)}`);
   }
 
-  // 1. Branch setup
-  const branchName = ensureBranch(repoRoot);
+  await writeActionAndLog(repoRoot, skill, state, inboxMessages, loadedSkills, config, prevActionRaw, assessment);
+}
 
-  // 2. Archive resolved findings, auto-commit, then run assessment
+async function handleWorkingHoursCheck(repoRoot: string): Promise<boolean> {
+  if (isWithinWorkingHours(repoRoot)) return true;
+
+  console.log("[setup] Outside working hours. Exiting.");
+  const stateDir = join(repoRoot, ".shoe-makers", "state");
+  await mkdir(stateDir, { recursive: true });
+  await writeFile(
+    join(stateDir, "next-action.md"),
+    "# Outside Working Hours\n\nThe shoemakers are sleeping. Do nothing. Exit immediately.\n"
+  );
+  return false;
+}
+
+async function runAssessmentPhase(repoRoot: string, config: Config) {
   const archived = await archiveResolvedFindings(repoRoot);
   if (archived.length > 0) {
     console.log(`[setup] Archived ${archived.length} resolved finding(s)`);
-    // Auto-commit archive changes BEFORE tree evaluation so they don't
-    // appear as uncommitted work in the world state
     autoCommitHousekeeping(repoRoot);
   }
 
@@ -63,26 +69,28 @@ async function main() {
   const previousBlackboard = await readBlackboard(repoRoot);
   const healthBefore = previousBlackboard.assessment?.healthScore ?? null;
   const assessment = await assess(repoRoot);
-  const healthAfter = assessment.healthScore;
-  const healthRegression = checkHealthRegression(healthBefore, healthAfter);
+  const healthRegression = checkHealthRegression(healthBefore, assessment.healthScore, config.healthRegressionThreshold);
   if (healthRegression) {
     console.warn(`[setup] WARNING: ${healthRegression}`);
   }
+
+  const prevActionRaw = await readLastAction(repoRoot);
+  const prevActionType = prevActionRaw ? parseActionTypeFromPrompt(prevActionRaw) : null;
+  await runVerificationGate(repoRoot, assessment.testsPass ?? true, prevActionType, healthRegression);
+
   logAssessment(assessment);
+  return { assessment, prevActionRaw };
+}
 
-  // 3. Read inbox messages
+async function evaluateTreePhase(
+  repoRoot: string, branchName: string,
+  assessment: Awaited<ReturnType<typeof assess>>, config: Config,
+) {
   const inboxMessages = await readInboxMessages(repoRoot);
-
-  // 4. Load config and build world state for tree evaluation
-  const config = await loadConfig(repoRoot);
-  console.log(`[setup] Config: tick every ${config.tickInterval}m, max ${config.maxTicksPerShift} ticks/shift`);
   const state = await buildWorldState(repoRoot, branchName, assessment, inboxMessages.length, config);
-
-  // 5. Load skills (filtered by enabledSkills config) and evaluate the tree
   const loadedSkills = await loadSkills(repoRoot, config.enabledSkills);
   const { skill, trace } = evaluateWithTrace(defaultTree, state);
 
-  // Annotate trace entries with uncertainty info when relevant
   const uncertainties = assessment.uncertainties ?? [];
   if (uncertainties.length > 0) {
     for (const entry of trace) {
@@ -93,50 +101,31 @@ async function main() {
     }
   }
 
-  if (trace.length > 0) {
-    console.log(`[setup] Tree trace:\n${formatTrace(trace)}`);
-  }
+  return { skill, trace, state, inboxMessages, loadedSkills };
+}
 
-  // Fetch a Wikipedia article for creative exploration
+async function writeActionAndLog(
+  repoRoot: string, skill: string | null, state: WorldState,
+  inboxMessages: { file: string; content: string }[], loadedSkills: Map<string, SkillDefinition>,
+  config: Config, prevActionRaw: string | null, assessment: Awaited<ReturnType<typeof assess>>,
+) {
   const article = await fetchArticleForAction(
     skill,
     config.insightFrequency,
     (entry) => appendToShiftLog(repoRoot, entry),
+    repoRoot,
   );
 
-  // Read wiki overview for innovate action
   let wikiSummary: string | undefined;
   if (skill === "innovate") {
     wikiSummary = await readWikiOverview(repoRoot, config.wikiDir);
   }
 
-  // Snapshot the previous action type before detection reads it.
-  // This must happen BEFORE detectPermissionViolations so it reads
-  // the action that was actually issued to the previous elf.
+  const permissionViolations = await setupPermissionContext(repoRoot, skill);
+
   const stateDir = join(repoRoot, ".shoe-makers", "state");
   await mkdir(stateDir, { recursive: true });
-  const previousAction = await readLastAction(repoRoot);
-  if (previousAction) {
-    const prevType = parseActionTypeFromPrompt(previousAction);
-    if (prevType) {
-      await writeFile(join(stateDir, "previous-action-type"), prevType);
-    }
-  }
 
-  // Detect permission violations for critique actions
-  const permissionViolations = skill === "critique"
-    ? await detectPermissionViolations(repoRoot)
-    : undefined;
-
-  // Write a structured finding if permission violations were detected
-  if (permissionViolations && permissionViolations.length > 0) {
-    const findingFile = await writePermissionViolationFinding(repoRoot, permissionViolations);
-    if (findingFile) {
-      console.log(`[setup] Permission violation finding written: ${findingFile}`);
-    }
-  }
-
-  // Archive state files that will be consumed by this action
   if (skill) {
     const archivedState = await archiveConsumedStateFiles(repoRoot, skill);
     if (archivedState.length > 0) {
@@ -144,7 +133,11 @@ async function main() {
     }
   }
 
-  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary);
+  const validationPatterns = (skill === "critique" && loadedSkills)
+    ? findValidationPatterns(prevActionRaw, loadedSkills)
+    : undefined;
+
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary, validationPatterns);
 
   await writeFile(join(stateDir, "next-action.md"), action);
   await saveLastAction(repoRoot, action);
@@ -156,86 +149,12 @@ async function main() {
     `## ${new Date().toISOString()} — Setup\n\n- Action: ${actionTitle}\n`
   );
 
-  // Auto-commit housekeeping changes (archive, shift log) so they don't
-  // trigger review cycles — these are mechanical, not elf-authored
   autoCommitHousekeeping(repoRoot);
 
   console.log(`[setup] Action: ${actionTitle}`);
   console.log("[setup] Done. The elf should read .shoe-makers/state/next-action.md");
 }
 
-/** Paths considered housekeeping (archive moves, shift log entries) */
-export const HOUSEKEEPING_PATHS = ALL_HOUSEKEEPING_PATHS;
-
-/**
- * Check if all lines from `git status --porcelain` output are housekeeping changes.
- * Returns true if every changed file is under a housekeeping path.
- */
-export function isAllHousekeeping(statusOutput: string): boolean {
-  const lines = statusOutput.split("\n").filter(l => l.trim().length > 0);
-  if (lines.length === 0) return false;
-  return lines.every(line => {
-    // git status --porcelain format: XY filename (or XY old -> new for renames)
-    const path = line.slice(3).split(" -> ").pop()!;
-    return HOUSEKEEPING_PATHS.some(p => path.startsWith(p));
-  });
-}
-
-/**
- * Auto-commit housekeeping changes (archive moves, shift log entries)
- * and update the review marker so they don't trigger the critique cycle.
- *
- * Only commits if ALL uncommitted changes are in housekeeping paths.
- * If there are mixed changes (e.g., findings + code), does nothing.
- */
-export function autoCommitHousekeeping(repoRoot: string): void {
-  try {
-    const status = execSync("git status --porcelain", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    });
-
-    if (!isAllHousekeeping(status)) return;
-
-    // Read the current review marker BEFORE committing
-    const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
-    let previousMarker: string | null = null;
-    try {
-      previousMarker = readFileSync(markerPath, "utf-8").trim();
-    } catch {}
-
-    // Stage all housekeeping changes
-    for (const prefix of HOUSEKEEPING_PATHS) {
-      execSync(`git add "${prefix}"`, { cwd: repoRoot, stdio: "pipe" });
-    }
-
-    execSync('git commit -m "Auto-commit setup housekeeping (archive, shift log)"', {
-      cwd: repoRoot,
-      stdio: "pipe",
-    });
-
-    const head = execSync("git rev-parse HEAD", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
-
-    // Only advance the marker if the auto-commit is the ONLY unreviewed commit.
-    // This prevents skipping review of code commits made between the old marker
-    // and the auto-commit.
-    const parentOfHead = execSync("git rev-parse HEAD~1", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
-
-    if (previousMarker === parentOfHead) {
-      writeFileSync(markerPath, head);
-    }
-
-    console.log("[setup] Auto-committed housekeeping changes");
-  } catch {
-    // If anything fails, just skip — the elf will handle it
-  }
-}
 
 function ensureBranch(repoRoot: string): string {
   const shiftDate = getShiftDate(repoRoot); // uses shared schedule module
@@ -354,72 +273,6 @@ async function buildWorldState(
   };
 }
 
-
-export function formatAction(
-  skill: string | null,
-  state: WorldState,
-  inboxMessages: { file: string; content: string }[],
-  loadedSkills?: Map<string, SkillDefinition>,
-  article?: { title: string; summary: string },
-  permissionViolations?: string[],
-  wikiSummary?: string,
-): string {
-  if (skill === "inbox" && inboxMessages.length > 0) {
-    const msgs = inboxMessages
-      .map((m) => `### ${m.file}\n\n${m.content}`)
-      .join("\n\n---\n\n");
-    return `# Inbox Messages — Act on These First
-
-The human has left ${inboxMessages.length} message(s) for you. Read them, do what they ask, commit your work, then delete the message files from \`.shoe-makers/inbox/\`. Log what you did in the shift log.
-
-${msgs}
-
-## After handling inbox
-
-Run \`bun run setup\` again to get your next action.
-`;
-  }
-
-  if (skill) {
-    const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary);
-    return `${prompt}
-
-## After ${skill === "explore" ? "exploring" : "completing"}
-
-Run \`bun run setup\` again to get your next action.
-`;
-  }
-
-  return `# Nothing to Do
-
-The tree found no applicable action. This shouldn't happen — check the tree definition.
-`;
-}
-
-/**
- * Read wiki overview pages for the innovate creative brief.
- * Reads architecture.md and other key overview pages to build a system summary.
- */
-export async function readWikiOverview(repoRoot: string, wikiDir: string = "wiki"): Promise<string> {
-  const overviewFiles = ["architecture.md", "behaviour-tree.md", "pure-function-agents.md"];
-  const sections: string[] = [];
-
-  for (const file of overviewFiles) {
-    try {
-      const content = await readFile(join(repoRoot, wikiDir, "pages", file), "utf-8");
-      // Strip frontmatter
-      const stripped = content.replace(/^---[\s\S]*?---\n*/, "");
-      sections.push(stripped.trim());
-    } catch {
-      // File doesn't exist — skip
-    }
-  }
-
-  return sections.length > 0
-    ? sections.join("\n\n---\n\n")
-    : "Shoe-makers is a behaviour tree system that runs autonomous AI agents to improve codebases overnight.";
-}
 
 if (import.meta.main) {
   main().catch((err) => {

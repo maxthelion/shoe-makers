@@ -46,4 +46,22 @@ describe("checkHealthRegression", () => {
     const result = checkHealthRegression(80, 77);
     expect(result).not.toBeNull();
   });
+
+  test("respects custom threshold — larger tolerance", () => {
+    // With threshold=5, a 4-point drop should be tolerated
+    const result = checkHealthRegression(80, 76, 5);
+    expect(result).toBeNull();
+  });
+
+  test("respects custom threshold — flags beyond custom threshold", () => {
+    // With threshold=5, a 6-point drop should be flagged
+    const result = checkHealthRegression(80, 74, 5);
+    expect(result).not.toBeNull();
+  });
+
+  test("respects custom threshold — stricter tolerance", () => {
+    // With threshold=0, any drop should be flagged
+    const result = checkHealthRegression(80, 79, 0);
+    expect(result).not.toBeNull();
+  });
 });
