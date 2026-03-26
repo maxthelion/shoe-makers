@@ -1,6 +1,6 @@
 import type { ShiftStep } from "../scheduler/shift";
 import type { TraceEntry } from "../tree/evaluate";
-import { REACTIVE_ACTIONS, PROACTIVE_ACTIONS } from "./action-classification";
+import { computeProcessPatterns } from "./shift-log-parser";
 
 /** Category of improvement work */
 export type ImprovementCategory = "fix" | "feature" | "test" | "docs" | "health" | "review";
@@ -250,37 +250,19 @@ function analyzeTraces(steps: ShiftStep[]): TraceAnalysis | undefined {
 /**
  * Analyze process-level patterns across the shift.
  *
- * Counts reactive vs. proactive ticks and detects review loops
- * (sequences where critique/fix-critique alternate 3+ times).
+ * Extracts action strings from steps and delegates to the canonical
+ * computeProcessPatterns() in shift-log-parser.ts.
  */
 function analyzeProcessPatterns(steps: ShiftStep[]): ProcessPatterns {
-  let reactiveTicks = 0;
-  let proactiveTicks = 0;
-
-  for (const step of steps) {
-    const action = step.tick.action;
-    if (!action) continue;
-    if (REACTIVE_ACTIONS.has(action)) reactiveTicks++;
-    else if (PROACTIVE_ACTIONS.has(action)) proactiveTicks++;
-  }
-
-  const total = reactiveTicks + proactiveTicks;
-  const reactiveRatio = total > 0 ? reactiveTicks / total : 0;
-
-  // Detect review loops: sequences of critique/fix-critique alternating 3+ times
-  const reviewActions = new Set(["critique", "fix-critique"]);
-  let reviewLoopCount = 0;
-  let consecutiveReviewActions = 0;
-  for (const step of steps) {
-    if (reviewActions.has(step.tick.action ?? "")) {
-      consecutiveReviewActions++;
-    } else {
-      if (consecutiveReviewActions >= 3) reviewLoopCount++;
-      consecutiveReviewActions = 0;
-    }
-  }
-  if (consecutiveReviewActions >= 3) reviewLoopCount++;
-
-  return { reactiveTicks, proactiveTicks, reactiveRatio, reviewLoopCount };
+  const actions: string[] = steps
+    .map(s => s.tick.action)
+    .filter((a): a is NonNullable<typeof a> => a != null);
+  const patterns = computeProcessPatterns(actions);
+  return {
+    reactiveTicks: patterns.reactiveTicks,
+    proactiveTicks: patterns.proactiveTicks,
+    reactiveRatio: patterns.reactiveRatio,
+    reviewLoopCount: patterns.reviewLoopCount,
+  };
 }
 

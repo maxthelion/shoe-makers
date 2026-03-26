@@ -49,7 +49,7 @@ export function parseShiftLogActions(logContent: string): string[] {
 /**
  * Compute process patterns from a list of action names.
  */
-export function computeProcessPatterns(actions: string[]): { reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number } {
+export function computeProcessPatterns(actions: string[]): { reactiveTicks: number; proactiveTicks: number; reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number } {
   let reactiveTicks = 0;
   let proactiveTicks = 0;
 
@@ -77,14 +77,14 @@ export function computeProcessPatterns(actions: string[]): { reactiveRatio: numb
 
   const innovationCycleCount = actions.filter(a => a === "innovate").length;
 
-  return { reactiveRatio, reviewLoopCount, innovationCycleCount };
+  return { reactiveTicks, proactiveTicks, reactiveRatio, reviewLoopCount, innovationCycleCount };
 }
 
 /**
  * Read today's shift log and compute process patterns.
  * Returns undefined if no shift log exists.
  */
-export async function getShiftProcessPatterns(repoRoot: string): Promise<{ reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number } | undefined> {
+export async function getShiftProcessPatterns(repoRoot: string): Promise<{ reactiveTicks: number; proactiveTicks: number; reactiveRatio: number; reviewLoopCount: number; innovationCycleCount: number } | undefined> {
   const today = new Date().toISOString().slice(0, 10);
   const filepath = join(repoRoot, ".shoe-makers", "log", `${today}.md`);
 
