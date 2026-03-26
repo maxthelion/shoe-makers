@@ -485,10 +485,10 @@ describe("innovate prompt", () => {
     expect(prompt).toContain("Do not use general knowledge");
   });
 
-  test("Lens section format says Start with the article title", () => {
+  test("Lens section uses pre-filled article title in template", () => {
     const prompt = generatePrompt("innovate", makeState(), undefined, article, undefined, wikiSummary);
-    expect(prompt).toContain("Start with the article title");
-    expect(prompt).toContain("Mycelial Networks");
+    expect(prompt).toContain("**Mycelial Networks** —");
+    expect(prompt).toContain("[YOUR CONTENT HERE");
   });
 
   test("Lens section references article.title", () => {
