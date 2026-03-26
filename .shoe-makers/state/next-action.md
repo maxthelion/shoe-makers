@@ -1,56 +1,13 @@
-# Prioritise — Pick a Work Item
+# Review Uncommitted Work
 
-A previous elf explored the codebase and wrote a candidate list in `.shoe-makers/state/candidates.md`. Your job is to pick the most impactful candidate and write a detailed work item.
+There are uncommitted changes on the branch. Review them before committing.
 
-## Current state
+Run `git diff` to see the changes. Check against these criteria:
+1. Does the code correctly implement what was asked?
+2. Are there tests for the changes, and do they verify actual behaviour?
+3. Does the change match the wiki spec?
 
-All invariants are met and test coverage is solid. **Prefer implementation, improvement, and creative work** over writing more tests or polishing what's already clean. Pick the candidate with the highest impact on the system's usefulness — to humans and to agents.
-
-## Steps
-
-1. Read `.shoe-makers/state/candidates.md`
-2. For the top candidates, read the relevant wiki pages and source files to understand the context
-3. Pick ONE candidate — the most impactful option
-4. Write `.shoe-makers/state/work-item.md` using this exact format:
-
-```markdown
-skill-type: [implement | test-coverage | fix | health | doc-sync | octoclean-fix | dead-code | bug-fix | dependency-update]
-
-# [YOUR TITLE HERE]
-
-## Wiki Spec
-
-[YOUR CONTENT HERE — quote the relevant wiki text, cite the page and line numbers]
-
-## Current Code
-
-[YOUR CONTENT HERE — reference specific files and line numbers, describe what exists]
-
-## What to Build
-
-[YOUR CONTENT HERE — exactly what to build or change, step by step]
-
-## Patterns to Follow
-
-[YOUR CONTENT HERE — which existing patterns in the codebase to follow]
-
-## Tests to Write
-
-[YOUR CONTENT HERE — specific tests to write, what behaviour they verify]
-
-## What NOT to Change
-
-[YOUR CONTENT HERE — explicit boundaries]
-
-## Decision Rationale
-
-[YOUR CONTENT HERE — why this candidate was chosen over the others]
-```
-
-5. Delete `.shoe-makers/state/candidates.md` (it's been consumed)
-6. Commit both changes
-
-Your job is to write a really good, specific prompt for the executor elf. Not "implement something from the wiki" but "the wiki says X, the code has Y, build Z in this file following this pattern."
+If the changes are good, commit them with a descriptive message. If not, fix the issues first.
 
 **Off-limits — do NOT modify these files:**
 - `.shoe-makers/invariants.md` — only humans maintain the spec claims

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-26T08:14:46.013Z",
+  "timestamp": "2026-03-26T09:08:43.944Z",
   "invariants": {
     "specifiedOnly": 0,
     "implementedUntested": 0,
@@ -54,6 +54,7 @@
   "testsPass": true,
   "typecheckPass": true,
   "recentGitActivity": [
+    "97cbf29 Prioritise: consume candidates (review loop cycle, work-item + finding persist)",
     "593b9dc Explore: finding on review-loop-breaker blocking execution + candidates",
     "28e9338 Prioritise: consume candidates (doc-sync work-item persists, review loop active)",
     "65639eb Explore: write candidates (review loop cycle — work-item pending for next shift)",
@@ -62,11 +63,10 @@
     "f583489 Prioritise: consume candidates (work-item.md already exists for doc-sync task)",
     "d59726b Explore: write candidates (doc-sync, health, test coverage — review loop break)",
     "68d73cd Prioritise: pick wiki permissions table doc-sync (spec-code gap from critique)",
-    "a325ce6 Explore: survey codebase and write candidates (doc-sync, health, test coverage)",
-    "95e379f Adversarial review: critique (clean — permissions fix, minor spec-code gap noted)"
+    "a325ce6 Explore: survey codebase and write candidates (doc-sync, health, test coverage)"
   ],
   "processPatterns": {
-    "reactiveRatio": 0.44493392070484583,
+    "reactiveRatio": 0.44298245614035087,
     "reviewLoopCount": 3,
     "innovationCycleCount": 3
   }
