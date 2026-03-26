@@ -24,9 +24,8 @@ spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-se
 # Insight file must include article title in Lens section
 spec.creative-exploration-dedicated-innovate-and-evaluate-insight-actions.the-innovate-prompt-output-the-insight-file-must-include-the:
   source:
-    - [Start with the article title]
-    - [Lens]
     - [article.title]
+    - [Lens]
   test:
     - [Lens]
     - [article.title]
