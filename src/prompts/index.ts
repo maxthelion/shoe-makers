@@ -2,7 +2,12 @@ import type { ActionType, WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { findSkillForAction, formatSkillSection } from "./helpers";
 import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildContinueWorkPrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
-import { buildExplorePrompt, buildPrioritisePrompt, buildExecutePrompt, buildDeadCodePrompt, buildInnovatePrompt, buildEvaluateInsightPrompt } from "./three-phase";
+import { buildExplorePrompt } from "./explore";
+import { buildPrioritisePrompt } from "./prioritise";
+import { buildExecutePrompt } from "./execute";
+import { buildDeadCodePrompt } from "./dead-code";
+import { buildInnovatePrompt } from "./innovate";
+import { buildEvaluateInsightPrompt } from "./evaluate-insight";
 
 export { ACTION_TO_SKILL_TYPE, parseActionTypeFromPrompt } from "./helpers";
 

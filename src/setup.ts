@@ -1,26 +1,31 @@
-import { assess, buildSuggestions, archiveResolvedFindings } from "./skills/assess";
+import { assess, archiveResolvedFindings } from "./skills/assess";
 import { evaluateWithTrace, formatTrace } from "./tree/evaluate";
 import { defaultTree } from "./tree/default-tree";
-import { writeFile, mkdir, readFile, readdir } from "fs/promises";
-import { writeFileSync, readFileSync } from "fs";
+import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { appendToShiftLog } from "./log/shift-log";
-import { generatePrompt } from "./prompts";
 import { readLastAction, saveLastAction } from "./state/last-action";
 import { parseActionTypeFromPrompt } from "./prompts/helpers";
-import { checkUnreviewedCommits, countUnresolvedCritiques, hasUncommittedChanges, checkHasWorkItem, checkHasCandidates, readWorkItemSkillType, countInsights, checkHasPartialWork } from "./state/world";
-import { execSync } from "child_process";
-import type { WorldState, Blackboard, ActionType, Config } from "./types";
+import type { WorldState } from "./types";
 import { detectPermissionViolations } from "./verify/detect-violations";
 import { writePermissionViolationFinding } from "./verify/violation-findings";
-import { isWithinWorkingHours, getShiftDate } from "./schedule";
-import { loadSkills, type SkillDefinition } from "./skills/registry";
+import { isWithinWorkingHours } from "./schedule";
+import { loadSkills } from "./skills/registry";
 import { loadConfig } from "./config/load-config";
 import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
 import { fetchArticleForAction } from "./creative/wikipedia";
 import { archiveConsumedStateFiles } from "./archive/state-archive";
-import { ALL_HOUSEKEEPING_PATHS } from "./utils/housekeeping";
+
+// Import from focused modules
+import { ensureBranch } from "./setup/branch";
+import { buildWorldState } from "./setup/world-state";
+import { formatAction, readWikiOverview } from "./setup/format-action";
+import { autoCommitHousekeeping, isAllHousekeeping, HOUSEKEEPING_PATHS, logAssessment, readInboxMessages } from "./setup/housekeeping";
+
+// Re-export for backward compatibility (used by tests and other modules)
+export { formatAction, readWikiOverview } from "./setup/format-action";
+export { autoCommitHousekeeping, isAllHousekeeping, HOUSEKEEPING_PATHS, logAssessment, readInboxMessages } from "./setup/housekeeping";
 
 /**
  * Setup script: runs before the elf starts.
@@ -162,265 +167,6 @@ async function main() {
 
   console.log(`[setup] Action: ${actionTitle}`);
   console.log("[setup] Done. The elf should read .shoe-makers/state/next-action.md");
-}
-
-/** Paths considered housekeeping (archive moves, shift log entries) */
-export const HOUSEKEEPING_PATHS = ALL_HOUSEKEEPING_PATHS;
-
-/**
- * Check if all lines from `git status --porcelain` output are housekeeping changes.
- * Returns true if every changed file is under a housekeeping path.
- */
-export function isAllHousekeeping(statusOutput: string): boolean {
-  const lines = statusOutput.split("\n").filter(l => l.trim().length > 0);
-  if (lines.length === 0) return false;
-  return lines.every(line => {
-    // git status --porcelain format: XY filename (or XY old -> new for renames)
-    const path = line.slice(3).split(" -> ").pop()!;
-    return HOUSEKEEPING_PATHS.some(p => path.startsWith(p));
-  });
-}
-
-/**
- * Auto-commit housekeeping changes (archive moves, shift log entries)
- * and update the review marker so they don't trigger the critique cycle.
- *
- * Only commits if ALL uncommitted changes are in housekeeping paths.
- * If there are mixed changes (e.g., findings + code), does nothing.
- */
-export function autoCommitHousekeeping(repoRoot: string): void {
-  try {
-    const status = execSync("git status --porcelain", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    });
-
-    if (!isAllHousekeeping(status)) return;
-
-    // Read the current review marker BEFORE committing
-    const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
-    let previousMarker: string | null = null;
-    try {
-      previousMarker = readFileSync(markerPath, "utf-8").trim();
-    } catch {}
-
-    // Stage all housekeeping changes
-    for (const prefix of HOUSEKEEPING_PATHS) {
-      execSync(`git add "${prefix}"`, { cwd: repoRoot, stdio: "pipe" });
-    }
-
-    execSync('git commit -m "Auto-commit setup housekeeping (archive, shift log)"', {
-      cwd: repoRoot,
-      stdio: "pipe",
-    });
-
-    const head = execSync("git rev-parse HEAD", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
-
-    // Only advance the marker if the auto-commit is the ONLY unreviewed commit.
-    // This prevents skipping review of code commits made between the old marker
-    // and the auto-commit.
-    const parentOfHead = execSync("git rev-parse HEAD~1", {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
-
-    if (previousMarker === parentOfHead) {
-      writeFileSync(markerPath, head);
-    }
-
-    console.log("[setup] Auto-committed housekeeping changes");
-  } catch {
-    // If anything fails, just skip — the elf will handle it
-  }
-}
-
-function ensureBranch(repoRoot: string): string {
-  const shiftDate = getShiftDate(repoRoot); // uses shared schedule module
-  const branchName = `shoemakers/${shiftDate}`;
-
-  try {
-    execSync("git fetch origin", { cwd: repoRoot, stdio: "pipe" });
-  } catch {}
-
-  const currentBranch = execSync("git branch --show-current", {
-    cwd: repoRoot,
-    encoding: "utf-8",
-  }).trim();
-
-  if (currentBranch !== branchName) {
-    checkoutOrCreateBranch(repoRoot, branchName);
-  }
-
-  return branchName;
-}
-
-function checkoutOrCreateBranch(repoRoot: string, branchName: string): void {
-  try {
-    execSync(`git rev-parse --verify origin/${branchName}`, { cwd: repoRoot, stdio: "pipe" });
-    try {
-      execSync(`git checkout ${branchName}`, { cwd: repoRoot, stdio: "pipe" });
-      execSync(`git pull`, { cwd: repoRoot, stdio: "pipe" });
-    } catch {
-      execSync(`git checkout -b ${branchName} origin/${branchName}`, { cwd: repoRoot, stdio: "pipe" });
-    }
-  } catch {
-    execSync(`git checkout -b ${branchName}`, { cwd: repoRoot, stdio: "pipe" });
-  }
-}
-
-export function logAssessment(assessment: Awaited<ReturnType<typeof assess>>): void {
-  console.log(`[setup] Tests: ${assessment.testsPass ? "pass" : "FAIL"}`);
-  if (assessment.typecheckPass !== undefined) {
-    const label = assessment.typecheckPass === null ? "skipped" : assessment.typecheckPass ? "pass" : "FAIL";
-    console.log(`[setup] Typecheck: ${label}`);
-  }
-  console.log(`[setup] Plans: ${assessment.openPlans.length}`);
-  console.log(`[setup] Findings: ${assessment.findings.length}`);
-  if (assessment.invariants) {
-    console.log(
-      `[setup] Invariants: ${assessment.invariants.specifiedOnly} specified-only, ${assessment.invariants.implementedUntested} untested, ${assessment.invariants.unspecified} unspecified`
-    );
-  }
-  if (assessment.healthScore !== null) {
-    console.log(`[setup] Health: ${assessment.healthScore}/100`);
-    if (assessment.healthScore < 100 && assessment.worstFiles.length > 0) {
-      const worst = assessment.worstFiles.slice(0, 3).map(f => `${f.path} (${f.score})`).join(", ");
-      console.log(`[setup] Worst files: ${worst}`);
-    }
-  }
-  if (assessment.uncertainties && assessment.uncertainties.length > 0) {
-    const items = assessment.uncertainties.map(u => `${u.field} (${u.reason})`).join(", ");
-    console.log(`[setup] Uncertainties: ${items}`);
-  }
-  const suggestions = buildSuggestions(assessment, { includeFindings: false });
-  if (suggestions.length > 0) {
-    console.log(`[setup] Suggestions: ${suggestions.join("; ")}`);
-  }
-}
-
-export async function readInboxMessages(repoRoot: string): Promise<{ file: string; content: string }[]> {
-  const inboxDir = join(repoRoot, ".shoe-makers", "inbox");
-  const messages: { file: string; content: string }[] = [];
-  try {
-    const files = await readdir(inboxDir);
-    for (const file of files) {
-      if (!file.endsWith(".md")) continue;
-      const content = await readFile(join(inboxDir, file), "utf-8");
-      messages.push({ file, content });
-    }
-  } catch {}
-  return messages;
-}
-
-async function buildWorldState(
-  repoRoot: string,
-  branchName: string,
-  assessment: Awaited<ReturnType<typeof assess>>,
-  inboxCount: number,
-  config: Config,
-): Promise<WorldState> {
-  const [uncommitted, hasUnreviewedCommits, unresolvedCritiqueCount, hasWorkItem, hasCandidates, workItemSkillType, insightCount, hasPartialWork] = await Promise.all([
-    hasUncommittedChanges(repoRoot),
-    checkUnreviewedCommits(repoRoot),
-    countUnresolvedCritiques(repoRoot),
-    checkHasWorkItem(repoRoot),
-    checkHasCandidates(repoRoot),
-    readWorkItemSkillType(repoRoot),
-    countInsights(repoRoot),
-    checkHasPartialWork(repoRoot),
-  ]);
-
-  const blackboard: Blackboard = {
-    assessment,
-    currentTask: null,
-    priorities: null,
-    verification: null,
-  };
-
-  return {
-    branch: branchName,
-    hasUncommittedChanges: uncommitted,
-    inboxCount,
-    hasUnreviewedCommits,
-    unresolvedCritiqueCount,
-    hasWorkItem,
-    hasCandidates,
-    workItemSkillType,
-    hasPartialWork,
-    insightCount,
-    blackboard,
-    config,
-  };
-}
-
-
-export function formatAction(
-  skill: string | null,
-  state: WorldState,
-  inboxMessages: { file: string; content: string }[],
-  loadedSkills?: Map<string, SkillDefinition>,
-  article?: { title: string; summary: string },
-  permissionViolations?: string[],
-  wikiSummary?: string,
-): string {
-  if (skill === "inbox" && inboxMessages.length > 0) {
-    const msgs = inboxMessages
-      .map((m) => `### ${m.file}\n\n${m.content}`)
-      .join("\n\n---\n\n");
-    return `# Inbox Messages — Act on These First
-
-The human has left ${inboxMessages.length} message(s) for you. Read them, do what they ask, commit your work, then delete the message files from \`.shoe-makers/inbox/\`. Log what you did in the shift log.
-
-${msgs}
-
-## After handling inbox
-
-Run \`bun run setup\` again to get your next action.
-`;
-  }
-
-  if (skill) {
-    const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary);
-    return `${prompt}
-
-## After ${skill === "explore" ? "exploring" : "completing"}
-
-Run \`bun run setup\` again to get your next action.
-`;
-  }
-
-  return `# Nothing to Do
-
-The tree found no applicable action. This shouldn't happen — check the tree definition.
-`;
-}
-
-/**
- * Read wiki overview pages for the innovate creative brief.
- * Reads architecture.md and other key overview pages to build a system summary.
- */
-export async function readWikiOverview(repoRoot: string, wikiDir: string = "wiki"): Promise<string> {
-  const overviewFiles = ["architecture.md", "behaviour-tree.md", "pure-function-agents.md"];
-  const sections: string[] = [];
-
-  for (const file of overviewFiles) {
-    try {
-      const content = await readFile(join(repoRoot, wikiDir, "pages", file), "utf-8");
-      // Strip frontmatter
-      const stripped = content.replace(/^---[\s\S]*?---\n*/, "");
-      sections.push(stripped.trim());
-    } catch {
-      // File doesn't exist — skip
-    }
-  }
-
-  return sections.length > 0
-    ? sections.join("\n\n---\n\n")
-    : "Shoe-makers is a behaviour tree system that runs autonomous AI agents to improve codebases overnight.";
 }
 
 if (import.meta.main) {
