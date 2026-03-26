@@ -11,8 +11,8 @@ describe("default tree structure", () => {
     expect(defaultTree.name).toBe("root");
   });
 
-  test("has exactly 13 children", () => {
-    expect(defaultTree.children).toHaveLength(13);
+  test("has exactly 14 children", () => {
+    expect(defaultTree.children).toHaveLength(14);
   });
 
   test("each child is a sequence with condition + action", () => {
@@ -25,15 +25,16 @@ describe("default tree structure", () => {
   });
 
   const expectedOrder = [
-    // Reactive zone (positions 0-6)
+    // Reactive zone (positions 0-7)
     "tests-failing",
+    "review-loop-with-candidates",
     "review-loop-breaker",
     "unresolved-critiques",
     "partial-work",
     "unreviewed-commits",
     "unverified-work",
     "inbox-messages",
-    // Three-phase orchestration (positions 7-12)
+    // Three-phase orchestration (positions 8-13)
     "dead-code-work",
     "work-item",
     "candidates",
@@ -48,10 +49,11 @@ describe("default tree structure", () => {
   });
 
   test("reactive zone comes before proactive zone", () => {
-    const reactiveNames = defaultTree.children!.slice(0, 7).map((c) => c.name);
-    const proactiveNames = defaultTree.children!.slice(7).map((c) => c.name);
+    const reactiveNames = defaultTree.children!.slice(0, 8).map((c) => c.name);
+    const proactiveNames = defaultTree.children!.slice(8).map((c) => c.name);
     expect(reactiveNames).toEqual([
       "tests-failing",
+      "review-loop-with-candidates",
       "review-loop-breaker",
       "unresolved-critiques",
       "partial-work",
@@ -99,9 +101,10 @@ describe("default tree structure", () => {
 });
 
 describe("review-loop circuit breaker", () => {
-  test("routes to explore when review loop count >= 3 and critiques exist", () => {
+  test("routes to explore when review loop count >= 3 and no candidates", () => {
     const state = makeState({
       unresolvedCritiqueCount: 2,
+      hasCandidates: false,
       blackboard: {
         ...emptyBlackboard(),
         assessment: {
@@ -112,6 +115,22 @@ describe("review-loop circuit breaker", () => {
     });
     const result = evaluate(defaultTree, state);
     expect(result.skill).toBe("explore");
+  });
+
+  test("routes to prioritise when review loop count >= 3 and candidates exist", () => {
+    const state = makeState({
+      unresolvedCritiqueCount: 2,
+      hasCandidates: true,
+      blackboard: {
+        ...emptyBlackboard(),
+        assessment: {
+          ...freshAssessment,
+          processPatterns: { reactiveRatio: 0.8, reviewLoopCount: 3, innovationCycleCount: 0 },
+        },
+      },
+    });
+    const result = evaluate(defaultTree, state);
+    expect(result.skill).toBe("prioritise");
   });
 
   test("routes to fix-critique when review loop count < 3 and critiques exist", () => {
