@@ -1,3 +1,87 @@
+import { readFile, readdir, writeFile } from "fs/promises";
+import { join } from "path";
+
+const CORPUS_DIR = ".shoe-makers/creative-corpus";
+
+export interface CorpusArticle {
+  title: string;
+  summary: string;
+  filepath: string;
+}
+
+/**
+ * Read all unused articles from the local creative corpus.
+ */
+export async function readLocalCorpus(repoRoot: string): Promise<CorpusArticle[]> {
+  const dir = join(repoRoot, CORPUS_DIR);
+  let files: string[];
+  try {
+    files = (await readdir(dir)).filter(f => f.endsWith(".md")).sort();
+  } catch {
+    return [];
+  }
+
+  const articles: CorpusArticle[] = [];
+  for (const file of files) {
+    const filepath = join(dir, file);
+    try {
+      const content = await readFile(filepath, "utf-8");
+      const frontmatter = parseFrontmatter(content);
+      if (frontmatter.used) continue;
+      const title = typeof frontmatter.title === "string" ? frontmatter.title : file.replace(/\.md$/, "");
+      const body = content.replace(/^---[\s\S]*?---\n*/, "").trim();
+      if (body.length > 0) {
+        articles.push({ title, summary: body.substring(0, 1000), filepath });
+      }
+    } catch {
+      // Skip unreadable files
+    }
+  }
+  return articles;
+}
+
+/**
+ * Pick a random unused article from the local corpus.
+ */
+export async function pickFromCorpus(repoRoot: string): Promise<CorpusArticle | null> {
+  const articles = await readLocalCorpus(repoRoot);
+  if (articles.length === 0) return null;
+  return articles[Math.floor(Math.random() * articles.length)];
+}
+
+/**
+ * Mark a corpus article as used by adding `used: true` to its frontmatter.
+ */
+export async function markArticleUsed(filepath: string): Promise<void> {
+  const content = await readFile(filepath, "utf-8");
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (fmMatch) {
+    const newFm = fmMatch[1] + "\nused: true";
+    const updated = content.replace(/^---\n[\s\S]*?\n---/, `---\n${newFm}\n---`);
+    await writeFile(filepath, updated);
+  } else {
+    // No frontmatter — add one
+    await writeFile(filepath, `---\nused: true\n---\n${content}`);
+  }
+}
+
+/**
+ * Parse simple frontmatter from a markdown file.
+ */
+function parseFrontmatter(content: string): Record<string, string | boolean> {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  const result: Record<string, string | boolean> = {};
+  for (const line of match[1].split("\n")) {
+    const kv = line.match(/^(\w[\w-]*):\s*(.+)$/);
+    if (kv) {
+      const value = kv[2].trim().replace(/^["']|["']$/g, "");
+      result[kv[1]] = value === "true" ? true : value === "false" ? false : value;
+    }
+  }
+  return result;
+}
+
 /**
  * Diverse concept corpus for creative analogical prompting.
  * Used as a fallback when Wikipedia is unreachable.
@@ -85,41 +169,54 @@ export function getRandomFallbackConcept(): { title: string; summary: string } {
 
 /**
  * Fetch a random Wikipedia article summary for analogical prompting.
- * Falls back to a local concept corpus when Wikipedia is unreachable.
+ * Priority: Wikipedia API → local corpus → hardcoded fallback.
  */
-export async function fetchRandomArticle(): Promise<{
+export async function fetchRandomArticle(repoRoot?: string): Promise<{
   title: string;
   summary: string;
+  corpusFilepath?: string;
 } | null> {
+  // 1. Try Wikipedia API
   try {
-    // Get a random article title
     const randomRes = await fetch(
       "https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json",
       { signal: AbortSignal.timeout(10_000) }
     );
-    if (!randomRes.ok) return getRandomFallbackConcept();
-    const randomData = await randomRes.json();
-    const title = randomData?.query?.random?.[0]?.title;
-    if (!title) return getRandomFallbackConcept();
-
-    // Get the article extract
-    const extractRes = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=true&explaintext=true&format=json`,
-      { signal: AbortSignal.timeout(10_000) }
-    );
-    if (!extractRes.ok) return getRandomFallbackConcept();
-    const extractData = await extractRes.json();
-    const pages = extractData?.query?.pages;
-    if (!pages) return getRandomFallbackConcept();
-
-    const page = Object.values(pages)[0] as { extract?: string };
-    const summary = page?.extract?.trim();
-    if (!summary || summary.length < 50) return getRandomFallbackConcept(); // skip stubs
-
-    return { title, summary: summary.substring(0, 1000) };
+    if (randomRes.ok) {
+      const randomData = await randomRes.json();
+      const title = randomData?.query?.random?.[0]?.title;
+      if (title) {
+        const extractRes = await fetch(
+          `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=true&explaintext=true&format=json`,
+          { signal: AbortSignal.timeout(10_000) }
+        );
+        if (extractRes.ok) {
+          const extractData = await extractRes.json();
+          const pages = extractData?.query?.pages;
+          if (pages) {
+            const page = Object.values(pages)[0] as { extract?: string };
+            const summary = page?.extract?.trim();
+            if (summary && summary.length >= 50) {
+              return { title, summary: summary.substring(0, 1000) };
+            }
+          }
+        }
+      }
+    }
   } catch {
-    return getRandomFallbackConcept(); // network error — use local corpus
+    // Wikipedia unreachable — fall through
   }
+
+  // 2. Try local corpus
+  if (repoRoot) {
+    const article = await pickFromCorpus(repoRoot);
+    if (article) {
+      return { title: article.title, summary: article.summary, corpusFilepath: article.filepath };
+    }
+  }
+
+  // 3. Hardcoded fallback
+  return getRandomFallbackConcept();
 }
 
 /**
@@ -132,7 +229,7 @@ export function shouldIncludeLens(frequency: number = 0.3): boolean {
 
 /**
  * Fetch a Wikipedia article for the given skill action.
- * For innovate: always fetch and log to shift log.
+ * For innovate: always fetch and log to shift log. Marks corpus articles as used.
  * For explore: probabilistic based on insightFrequency.
  * Returns undefined for all other skills.
  */
@@ -140,12 +237,21 @@ export async function fetchArticleForAction(
   skill: string | null,
   insightFrequency: number,
   logToShiftLog: (entry: string) => Promise<void>,
+  repoRoot?: string,
 ): Promise<{ title: string; summary: string } | undefined> {
   if (skill === "innovate") {
-    const article = (await fetchRandomArticle()) ?? undefined;
+    const article = (await fetchRandomArticle(repoRoot)) ?? undefined;
     if (article) {
       console.log(`[setup] Wikipedia article fetched: "${article.title}"`);
       await logToShiftLog(`- **Wikipedia article**: "${article.title}"\n`);
+      // Mark corpus article as used so it won't be picked again
+      if ("corpusFilepath" in article && article.corpusFilepath) {
+        try {
+          await markArticleUsed(article.corpusFilepath);
+        } catch {
+          // Non-fatal — article still works, just might be picked again
+        }
+      }
     } else {
       console.log("[setup] Wikipedia article fetch failed");
       await logToShiftLog("- **Wikipedia article**: fetch failed — no article available\n");
@@ -154,7 +260,7 @@ export async function fetchArticleForAction(
   }
 
   if (skill === "explore" && shouldIncludeLens(insightFrequency)) {
-    return (await fetchRandomArticle()) ?? undefined;
+    return (await fetchRandomArticle(repoRoot)) ?? undefined;
   }
 
   return undefined;

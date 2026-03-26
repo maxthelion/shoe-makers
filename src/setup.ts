@@ -108,6 +108,7 @@ async function main() {
     skill,
     config.insightFrequency,
     (entry) => appendToShiftLog(repoRoot, entry),
+    repoRoot,
   );
 
   // Read wiki overview for innovate action
