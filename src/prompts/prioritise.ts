@@ -25,16 +25,42 @@ ${tierGuidance}
 1. Read \`.shoe-makers/state/candidates.md\`
 2. For the top candidates, read the relevant wiki pages and source files to understand the context
 3. Pick ONE candidate — the most impactful option
-4. Write \`.shoe-makers/state/work-item.md\` with:
-   - A clear title
-   - If the work maps to a specific skill type (e.g. dead-code, implement, fix), add \`skill-type: <type>\` on a line by itself near the top
-   - The relevant wiki text (quote it)
-   - The relevant code (reference files and line numbers)
-   - Exactly what to build or change
-   - Which patterns to follow
-   - What tests to write
-   - What NOT to change
-   - A brief "## Decision Rationale" explaining why this candidate was chosen over the others
+4. Write \`.shoe-makers/state/work-item.md\` using this exact format:
+
+\`\`\`markdown
+skill-type: [implement | test-coverage | fix | health | doc-sync | octoclean-fix | dead-code | bug-fix | dependency-update]
+
+# [YOUR TITLE HERE]
+
+## Wiki Spec
+
+[YOUR CONTENT HERE — quote the relevant wiki text, cite the page and line numbers]
+
+## Current Code
+
+[YOUR CONTENT HERE — reference specific files and line numbers, describe what exists]
+
+## What to Build
+
+[YOUR CONTENT HERE — exactly what to build or change, step by step]
+
+## Patterns to Follow
+
+[YOUR CONTENT HERE — which existing patterns in the codebase to follow]
+
+## Tests to Write
+
+[YOUR CONTENT HERE — specific tests to write, what behaviour they verify]
+
+## What NOT to Change
+
+[YOUR CONTENT HERE — explicit boundaries]
+
+## Decision Rationale
+
+[YOUR CONTENT HERE — why this candidate was chosen over the others]
+\`\`\`
+
 5. Delete \`.shoe-makers/state/candidates.md\` (it's been consumed)
 6. Commit both changes
 
