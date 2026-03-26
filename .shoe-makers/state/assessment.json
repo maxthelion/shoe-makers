@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-26T10:13:14.980Z",
+  "timestamp": "2026-03-26T10:15:10.746Z",
   "invariants": {
     "specifiedOnly": 0,
     "implementedUntested": 0,
@@ -54,21 +54,21 @@
   "testsPass": true,
   "typecheckPass": true,
   "recentGitActivity": [
+    "4739e84 Doc-sync: update wiki permissions table to match code",
+    "884b5ef Prioritise: pick doc-sync permissions table (candidate #2), consume candidates",
+    "9fcb761 Setup: state update for prioritise tick",
     "aba6f13 Execute: remove consumed work-item (DRY consolidation complete)",
     "b4d2421 Health: consolidate duplicated process-pattern computation into shared function",
     "c84f2d0 Setup: state update for prioritise tick (review-loop-breaker still active)",
     "17d9979 Prioritise: retain DRY consolidation work-item, consume candidates",
     "e9929c9 Explore: write candidates (DRY consolidation, doc-sync permissions, worldState tests)",
     "5904b56 Prioritise: retain DRY consolidation work-item, consume candidates",
-    "5f85449 Setup: update state files for review tick (assessment, log, action rotation)",
-    "c1f1df9 Explore: final candidates for shift (review-loop-breaker blocked all execution)",
-    "814074b Prioritise: retain work-item, consume candidates (review-loop cycle tick 9)",
-    "c6a1da0 Explore: candidates unchanged (review-loop-breaker cycle continues, tick 8+)"
+    "5f85449 Setup: update state files for review tick (assessment, log, action rotation)"
   ],
   "processPatterns": {
     "reactiveTicks": 103,
-    "proactiveTicks": 141,
-    "reactiveRatio": 0.42213114754098363,
+    "proactiveTicks": 142,
+    "reactiveRatio": 0.4204081632653061,
     "reviewLoopCount": 3,
     "innovationCycleCount": 3
   }
