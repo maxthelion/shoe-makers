@@ -2,6 +2,7 @@ import type { ActionType, WorldState } from "../types";
 import type { SkillDefinition } from "../skills/registry";
 import { findSkillForAction, formatSkillSection } from "./helpers";
 import { buildFixTestsPrompt, buildFixCritiquePrompt, buildCritiquePrompt, buildContinueWorkPrompt, buildReviewPrompt, buildInboxPrompt } from "./reactive";
+import type { CritiqueContext } from "./reactive";
 import { buildExplorePrompt } from "./explore";
 import { buildPrioritisePrompt } from "./prioritise";
 import { buildExecutePrompt } from "./execute";
@@ -24,6 +25,7 @@ export function generatePrompt(
   article?: { title: string; summary: string },
   permissionViolations?: string[],
   wikiSummary?: string,
+  critiqueContext?: CritiqueContext,
 ): string {
   const skill = findSkillForAction(action, skills);
   const skillSection = skill ? formatSkillSection(skill) : "";
@@ -34,7 +36,7 @@ export function generatePrompt(
     case "fix-critique":
       return buildFixCritiquePrompt();
     case "critique":
-      return buildCritiquePrompt(permissionViolations);
+      return buildCritiquePrompt(critiqueContext ?? permissionViolations);
     case "continue-work":
       return buildContinueWorkPrompt();
     case "review":

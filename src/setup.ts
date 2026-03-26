@@ -16,6 +16,7 @@ import { readBlackboard } from "./state/blackboard";
 import { checkHealthRegression } from "./verify/health-regression";
 import { fetchArticleForAction } from "./creative/wikipedia";
 import { archiveConsumedStateFiles } from "./archive/state-archive";
+import { gatherCritiqueContext } from "./setup/critique-context";
 
 // Import from focused modules
 import { ensureBranch } from "./setup/branch";
@@ -128,9 +129,12 @@ async function main() {
     }
   }
 
-  // Detect permission violations for critique actions
+  // Detect permission violations and gather structured context for critique actions
   const permissionViolations = skill === "critique"
     ? await detectPermissionViolations(repoRoot)
+    : undefined;
+  const critiqueContext = skill === "critique"
+    ? await gatherCritiqueContext(repoRoot, previousAction ?? undefined, permissionViolations)
     : undefined;
 
   // Write a structured finding if permission violations were detected
@@ -149,7 +153,7 @@ async function main() {
     }
   }
 
-  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary);
+  const action = formatAction(skill, state, inboxMessages, loadedSkills, article, permissionViolations, wikiSummary, critiqueContext);
 
   await writeFile(join(stateDir, "next-action.md"), action);
   await saveLastAction(repoRoot, action);

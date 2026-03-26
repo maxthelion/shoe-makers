@@ -3,6 +3,7 @@ import { join } from "path";
 import { generatePrompt } from "../prompts";
 import type { WorldState, ActionType } from "../types";
 import type { SkillDefinition } from "../skills/registry";
+import type { CritiqueContext } from "../prompts/critique";
 
 export function formatAction(
   skill: string | null,
@@ -12,6 +13,7 @@ export function formatAction(
   article?: { title: string; summary: string },
   permissionViolations?: string[],
   wikiSummary?: string,
+  critiqueContext?: CritiqueContext,
 ): string {
   if (skill === "inbox" && inboxMessages.length > 0) {
     const msgs = inboxMessages
@@ -31,7 +33,7 @@ Run \`bun run setup\` again to get your next action.
 
   if (skill) {
     const actionType = skill as ActionType;
-    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary);
+    const prompt = generatePrompt(actionType, state, loadedSkills, (actionType === "explore" || actionType === "innovate") ? article : undefined, permissionViolations, wikiSummary, critiqueContext);
     return `${prompt}
 
 ## After ${skill === "explore" ? "exploring" : "completing"}
