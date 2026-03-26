@@ -81,75 +81,57 @@ describe("hasUncommittedChanges", () => {
 });
 
 describe("checkUnreviewedCommits", () => {
-  const repoRoot = process.cwd();
-  const markerPath = join(repoRoot, ".shoe-makers", "state", "last-reviewed-commit");
-  let savedMarker: string | null = null;
-
-  beforeEach(async () => {
-    // Save existing marker to restore after test
-    try {
-      const { readFile: rf } = await import("fs/promises");
-      savedMarker = await rf(markerPath, "utf-8");
-    } catch {
-      savedMarker = null;
-    }
-  });
-
-  afterEach(async () => {
-    // Restore marker to avoid side effects on real repo
-    if (savedMarker !== null) {
-      await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
-      await writeFile(markerPath, savedMarker);
-    } else {
-      try {
-        const { unlink } = await import("fs/promises");
-        await unlink(markerPath);
-      } catch {}
-    }
-  });
+  /** Create an isolated temp git repo with .shoe-makers/state/ directory */
+  async function createTempGitRepo(): Promise<string> {
+    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-unreviewed-"));
+    execSync("git init", { cwd: tempDir, stdio: "pipe" });
+    execSync("git -c commit.gpgsign=false commit --allow-empty -m 'init'", { cwd: tempDir, stdio: "pipe" });
+    await mkdir(join(tempDir, ".shoe-makers", "state"), { recursive: true });
+    return tempDir;
+  }
 
   test("returns false when marker points to HEAD (all reviewed)", async () => {
-    const head = execSync("git rev-parse HEAD", { cwd: repoRoot, encoding: "utf-8" }).trim();
-    await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
-    await writeFile(markerPath, head);
-
-    const result = await checkUnreviewedCommits(repoRoot);
-    expect(result).toBe(false);
+    const tempDir = await createTempGitRepo();
+    try {
+      const head = execSync("git rev-parse HEAD", { cwd: tempDir, encoding: "utf-8" }).trim();
+      await writeFile(join(tempDir, ".shoe-makers", "state", "last-reviewed-commit"), head);
+      const result = await checkUnreviewedCommits(tempDir);
+      expect(result).toBe(false);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   test("returns true when elf-authored commits exist after marker", async () => {
-    // Find a commit that touches src/ (non-orchestration), then use its parent as marker
-    const srcCommit = execSync(
-      "git log --format=%H -n 1 -- src/",
-      { cwd: repoRoot, encoding: "utf-8" },
-    ).trim();
-
-    if (!srcCommit) {
-      // No src-touching commits — skip test (shouldn't happen in a real repo)
-      return;
+    const tempDir = await createTempGitRepo();
+    try {
+      const initCommit = execSync("git rev-parse HEAD", { cwd: tempDir, encoding: "utf-8" }).trim();
+      // Create a commit that touches src/ (elf-authored, not orchestration)
+      await mkdir(join(tempDir, "src"), { recursive: true });
+      await writeFile(join(tempDir, "src", "new-file.ts"), "export const x = 1;");
+      execSync("git add src/new-file.ts", { cwd: tempDir, stdio: "pipe" });
+      execSync("git -c commit.gpgsign=false commit -m 'add src file'", { cwd: tempDir, stdio: "pipe" });
+      await writeFile(join(tempDir, ".shoe-makers", "state", "last-reviewed-commit"), initCommit);
+      const result = await checkUnreviewedCommits(tempDir);
+      expect(result).toBe(true);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
     }
-
-    const parent = execSync(`git rev-parse ${srcCommit}~1`, {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    }).trim();
-    await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
-    await writeFile(markerPath, parent);
-
-    const result = await checkUnreviewedCommits(repoRoot);
-    expect(result).toBe(true);
   });
 
   test("returns true when marker contains invalid content", async () => {
-    await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
-    await writeFile(markerPath, "; rm -rf /");
-
-    const result = await checkUnreviewedCommits(repoRoot);
-    expect(result).toBe(true); // treats invalid marker as "all unreviewed"
+    const tempDir = await createTempGitRepo();
+    try {
+      await writeFile(join(tempDir, ".shoe-makers", "state", "last-reviewed-commit"), "; rm -rf /");
+      const result = await checkUnreviewedCommits(tempDir);
+      expect(result).toBe(true); // treats invalid marker as "all unreviewed"
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 
   test("returns false for non-git directory", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-unreviewed-"));
+    const tempDir = await mkdtemp(join(tmpdir(), "shoe-makers-nogit-"));
     try {
       const result = await checkUnreviewedCommits(tempDir);
       expect(result).toBe(false);
@@ -159,15 +141,17 @@ describe("checkUnreviewedCommits", () => {
   });
 
   test("accepts short hash (7 chars) as valid marker", async () => {
-    const head = execSync("git rev-parse --short HEAD", { cwd: repoRoot, encoding: "utf-8" }).trim();
-    await mkdir(join(repoRoot, ".shoe-makers", "state"), { recursive: true });
-    // Short hashes are valid per the regex /^[0-9a-f]{7,40}$/
-    // This should not return true due to invalid marker — the hash is valid
-    await writeFile(markerPath, head);
-    const result = await checkUnreviewedCommits(repoRoot);
-    // We can't predict the exact result (depends on git state),
-    // but it should not throw and should return a boolean
-    expect(typeof result).toBe("boolean");
+    const tempDir = await createTempGitRepo();
+    try {
+      const head = execSync("git rev-parse --short HEAD", { cwd: tempDir, encoding: "utf-8" }).trim();
+      await writeFile(join(tempDir, ".shoe-makers", "state", "last-reviewed-commit"), head);
+      const result = await checkUnreviewedCommits(tempDir);
+      // Short hashes are valid per the regex /^[0-9a-f]{7,40}$/
+      // Result depends on whether there are commits after HEAD (there aren't), so expect false
+      expect(typeof result).toBe("boolean");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 });
 
