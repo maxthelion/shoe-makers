@@ -1,0 +1,133 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === invariants added 2026-03-22 (creative exploration, project docs, wiki authority) ===
+
+# invariants.md authoritative — system reads it as canonical claims
+spec.maintain-a-living-spec.shoemakersinvariantsmd-is-always-authoritative-regardless-of:
+  source:
+    - [extractInvariantClaims]
+    - [invariants.md]
+  test:
+    - [extractInvariantClaims]
+
+# Wikipedia random article — implemented in src/creative/wikipedia.ts
+spec.creative-exploration.some-explore-cycles-include-a-random-wikipedia-article-as-an:
+  source:
+    - [fetchRandomArticle]
+    - [shouldIncludeLens]
+    - [creative/wikipedia]
+  test:
+    - [fetchRandomArticle, shouldIncludeLens, wikipedia]
+
+# insightFrequency configurable — function exists with default 0.3
+spec.creative-exploration.frequency-is-configurable-via-insightfrequency-in-configyaml:
+  source:
+    - [shouldIncludeLens]
+    - ["0.3"]
+  test:
+    - [shouldIncludeLens, insightFrequency]
+
+# README describes project — content verified in README.md
+spec.project-documentation.the-readme-describes-what-the-project-does-how-to-install-it:
+  source:
+    - [README.md]
+    - [PROTOCOL_CONTENT]
+  test:
+    - [README, init]
+
+# Integration documentation — init scaffolds the files that integration.md documents
+spec.project-documentation.documentation-explains-how-to-include-shoemakers-in-another-:
+  source:
+    - [async function init]
+    - [protocol.md]
+    - [config.yaml]
+  test:
+    - [init]
+
+# README reflects current capabilities — explore prompt tells elf to check README accuracy
+spec.project-documentation.the-readme-reflects-current-capabilities-as-described-by-the:
+  source:
+    - [README.md]
+    - [explore]
+  test:
+    - [explore]
+    - [README]
+
+# Explore checks README accuracy — step 7 in explore prompt
+spec.project-documentation.the-explore-step-checks-whether-the-readme-is-accurate-and-f:
+  source:
+    - [README.md]
+    - [explore]
+    - [drift, accurate]
+  test:
+    - [explore]
+    - [README]
+
+# Elf writes insights during explore — prompt instructs to write to insights/
+spec.creative-exploration.the-elf-reads-the-codebase-through-the-lens-and-writes-an-in:
+  source:
+    - [.shoe-makers/insights/]
+    - [proposals, not problems]
+  test:
+    - [.shoe-makers/insights/]
+    - [proposals, not problems]
+
+# Insights go to .shoe-makers/insights/ — separate from findings
+spec.creative-exploration.insights-go-to-shoemakersinsights-separate-from-findings-the:
+  source:
+    - [.shoe-makers/insights/]
+    - [findings]
+    - [countInsights]
+  test:
+    - [.shoe-makers/insights/]
+    - [countInsights]
+
+# Prioritise elf reviews insights — promote, defer, dismiss
+spec.creative-exploration.insights-are-reviewed-by-a-future-prioritise-elf-who-decides:
+  source:
+    - [.shoe-makers/insights/]
+    - [Promote]
+    - [Defer]
+    - [Dismiss]
+  test:
+    - [.shoe-makers/insights/]
+    - [Promote]
+    - [Dismiss]
+
+# Separation between generating and acting on insights
+spec.creative-exploration.the-separation-between-generating-insights-divergentcreative:
+  source:
+    - [explore]
+    - [prioritise]
+    - [insights/]
+  test:
+    - [explore]
+    - [prioritise]
+
+# Wiki wins over code — execute prompt instructs elves to never revert the wiki
+spec.maintain-a-living-spec.when-wiki-and-code-diverge-the-newer-change-wins-if-the-wiki:
+  source:
+    - [never revert the wiki]
+    - [source of truth]
+  test:
+    - [never revert the wiki]
+    - [source of truth]
+
+# Elves suggest new invariants via findings
+spec.maintain-a-living-spec.when-new-code-exists-without-a-corresponding-invariant-elves:
+  source:
+    - [suggesting a new invariant]
+    - [invariants.md]
+  test:
+    - [suggesting a new invariant]
+    - [invariants.md]
+
+# CHANGELOG — protocol instructs elves to maintain it
+spec.project-documentation.the-changelog-tracks-userfacing-changes-in-keep-a-changelog-:
+  source:
+    - [PROTOCOL_CONTENT]
+    - [changelog, CHANGELOG]
+  test:
+    - [PROTOCOL_CONTENT]

@@ -1,0 +1,156 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === invariants.md section 2: How it decides what to do ===
+
+spec.one-invocation-one-action-one-exit.each-scheduled-invocation-does-one-thing-and-exits-the-elf-n:
+  source:
+    - ["tick("]
+    - [ActionType]
+  test:
+    - ["tick("]
+
+spec.one-invocation-one-action-one-exit.the-behaviour-tree-evaluates-from-scratch-each-invocation-ca:
+  source:
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree", "evaluate(node"]
+    - [getState]
+  test:
+    - ["evaluate("]
+
+spec.one-invocation-one-action-one-exit.the-scheduled-task-interval-provides-the-loop-not-the-elf:
+  source:
+    - ["tickInterval: number", "tick-interval"]
+    - ["intOrDefault"]
+  test:
+    - ["tick-interval"]
+
+spec.one-invocation-one-action-one-exit.if-an-agent-crashes-the-next-invocation-sees-the-same-world-:
+  source:
+    - ["tick("]
+    - [getState]
+  test:
+    - ["tick("]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.tests-failing-fix-them-always-highest-priority-direct-prompt:
+  source:
+    - [testsFailing]
+    - [fix-tests]
+  test:
+    - [fix-tests]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.unresolved-critiques-fix-the-flagged-issues-direct-prompt:
+  source:
+    - [hasUnresolvedCritiques, unresolvedCritiques]
+    - [fix-critique]
+  test:
+    - [fix-critique]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.unreviewed-commits-review-adversarially-direct-prompt:
+  source:
+    - [hasUnreviewedCommits]
+    - [critique]
+  test:
+    - [critique]
+    - [unreviewed]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.inbox-messages-read-and-act-on-them-direct-prompt:
+  source:
+    - [hasInboxMessages, inboxCount]
+    - [inbox]
+  test:
+    - [inbox]
+
+spec.reactive-conditions-top-of-tree-fixed-priority.these-fire-immediately-with-a-focused-prompt-no-orchestratio:
+  source:
+    - ["function makeConditionAction"]
+    - ["\"sequence\""]
+    - ["\"condition\""]
+  test:
+    - ["returns fix-tests when tests are failing"]
+
+spec.three-phase-orchestration-bottom-of-tree.if-no-reactive-condition-matches-proactive-work-goes-through:
+  source:
+    - [hasWorkItem, hasCandidates, alwaysTrue]
+    - [execute-work-item, prioritise, explore]
+  test:
+    - [explore]
+    - [prioritise]
+
+spec.three-phase-orchestration-bottom-of-tree.explore-read-everything-wiki-code-invariants-health-findings:
+  source:
+    - [explore, candidates.md]
+    - [generatePrompt]
+  test:
+    - [explore, candidates]
+
+spec.three-phase-orchestration-bottom-of-tree.prioritise-read-candidates-relevant-code-and-wiki-for-the-to:
+  source:
+    - [hasCandidates]
+    - [prioritise, work-item.md]
+  test:
+    - [prioritise, candidates]
+
+spec.three-phase-orchestration-bottom-of-tree.execute-read-workitemmd-do-the-work-commit-optionally-write-:
+  source:
+    - [hasWorkItem]
+    - [execute-work-item, work-item.md]
+  test:
+    - [execute-work-item, work-item]
+
+spec.three-phase-orchestration-bottom-of-tree.each-phase-narrows-the-context-for-the-next-explore-is-broad:
+  source:
+    - [hasWorkItem, hasCandidates, alwaysTrue]
+    - [execute-work-item, prioritise, explore]
+  test:
+    - [explore]
+    - [prioritise]
+
+spec.the-prioritiser-writes-the-real-prompt.the-prioritise-step-is-the-orchestrator-its-entire-job-is-to:
+  source:
+    - [prioritise, work-item.md]
+    - [generatePrompt]
+  test:
+    - [prioritise, work-item]
+
+spec.the-prioritiser-writes-the-real-prompt.not-implement-something-from-the-wiki-but-the-wiki-says-x-th:
+  source:
+    - [prioritise]
+    - [candidates, work-item]
+  test:
+    - [prioritise, candidates]
+
+spec.the-prioritiser-writes-the-real-prompt.it-reads-the-relevant-code-to-understand-conventions-reads-t:
+  source:
+    - [prioritise]
+    - [candidates, wiki]
+  test:
+    - [prioritise, candidates]
+
+spec.the-prioritiser-writes-the-real-prompt.this-is-the-llm-judgement-step-it-weighs-impact-confidence-r:
+  source:
+    - [prioritise]
+    - [Impact, Confidence, Risk]
+  test:
+    - [prioritise]
+
+spec.the-prioritiser-writes-the-real-prompt.no-hardcoded-priority-between-featurestestsdocshealth-the-pr:
+  source:
+    - [prioritise, candidates]
+    - [Impact, Confidence, Risk]
+  test:
+    - [prioritise]
+
+spec.the-wiki-drives-work.invariants-compare-wiki-claims-against-code-and-surface-gaps:
+  source:
+    - [checkInvariants]
+    - [specifiedOnly]
+  test:
+    - [checkInvariants]
+
+spec.the-wiki-drives-work.changes-to-the-wiki-surface-as-new-invariant-gaps-elves-disc:
+  source:
+    - [checkInvariants]
+    - [extractClaims, extractInvariantClaims]
+  test:
+    - [checkInvariants]

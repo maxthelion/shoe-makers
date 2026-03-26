@@ -1,0 +1,74 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === verification.md ===
+verification.tests-must-pass:
+  source:
+    - [testsPass]
+  test:
+    - [testsPass]
+
+verification.commit-or-revert:
+  source:
+    - ["\"commit\""]
+    - ["\"revert\""]
+  test:
+    - [commit]
+    - [revert]
+
+verification.adversarial-review:
+  source:
+    - [hasUnreviewedCommits]
+    - [critique]
+    - [last-reviewed-commit]
+  test:
+    - [critique]
+    - [unreviewed]
+
+verification.review-checks-diff:
+  source:
+    - [Adversarial Review]
+    - [git diff]
+    - [critique]
+  test:
+    - [critique]
+
+verification.critiques-become-findings:
+  source:
+    - [critique-]
+    - [findings]
+    - [fix-critique]
+  test:
+    - [critique]
+    - [fix-critique]
+
+verification.verify-module:
+  source:
+    - [verify/invariants]
+  test:
+    - [verify/invariants, checkInvariants]
+
+verification.role-based-permissions:
+  source:
+    - [canWrite, permittedFiles, allowedPaths]
+    - [role]
+  test:
+    - [permission, permittedFiles]
+    - [role, "role-based"]
+
+verification.tdd-enforcement:
+  source:
+    - [cannotWrite, __tests__]
+    - [executor, execute-work-item]
+  test:
+    - [permission enforcement]
+    - [executor]
+
+verification.invariants-human-only:
+  source:
+    - [invariants.md]
+    - [cannotWrite, off-limits, forbidden]
+  test:
+    - [invariants.md]
+    - [forbidden, off-limits, cannotWrite]

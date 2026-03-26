@@ -131,12 +131,12 @@ afterEach(async () => {
 });
 
 describe("loadClaimEvidence", () => {
-  test("returns empty record when file does not exist", async () => {
+  test("returns empty record when neither file nor directory exists", async () => {
     const result = await loadClaimEvidence(tempDir);
     expect(result).toEqual({});
   });
 
-  test("loads and parses YAML from repo root", async () => {
+  test("loads from single YAML file", async () => {
     await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
     await writeFile(
       join(tempDir, ".shoe-makers/claim-evidence.yaml"),
@@ -145,5 +145,41 @@ describe("loadClaimEvidence", () => {
     const result = await loadClaimEvidence(tempDir);
     expect(result["test.claim"]).toBeDefined();
     expect(result["test.claim"].sourceEvidence).toEqual([["pattern"]]);
+  });
+
+  test("loads from multi-file directory", async () => {
+    const dir = join(tempDir, ".shoe-makers/claim-evidence");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "01-section-a.yaml"), "a.claim:\n  source:\n    - [foo]\n");
+    await writeFile(join(dir, "02-section-b.yaml"), "b.claim:\n  test:\n    - [bar]\n");
+    const result = await loadClaimEvidence(tempDir);
+    expect(result["a.claim"]).toBeDefined();
+    expect(result["a.claim"].sourceEvidence).toEqual([["foo"]]);
+    expect(result["b.claim"]).toBeDefined();
+    expect(result["b.claim"].testEvidence).toEqual([["bar"]]);
+  });
+
+  test("prefers directory over single file", async () => {
+    await mkdir(join(tempDir, ".shoe-makers"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/claim-evidence.yaml"),
+      "single.claim:\n  source:\n    - [from-single]\n"
+    );
+    const dir = join(tempDir, ".shoe-makers/claim-evidence");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "01-dir.yaml"), "dir.claim:\n  source:\n    - [from-dir]\n");
+    const result = await loadClaimEvidence(tempDir);
+    expect(result["dir.claim"]).toBeDefined();
+    expect(result["single.claim"]).toBeUndefined();
+  });
+
+  test("falls back to single file when directory is empty", async () => {
+    await mkdir(join(tempDir, ".shoe-makers/claim-evidence"), { recursive: true });
+    await writeFile(
+      join(tempDir, ".shoe-makers/claim-evidence.yaml"),
+      "fallback.claim:\n  source:\n    - [yes]\n"
+    );
+    const result = await loadClaimEvidence(tempDir);
+    expect(result["fallback.claim"]).toBeDefined();
   });
 });

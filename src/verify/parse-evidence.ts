@@ -1,4 +1,4 @@
-import { readFile } from "fs/promises";
+import { readFile, readdir } from "fs/promises";
 import { join } from "path";
 
 /**
@@ -10,6 +10,7 @@ export interface EvidenceRule {
 }
 
 const EVIDENCE_PATH = ".shoe-makers/claim-evidence.yaml";
+const EVIDENCE_DIR = ".shoe-makers/claim-evidence";
 
 /**
  * Parse the claim-evidence YAML file into a Record<string, EvidenceRule>.
@@ -98,9 +99,27 @@ function parsePatternList(raw: string): string[] {
 }
 
 /**
- * Load claim evidence from YAML file. Falls back to empty if file not found.
+ * Load claim evidence from YAML files.
+ * Tries `.shoe-makers/claim-evidence/` directory first (multi-file),
+ * falls back to single `.shoe-makers/claim-evidence.yaml`.
  */
 export async function loadClaimEvidence(repoRoot: string): Promise<Record<string, EvidenceRule>> {
+  // Try multi-file directory first
+  const dirPath = join(repoRoot, EVIDENCE_DIR);
+  try {
+    const files = await readdir(dirPath);
+    const yamlFiles = files.filter(f => f.endsWith(".yaml") || f.endsWith(".yml")).sort();
+    if (yamlFiles.length > 0) {
+      let combined = "";
+      for (const file of yamlFiles) {
+        const content = await readFile(join(dirPath, file), "utf-8");
+        combined += content + "\n";
+      }
+      return parseClaimEvidenceYaml(combined);
+    }
+  } catch {}
+
+  // Fall back to single file
   try {
     const content = await readFile(join(repoRoot, EVIDENCE_PATH), "utf-8");
     return parseClaimEvidenceYaml(content);

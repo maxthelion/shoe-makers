@@ -1,0 +1,73 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === behaviour-tree.md ===
+behaviour-tree.tree-evaluator:
+  source:
+    - [export function evaluate]
+  test:
+    - ["evaluate("]
+
+behaviour-tree.selector-tries-children:
+  source:
+    - ["\"selector\""]
+    - ["node.children", "child of node.children"]
+  test:
+    - [selector, "first success"]
+
+behaviour-tree.sequence-runs-in-order:
+  source:
+    - ["\"sequence\""]
+    - ["for (const child", "node.children"]
+  test:
+    - [sequence, "runs children in order"]
+
+behaviour-tree.re-evaluates-from-scratch:
+  source:
+    - ["evaluate(defaultTree", "evaluateWithTrace(defaultTree", "evaluate(node"]
+  test:
+    - ["evaluate("]
+
+behaviour-tree.tree-order-priority:
+  source:
+    - [makeConditionAction]
+    - [defaultTree]
+  test:
+    - [priority, "tree order"]
+
+behaviour-tree.macro-micro-priority:
+  source:
+    - [makeConditionAction]
+    - [generatePrompt, prioritise]
+  test:
+    - [priority, prioritise]
+
+behaviour-tree.elf-is-prioritiser:
+  source:
+    - [generatePrompt]
+    - [prioritise, candidates]
+  test:
+    - [prioritise, candidates]
+
+behaviour-tree.should-never-sleep:
+  source:
+    - [alwaysTrue]
+    - [explore]
+  test:
+    - [returns explore when nothing else matches, explore]
+
+behaviour-tree.blackboard-pattern:
+  source:
+    - [readBlackboard]
+    - [writeAssessment]
+  test:
+    - [readBlackboard, blackboard]
+
+behaviour-tree.game-style-selector:
+  source:
+    - [makeConditionAction]
+    - ["\"selector\""]
+  test:
+    - [fix-tests]
+    - [explore]

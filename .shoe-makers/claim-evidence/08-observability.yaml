@@ -1,0 +1,22 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === observability.md ===
+observability.shift-log-per-day:
+  source:
+    - [appendToShiftLog]
+  test:
+    - [appendToShiftLog, shiftLog]
+
+observability.findings-directory:
+  source:
+    - ["readFindings(", "loadFindings(", shoe-makers/findings]
+  test:
+    - [readFindings, findings]
+
+observability.timestamped-entries:
+  source:
+    - [timeStamp, timestamp]
+  test:
+    - [timestamp, toISOString]

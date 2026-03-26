@@ -1,0 +1,47 @@
+# IMPORTANT: Evidence patterns are matched against source code with comments stripped.
+# Both // line comments and /* */ block comments are removed before matching.
+# Patterns must match text in actual code, not in comments or JSDoc.
+
+# === creative-exploration (insight evaluation) ===
+
+# Explore elf reads codebase through the lens
+spec.creative-exploration.the-explore-elf-reads-the-codebase-through-the-lens-and-writ:
+  source:
+    - [Creative Lens]
+    - [article.title]
+  test:
+    - [Creative Lens]
+
+# Evaluate-insight elf engages constructively with insights
+spec.creative-exploration.the-prioritise-elf-evaluates-insights-critically-not-just-tr:
+  source:
+    - [engage constructively]
+  test:
+    - [evaluate-insight]
+
+# Evaluator can promote, rework, or dismiss
+spec.creative-exploration.the-evaluator-can-promote-viable-work-item-rework-rewrite-th:
+  source:
+    - [Promote]
+    - [Rework]
+    - [Dismiss]
+  test:
+    - [Promote]
+    - [Rework]
+    - [Dismiss]
+
+# Good evaluation improves ideas, not just filters them
+spec.creative-exploration.good-evaluation-improves-ideas-not-just-filters-them-the-raw:
+  source:
+    - [improves ideas]
+  test:
+    - [improves ideas]
+
+# Separation between divergent (generating) and convergent (evaluating)
+spec.creative-exploration.the-separation-between-generating-insights-divergent-and-eva:
+  source:
+    - [creative mode]
+    - [convergent mode]
+  test:
+    - [creative mode]
+    - [convergent mode]
