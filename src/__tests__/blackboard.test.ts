@@ -27,6 +27,8 @@ describe("readBlackboard", () => {
     expect(bb).toEqual({
       assessment: null,
       currentTask: null,
+      priorities: null,
+      verification: null,
     });
   });
 

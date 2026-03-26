@@ -182,7 +182,7 @@ describe("buildExplorePrompt", () => {
       ...freshAssessment,
       processPatterns: {
         reactiveRatio: 0.7,
-        reviewLoopDetected: false,
+        reviewLoopCount: 0,
         innovationCycleCount: 0,
       },
     };
@@ -199,7 +199,7 @@ describe("buildExplorePrompt", () => {
       ...freshAssessment,
       processPatterns: {
         reactiveRatio: 0.2,
-        reviewLoopDetected: false,
+        reviewLoopCount: 0,
         innovationCycleCount: 0,
       },
     };
@@ -215,7 +215,7 @@ describe("buildExplorePrompt", () => {
       ...freshAssessment,
       processPatterns: {
         reactiveRatio: 0.45,
-        reviewLoopDetected: false,
+        reviewLoopCount: 0,
         innovationCycleCount: 0,
       },
     };

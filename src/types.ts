@@ -43,6 +43,15 @@ export type ActionType =
 export interface Blackboard {
   assessment: Assessment | null;
   currentTask: CurrentTask | null;
+  priorities: PriorityItem[] | null;
+  verification: VerificationResult | null;
+}
+
+/** Result of a verification pass */
+export interface VerificationResult {
+  timestamp: string;
+  passed: boolean;
+  details: string;
 }
 
 /** Output of the ASSESS tick */

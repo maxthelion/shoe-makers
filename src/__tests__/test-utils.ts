@@ -6,6 +6,8 @@ export function emptyBlackboard(): Blackboard {
   return {
     assessment: null,
     currentTask: null,
+    priorities: null,
+    verification: null,
   };
 }
 

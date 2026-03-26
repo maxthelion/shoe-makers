@@ -223,8 +223,8 @@ Fix things.`;
 
 describe("findSkillForType", () => {
   const skills = new Map<string, SkillDefinition>([
-    ["fix-tests", { name: "fix-tests", description: "Fix tests", prompt: "", risk: "low", mapsTo: "fix", body: "", offLimits: [] }],
-    ["implement", { name: "implement", description: "Implement", prompt: "", risk: "medium", mapsTo: "implement", body: "", offLimits: [] }],
+    ["fix-tests", { name: "fix-tests", description: "Fix tests", prompt: "", risk: "low", filename: "", mapsTo: "fix", body: "", offLimits: [] }],
+    ["implement", { name: "implement", description: "Implement", prompt: "", risk: "medium", filename: "", mapsTo: "implement", body: "", offLimits: [] }],
   ]);
 
   test("finds skill by priority type", () => {

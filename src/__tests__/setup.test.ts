@@ -43,6 +43,8 @@ function makeWorldState(overrides: Partial<WorldState> = {}): WorldState {
   const blackboard: Blackboard = {
     assessment: null,
     currentTask: null,
+    priorities: null,
+    verification: null,
   };
   return {
     branch: "shoemakers/2026-03-22",

@@ -153,6 +153,7 @@ function makeSkill(overrides: Partial<SkillDefinition> & { name: string; mapsTo:
     description: "Test skill",
     prompt: "## Instructions\n\nDo the thing.",
     risk: "medium",
+    filename: "",
     body: "## Instructions\n\nDo the thing.\n\n## Verification criteria\n\n- It works",
     offLimits: ["Do not break things"],
     ...overrides,
