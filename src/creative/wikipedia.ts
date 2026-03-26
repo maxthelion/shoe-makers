@@ -1,5 +1,6 @@
 import { readFile, readdir, writeFile } from "fs/promises";
 import { join } from "path";
+import { parseFrontmatter as parseRawFrontmatter, getFrontmatterField } from "../utils/frontmatter";
 
 const CORPUS_DIR = ".shoe-makers/creative-corpus";
 
@@ -26,9 +27,10 @@ export async function readLocalCorpus(repoRoot: string): Promise<CorpusArticle[]
     const filepath = join(dir, file);
     try {
       const content = await readFile(filepath, "utf-8");
-      const frontmatter = parseFrontmatter(content);
-      if (frontmatter.used) continue;
-      const title = typeof frontmatter.title === "string" ? frontmatter.title : file.replace(/\.md$/, "");
+      const parsed = parseRawFrontmatter(content);
+      if (parsed && getFrontmatterField(parsed.frontmatter, "used") === "true") continue;
+      const rawTitle = parsed && getFrontmatterField(parsed.frontmatter, "title");
+      const title = rawTitle ? rawTitle.replace(/^["']|["']$/g, "") : file.replace(/\.md$/, "");
       const body = content.replace(/^---[\s\S]*?---\n*/, "").trim();
       if (body.length > 0) {
         articles.push({ title, summary: body.substring(0, 1000), filepath });
@@ -65,22 +67,6 @@ export async function markArticleUsed(filepath: string): Promise<void> {
   }
 }
 
-/**
- * Parse simple frontmatter from a markdown file.
- */
-function parseFrontmatter(content: string): Record<string, string | boolean> {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return {};
-  const result: Record<string, string | boolean> = {};
-  for (const line of match[1].split("\n")) {
-    const kv = line.match(/^(\w[\w-]*):\s*(.+)$/);
-    if (kv) {
-      const value = kv[2].trim().replace(/^["']|["']$/g, "");
-      result[kv[1]] = value === "true" ? true : value === "false" ? false : value;
-    }
-  }
-  return result;
-}
 
 /**
  * Diverse concept corpus for creative analogical prompting.
