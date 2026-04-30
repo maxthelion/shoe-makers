@@ -1,0 +1,8 @@
+# Shoe-makers configuration
+# All values are optional — sensible defaults are used for anything not specified.
+
+branch-prefix: shoemakers
+tick-interval: 5
+wiki-dir: wiki
+assessment-stale-after: 30
+max-ticks-per-shift: 10

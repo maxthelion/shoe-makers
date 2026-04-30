@@ -1,0 +1,43 @@
+# shoe-makers install manifest.
+#
+# Describes where each canonical file lands in a target project. Consumed by
+# the meta hub `bundle` CLI (or by shoe-makers' own `bun run init`, which
+# defers to the same manifest).
+name: shoe-makers
+version: 0.1.0
+description: >
+  Reusable elf-framework bundle: skill prompts, protocol, invariants
+  template, config + schedule defaults. The runtime (selector tree +
+  dispatcher) ships in the shoe-makers package itself; this bundle is the
+  per-project content that lives in `.shoe-makers/`.
+
+requires:
+  - .git/
+
+files:
+  - source: protocol.md
+    target: .shoe-makers/protocol.md
+  - source: config.yaml
+    target: .shoe-makers/config.yaml
+  - source: schedule.md
+    target: .shoe-makers/schedule.md
+  - source: invariants.md
+    target: .shoe-makers/invariants.md
+  - source: skills/implement.md
+    target: .shoe-makers/skills/implement.md
+  - source: skills/fix-tests.md
+    target: .shoe-makers/skills/fix-tests.md
+  - source: skills/test-coverage.md
+    target: .shoe-makers/skills/test-coverage.md
+  - source: skills/doc-sync.md
+    target: .shoe-makers/skills/doc-sync.md
+  - source: skills/health.md
+    target: .shoe-makers/skills/health.md
+  - source: skills/octoclean-fix.md
+    target: .shoe-makers/skills/octoclean-fix.md
+  - source: skills/bug-fix.md
+    target: .shoe-makers/skills/bug-fix.md
+  - source: skills/dead-code.md
+    target: .shoe-makers/skills/dead-code.md
+  - source: skills/dependency-update.md
+    target: .shoe-makers/skills/dependency-update.md

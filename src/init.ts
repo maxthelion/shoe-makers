@@ -1,78 +1,125 @@
-import { mkdir, writeFile, readFile, readdir } from "fs/promises";
-import { join } from "path";
-import {
-  PROTOCOL_CONTENT,
-  CONFIG_CONTENT,
-  SCHEDULE_CONTENT,
-  INVARIANTS_TEMPLATE,
-} from "./init-templates";
+import { copyFile, mkdir, readdir, readFile, writeFile } from "fs/promises";
+import { dirname, join, resolve } from "path";
 import { fileExists } from "./utils/fs";
-import {
-  IMPLEMENT_SKILL,
-  BUG_FIX_SKILL,
-  OCTOCLEAN_FIX_SKILL,
-  DEPENDENCY_UPDATE_SKILL,
-} from "./init-skill-templates-work";
-import {
-  FIX_TESTS_SKILL,
-  HEALTH_SKILL,
-  DEAD_CODE_SKILL,
-} from "./init-skill-templates-quality";
-import {
-  TEST_COVERAGE_SKILL,
-  DOC_SYNC_SKILL,
-} from "./init-skill-templates-docs";
 
 export interface InitResult {
   created: string[];
   skipped: string[];
 }
 
-interface ScaffoldFile {
-  path: string;
-  content: string;
+interface ManifestFile {
+  source: string;
+  target: string;
+  mode?: string;
+}
+interface Manifest {
+  name: string;
+  version: string;
+  description?: string;
+  files: ManifestFile[];
 }
 
 /**
- * Scaffold .shoe-makers/ directory structure in a repository.
- * Does not overwrite existing files — safe to run multiple times.
+ * Resolve the canonical bundle directory shipped with this package.
+ * Works whether shoe-makers is invoked from its source repo or from
+ * `node_modules/shoe-makers/` in a consuming project.
+ */
+function resolveBundleDir(): string {
+  return resolve(import.meta.dir, "..", "bundle");
+}
+
+/**
+ * Parse a tiny subset of YAML — just enough for this manifest. Only handles
+ * top-level scalars and a `files:` list of objects with scalar values. Avoids
+ * adding a YAML dep to shoe-makers.
+ */
+function parseManifest(yamlText: string): Manifest {
+  const lines = yamlText.split("\n");
+  const top: Record<string, string> = {};
+  const files: ManifestFile[] = [];
+  let current: ManifestFile | null = null;
+  let inFiles = false;
+
+  for (let raw of lines) {
+    if (raw.trim().startsWith("#") || raw.trim() === "") continue;
+    if (raw.startsWith("files:")) {
+      inFiles = true;
+      continue;
+    }
+    if (inFiles) {
+      const itemMatch = raw.match(/^\s*-\s*source:\s*(.+?)\s*$/);
+      if (itemMatch) {
+        if (current) files.push(current);
+        current = { source: itemMatch[1]!, target: "" };
+        continue;
+      }
+      const propMatch = raw.match(/^\s+(target|mode):\s*(.+?)\s*$/);
+      if (propMatch && current) {
+        const [, key, value] = propMatch;
+        if (key === "target") current.target = value!;
+        else if (key === "mode") current.mode = value!.replace(/^["']|["']$/g, "");
+        continue;
+      }
+      // top-level scalar after files:; rare, but handle safely
+      const topMatch = raw.match(/^([a-z_-]+):\s*(.+?)\s*$/i);
+      if (topMatch && !raw.startsWith(" ")) {
+        if (current) files.push(current);
+        current = null;
+        inFiles = false;
+        top[topMatch[1]!] = topMatch[2]!;
+      }
+    } else {
+      const topMatch = raw.match(/^([a-z_-]+):\s*(.*?)\s*$/i);
+      if (topMatch && !raw.startsWith(" ")) {
+        top[topMatch[1]!] = topMatch[2]!.replace(/^["']|["']$/g, "");
+      }
+    }
+  }
+  if (current) files.push(current);
+
+  return {
+    name: top.name ?? "shoe-makers",
+    version: top.version ?? "0.0.0",
+    description: top.description,
+    files,
+  };
+}
+
+async function loadManifest(bundleDir: string): Promise<Manifest> {
+  const path = join(bundleDir, "manifest.yaml");
+  const text = await readFile(path, "utf8");
+  return parseManifest(text);
+}
+
+/**
+ * Scaffold .shoe-makers/ directory structure in a repository from the
+ * canonical bundle. Does not overwrite existing files — safe to run multiple
+ * times. For a drift-aware install/update lifecycle, use the meta hub
+ * `bundle` CLI against this same bundle directory.
  */
 export async function init(repoRoot: string): Promise<InitResult> {
-  const base = join(repoRoot, ".shoe-makers");
   const created: string[] = [];
   const skipped: string[] = [];
 
-  // Create directories
-  const dirs = ["inbox", "findings", "log", "state", "skills"];
-  for (const dir of dirs) {
-    await mkdir(join(base, dir), { recursive: true });
+  const bundleDir = resolveBundleDir();
+  const manifest = await loadManifest(bundleDir);
+
+  // Always create runtime directories that the elf needs but the bundle
+  // doesn't ship (state, logs, inbox, findings).
+  for (const dir of ["inbox", "findings", "log", "state", "skills"]) {
+    await mkdir(join(repoRoot, ".shoe-makers", dir), { recursive: true });
   }
 
-  // Create scaffold files (never overwrite)
-  const files: ScaffoldFile[] = [
-    { path: "protocol.md", content: PROTOCOL_CONTENT },
-    { path: "config.yaml", content: CONFIG_CONTENT },
-    { path: "schedule.md", content: SCHEDULE_CONTENT },
-    { path: "invariants.md", content: INVARIANTS_TEMPLATE },
-    { path: "skills/implement.md", content: IMPLEMENT_SKILL },
-    { path: "skills/fix-tests.md", content: FIX_TESTS_SKILL },
-    { path: "skills/test-coverage.md", content: TEST_COVERAGE_SKILL },
-    { path: "skills/doc-sync.md", content: DOC_SYNC_SKILL },
-    { path: "skills/health.md", content: HEALTH_SKILL },
-    { path: "skills/octoclean-fix.md", content: OCTOCLEAN_FIX_SKILL },
-    { path: "skills/bug-fix.md", content: BUG_FIX_SKILL },
-    { path: "skills/dead-code.md", content: DEAD_CODE_SKILL },
-    { path: "skills/dependency-update.md", content: DEPENDENCY_UPDATE_SKILL },
-  ];
-
-  for (const file of files) {
-    const fullPath = join(base, file.path);
-    if (await fileExists(fullPath)) {
-      skipped.push(file.path);
-    } else {
-      await writeFile(fullPath, file.content);
-      created.push(file.path);
+  for (const file of manifest.files) {
+    const src = join(bundleDir, file.source);
+    const dst = join(repoRoot, file.target);
+    await mkdir(dirname(dst), { recursive: true });
+    if (await fileExists(dst)) {
+      skipped.push(file.target);
+      continue;
     }
+    await copyFile(src, dst);
+    created.push(file.target);
   }
 
   return { created, skipped };
@@ -89,7 +136,7 @@ export interface BootstrapResult {
  */
 function extractTitle(content: string, filename: string): string {
   const h1 = content.match(/^#\s+(.+)/m);
-  return h1 ? h1[1].trim() : filename.replace(/\.md$/, "");
+  return h1 ? h1[1]!.trim() : filename.replace(/\.md$/, "");
 }
 
 /**
